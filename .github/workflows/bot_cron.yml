@@ -2,7 +2,7 @@ name: Run Coinbase Grid Bot
 
 on:
   schedule:
-    - cron: '*/20 * * * *'
+    - cron: '0 * * * *'  # GitHub lo avvierà stabilmente una volta all'ora
   workflow_dispatch:
 
 jobs:
@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # Necessario per permettere allo script Python di fare il push
 
       - name: Configura Python
         uses: actions/setup-python@v5
@@ -22,8 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Esegui Bot
-        timeout-minutes: 3
+      - name: Esegui Bot in Loop (Ogni 20 min)
+        timeout-minutes: 55  # Lascia il tempo al container di girare per quasi un'ora
         env:
           PYTHONUNBUFFERED: "1"
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -31,10 +33,3 @@ jobs:
           COINBASE_KEY_NAME: ${{ secrets.COINBASE_KEY_NAME }}
           COINBASE_KEY_SECRET: ${{ secrets.COINBASE_KEY_SECRET }}
         run: python bot_coinbase_github.py
-
-      - name: Salva aggiornamenti stato_bot.txt
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add stato_bot.txt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Aggiornato stato_bot.txt [skip ci]" && git push)
