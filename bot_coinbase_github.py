@@ -5,7 +5,7 @@ import sys
 import subprocess
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio dello script (Versione Loop Continuo su GitHub Actions)...")
+print("1. [DEBUG] Avvio dello script (Versione Loop Rapido 5 minuti su GitHub Actions)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -67,9 +67,8 @@ def git_commit_and_push():
         subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
         subprocess.run(["git", "add", FILE_STATO], check=True)
         
-        # Controlla se ci sono reali cambiamenti prima di fare il commit
         status = subprocess.run(["git", "diff", "--quiet", "--staged"], capture_output=True)
-        if status.returncode != 0:  # Ci sono modifiche da salvare
+        if status.returncode != 0:  
             print("-> [DEBUG] Rilevate modifiche a stato_bot.txt. Eseguo Commit & Push...")
             subprocess.run(["git", "commit", "-m", "Aggiornato stato_bot.txt [skip ci]"], check=True)
             subprocess.run(["git", "push"], check=True)
@@ -292,9 +291,9 @@ def main():
         if piazza_nuova_griglia(nuovo_pivot):
             invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
 
-    # Sblocco per griglie asimmetriche (Gestione errore dello screenshot)
+    # Reset in caso di asimmetria (es. ordine singolo dello screenshot)
     elif (id_ordine_acquisto is None and id_ordine_vendita is not None) or (id_ordine_acquisto is not None and id_ordine_vendita is None):
-        print("⚠️ [DEBUG] Rilevata griglia asimmetrica. Forzo reset basato su prezzo attuale...")
+        print("⚠️ [DEBUG] Rilevata griglia asimmetrica. Reset con prezzo spot...")
         nuovo_prezzo = ottieni_prezzo_reale()
         if nuovo_prezzo:
             salva_prezzo(nuovo_prezzo)
@@ -304,18 +303,19 @@ def main():
         print("7. [DEBUG] Entrambi gli ordini sono ancora pendenti. Nessuna operazione necessaria.")
 
 if __name__ == "__main__":
-    # Esegue il loop interno 3 volte a intervalli di 20 minuti (Totale 60 minuti)
-    TEMPO_ATTESA_MINUTI = 20
+    # 11 ripetizioni distanziate da 5 minuti = 55 minuti di lavoro complessivo
+    TEMPO_ATTESA_MINUTI = 5
+    TOTALI_CICLI = 11 
     
-    for ciclo in range(3):
-        print(f"\n🚀 === INIZIO CICLO {ciclo + 1} DI 3 ===")
+    for ciclo in range(TOTALI_CICLI):
+        print(f"\n⏱️ === INIZIO CICLO {ciclo + 1} DI {TOTALI_CICLI} ===")
         main()
         
-        # Sincronizza lo stato attuale su GitHub subito dopo l'esecuzione del ciclo
+        # Sincronizza lo stato attuale su GitHub ad ogni ciclo
         git_commit_and_push()
         
-        if ciclo < 2:  # Evita di aspettare dopo l'ultimo ciclo
-            print(f"💤 Ciclo completato. In attesa di {TEMPO_ATTESA_MINUTI} minuti per il prossimo controllo...")
+        if ciclo < (TOTALI_CICLI - 1):  
+            print(f"💤 Ciclo completato. In attesa di {TEMPO_ATTESA_MINUTI} minuti...")
             time.sleep(TEMPO_ATTESA_MINUTI * 60)
             
-    print("\n🏁 [DEBUG] Tutti e 3 i cicli orari sono terminati. GitHub Actions si spegne regolarmente.")
+    print("\n🏁 [DEBUG] Sessione oraria completata. Arresto controllato per il riavvio del prossimo runner GitHub.")
