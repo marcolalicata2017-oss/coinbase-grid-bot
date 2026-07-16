@@ -61,7 +61,6 @@ def ottieni_prezzo_reale():
     for tentativo in range(3):
         try: 
             res = client.get_product(product_id=PRODUCT_ID)
-            # Gestione sia di dizionario che di oggetto SDK
             prezzo_str = res.get('price') if isinstance(res, dict) else getattr(res, 'price', None)
             if prezzo_str:
                 prezzo = float(prezzo_str)
@@ -78,7 +77,6 @@ def cancella_tutti_ordini():
     for tentativo in range(3):
         try:
             res = client.list_orders(order_status=["OPEN"])
-            # Estrazione sicura della lista ordini
             ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
             if ordini:
                 id_ordini = []
@@ -101,7 +99,6 @@ def controlla_stato_ordine(order_id):
     for tentativo in range(3):
         try:
             res = client.get_order(order_id=order_id)
-            # Estrazione sicura dello stato
             ordine_data = res.get('order', {}) if isinstance(res, dict) else getattr(res, 'order', None)
             stato = ordine_data.get('status') if isinstance(ordine_data, dict) else getattr(ordine_data, 'status', 'UNKNOWN')
             return stato
@@ -118,7 +115,6 @@ def recupera_ordini_griglia_esistenti():
             res = client.list_orders(order_status=["OPEN"])
             print("-> [DEBUG] Risposta ricevuta correttamente da Coinbase!")
             
-            # Estrazione sicura: supporta sia Dizionario che Oggetto Pydantic dell'SDK
             ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
             
             if ordini:
@@ -169,6 +165,8 @@ def piazza_nuova_griglia(prezzo_rif):
                     }
                 }
             )
+            # DIAGNOSTICA: Stampiamo la risposta reale per capire come estrarre l'ID
+            print(f"-> [DEBUG] Risposta grezza BUY: {ord_buy}")
             id_acq = ord_buy.get('order_id') if isinstance(ord_buy, dict) else getattr(ord_buy, 'order_id', None)
             
             # 2. LIMIT SELL
@@ -188,9 +186,10 @@ def piazza_nuova_griglia(prezzo_rif):
             )
             id_ven = ord_sell.get('order_id') if isinstance(ord_sell, dict) else getattr(ord_sell, 'order_id', None)
             
-            if id_acq and id_ven:
-                print(f"📐 Griglia configurata con successo! Buy: {prezzo_buy:.2f} | Sell: {prezzo_sell:.2f}")
-                return True
+            # BLOCCO ANTI-DUPLICATO: Se l'invio non ha sollevato eccezioni, fermiamo subito il ciclo di retry!
+            print("📐 Griglia inviata con successo a Coinbase!")
+            return True
+
         except Exception as e:
             print(f"⚠️ [Tentativo {tentativo+1}/3] Errore invio ordini: {e}")
             time.sleep(2)
@@ -204,7 +203,6 @@ def main():
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
     print(f"6. [DEBUG] Analisi completata. Buy: {id_ordine_acquisto} | Sell: {id_ordine_vendita}")
     
-    # Se il recupero ha fallito completamente per rete, fermiamoci
     if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is None:
         print("❌ [DEBUG] Recupero dati fallito per problemi di rete. Termino l'esecuzione per sicurezza.")
         return
