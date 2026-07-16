@@ -169,4 +169,60 @@ def piazza_nuova_griglia(prezzo_rif):
                 print(f"📐 Griglia piazzata! Buy: {prezzo_buy:.2f} | Sell: {prezzo_sell:.2f}")
                 return True
         except Exception as e:
-            print(
+            print(f"⚠️ [Tentativo {tentativo+1}/3] Errore invio ordini griglia: {e}")
+            time.sleep(3)
+    return False
+
+def main():
+    print("4. [DEBUG] Lettura prezzo salvato...")
+    prezzo_riferimento = leggi_prezzo_salvato()
+    print(f"5. [DEBUG] Prezzo salvato nel file: {prezzo_riferimento}")
+    
+    id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
+    print(f"6. [DEBUG] Analisi completata. Buy: {id_ordine_acquisto} | Sell: {id_ordine_vendita}")
+    
+    # Se il recupero ha fallito completamente ed è tornato None a causa del timeout, evitiamo di procedere alla cieca
+    if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is None:
+        print("❌ [DEBUG] Recupero dati fallito per problemi di rete. Termino l'esecuzione per sicurezza.")
+        return
+        
+    if id_ordine_acquisto is None and id_ordine_vendita is None:
+        if prezzo_riferimento is None:
+            prezzo_riferimento = ottieni_prezzo_reale()
+            if prezzo_riferimento:
+                salva_prezzo(prezzo_riferimento)
+        
+        if prezzo_riferimento:
+            print("Nessun ordine attivo. Genero nuova griglia...")
+            piazza_nuova_griglia(prezzo_riferimento)
+        return
+
+    eseguito_acquisto = False
+    eseguito_vendita = False
+
+    if id_ordine_acquisto:
+        stato_buy = controlla_stato_ordine(id_ordine_acquisto)
+        if stato_buy == "FILLED":
+            eseguito_acquisto = True
+
+    if id_ordine_vendita:
+        stato_sell = controlla_stato_ordine(id_ordine_vendita)
+        if stato_sell == "FILLED":
+            eseguito_vendita = True
+
+    if eseguito_acquisto:
+        nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
+        salva_prezzo(nuovo_pivot)
+        if piazza_nuova_griglia(nuovo_pivot):
+            invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
+            
+    elif eseguito_vendita:
+        nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
+        salva_prezzo(nuovo_pivot)
+        if piazza_nuova_griglia(nuovo_pivot):
+            invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
+    else:
+        print("7. [DEBUG] Entrambi gli ordini sono ancora OPEN. Esco.")
+
+if __name__ == "__main__":
+    main()
