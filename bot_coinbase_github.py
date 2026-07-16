@@ -4,7 +4,7 @@ import os
 import sys
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio dello script (Versione Compatibile SDK/Dict)...")
+print("1. [DEBUG] Avvio dello script (Versione Size Dinamica su Saldo Reale)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -13,9 +13,12 @@ COINBASE_KEY_NAME = os.getenv("COINBASE_KEY_NAME")
 COINBASE_KEY_SECRET = os.getenv("COINBASE_KEY_SECRET")
 
 PRODUCT_ID = "ETH-EUR"       
-BUDGET_STEP_EUR = 19.90      
 GRID_DIST_PCT = 0.0120       
 FILE_STATO = "stato_bot.txt"  
+
+# --- PARAMETRI COMPOSITING DINAMICO ---
+PERCENTUALE_BUDGET = 0.020    # Usa il 2.0% del saldo EUR libero su Coinbase
+MIN_BUDGET_EUR = 15.00        # Soglia minima di sicurezza per evitare blocchi Coinbase
 # =========================================================
 
 if not COINBASE_KEY_NAME or not COINBASE_KEY_SECRET:
@@ -71,6 +74,35 @@ def ottieni_prezzo_reale():
             time.sleep(2)
     print("❌ [DEBUG] Impossibile ottenere il prezzo reale.")
     return None
+
+def calcola_budget_dinamico():
+    print("-> [DEBUG] Recupero del saldo EUR disponibile su Coinbase...")
+    for tentativo in range(3):
+        try:
+            conti = client.get_accounts()
+            lista_conti = conti.get('accounts', []) if isinstance(conti, dict) else getattr(conti, 'accounts', [])
+            
+            for conto in lista_conti:
+                valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
+                if valuta == "EUR":
+                    disponibile_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
+                    saldo_libero = float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
+                    
+                    # Calcoliamo la size in base alla percentuale desiderata
+                    size_calcolata = saldo_libero * PERCENTUALE_BUDGET
+                    
+                    # Applichiamo i limiti di salvaguardia
+                    size_finale = max(size_calcolata, MIN_BUDGET_EUR)
+                    print(f"💰 [DEBUG] Saldo EUR libero: {saldo_libero:.2f} EUR | Size calcolata ({PERCENTUALE_BUDGET*100}%): {size_calcolata:.2f} EUR -> Utilizzo: {size_finale:.2f} EUR")
+                    return round(size_finale, 2)
+            
+            print("⚠️ [DEBUG] Conto EUR non trovato nella lista degli account.")
+        except Exception as e:
+            print(f"⚠️ [Tentativo {tentativo+1}/3] Errore recupero saldo: {e}")
+            time.sleep(2)
+            
+    print(f"❌ [DEBUG] Recupero saldo fallito. Utilizzo valore minimo di default: {MIN_BUDGET_EUR} EUR")
+    return MIN_BUDGET_EUR
 
 def cancella_tutti_ordini():
     print("-> [DEBUG] Controllo cancellazione vecchi ordini...")
@@ -144,35 +176,35 @@ def piazza_nuova_griglia(prezzo_rif):
     print("-> [DEBUG] Preparazione piazzamento nuova griglia...")
     cancella_tutti_ordini()
     
+    # Recuperiamo il budget dinamico calcolato sul saldo EUR attuale
+    budget_step = calcola_budget_dinamico()
+    
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
     prezzo_sell = prezzo_rif * (1.0 + GRID_DIST_PCT)
-    quantita_eth_sell = BUDGET_STEP_EUR / prezzo_sell
+    quantita_eth_sell = budget_step / prezzo_sell
     
     for tentativo in range(3):
         try:
             # 1. LIMIT BUY
             id_buy = f"lbuy_{int(time.time())}"
-            print(f"-> [DEBUG] Invio Limit BUY a {prezzo_buy:.2f} EUR...")
-            ord_buy = client.create_order(
+            print(f"-> [DEBUG] Invio Limit BUY a {prezzo_buy:.2f} EUR (Valore: {budget_step:.2f} EUR)...")
+            client.create_order(
                 client_order_id=id_buy,
                 product_id=PRODUCT_ID,
                 side="BUY",
                 order_configuration={
                     "limit_limit_gtc": {
-                        "quote_size": f"{BUDGET_STEP_EUR:.2f}",
+                        "quote_size": f"{budget_step:.2f}",
                         "limit_price": f"{prezzo_buy:.2f}",
                         "post_only": False
                     }
                 }
             )
-            # DIAGNOSTICA: Stampiamo la risposta reale per capire come estrarre l'ID
-            print(f"-> [DEBUG] Risposta grezza BUY: {ord_buy}")
-            id_acq = ord_buy.get('order_id') if isinstance(ord_buy, dict) else getattr(ord_buy, 'order_id', None)
             
             # 2. LIMIT SELL
             id_sell = f"lsell_{int(time.time())}"
-            print(f"-> [DEBUG] Invio Limit SELL a {prezzo_sell:.2f} EUR...")
-            ord_sell = client.create_order(
+            print(f"-> [DEBUG] Invio Limit SELL a {prezzo_sell:.2f} EUR (Quantità: {quantita_eth_sell:.5f} ETH)...")
+            client.create_order(
                 client_order_id=id_sell,
                 product_id=PRODUCT_ID,
                 side="SELL",
@@ -184,10 +216,8 @@ def piazza_nuova_griglia(prezzo_rif):
                     }
                 }
             )
-            id_ven = ord_sell.get('order_id') if isinstance(ord_sell, dict) else getattr(ord_sell, 'order_id', None)
             
-            # BLOCCO ANTI-DUPLICATO: Se l'invio non ha sollevato eccezioni, fermiamo subito il ciclo di retry!
-            print("📐 Griglia inviata con successo a Coinbase!")
+            print("📐 Griglia dinamica inviata con successo a Coinbase!")
             return True
 
         except Exception as e:
