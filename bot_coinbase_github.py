@@ -1,3 +1,7 @@
+import socket
+# TRUCCO DI STATO: Forza un limite invalicabile di 10 secondi a qualsiasi connessione di rete
+socket.setdefaulttimeout(10)
+
 import time
 import requests
 import os
@@ -18,17 +22,15 @@ GRID_DIST_PCT = 0.0120
 FILE_STATO = "stato_bot.txt"  
 # =========================================================
 
-# Controllo rapido delle variabili
 if not COINBASE_KEY_NAME or not COINBASE_KEY_SECRET:
-    print("❌ [DEBUG] Errore: Chiavi API Coinbase mancanti nei Secrets di GitHub!")
+    print("❌ [DEBUG] Errore: Chiavi API Coinbase mancanti nei Secrets!")
     sys.exit(1)
 
-print("2. [DEBUG] Inizializzazione RESTClient di Coinbase...")
-# Inizializziamo il client con un timeout esplicito per evitare blocchi infiniti
+print("2. [DEBUG] Inizializzazione RESTClient...")
 client = RESTClient(
     api_key=COINBASE_KEY_NAME, 
     api_secret=COINBASE_KEY_SECRET,
-    timeout=15
+    timeout=10
 )
 print("3. [DEBUG] Client pronto.")
 
@@ -79,20 +81,23 @@ def cancella_tutti_ordini():
                 client.cancel_orders(order_ids=id_ordini)
                 time.sleep(1)
     except Exception as e:
-        print(f"Errore cancellazione: {e}")
+        print(f"❌ [DEBUG] Errore durante la cancellazione: {e}")
 
 def controlla_stato_ordine(order_id):
     try:
         ordine = client.get_order(order_id=order_id)
         return ordine['order']['status']
-    except:
+    except Exception as e:
+        print(f"❌ [DEBUG] Errore controllo stato ordine {order_id}: {e}")
         return "UNKNOWN"
 
 def recupera_ordini_griglia_esistenti():
-    print("-> [DEBUG] Recupero ordini esistenti...")
+    print("-> [DEBUG] Tentativo di recupero ordini esistenti...")
     id_buy, id_sell = None, None
     try:
+        # Questa è la chiamata critica
         ordini_aperti = client.list_orders(order_status=["OPEN"])
+        print("-> [DEBUG] Risposta ricevuta da Coinbase!")
         if 'orders' in ordini_aperti:
             for o in ordini_aperti['orders']:
                 if o['product_id'] == PRODUCT_ID:
@@ -102,11 +107,11 @@ def recupera_ordini_griglia_esistenti():
                     elif 'lsell_' in c_id:
                         id_sell = o['order_id']
     except Exception as e:
-        print(f"Errore recupero: {e}")
+        print(f"❌ [DEBUG] Errore critico nel recupero ordini: {e}")
     return id_buy, id_sell
 
 def piazza_nuova_griglia(prezzo_rif):
-    print("-> [DEBUG] Piazzamento nuova griglia...")
+    print("-> [DEBUG] Preparazione piazzamento nuova griglia...")
     cancella_tutti_ordini()
     
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
@@ -116,6 +121,7 @@ def piazza_nuova_griglia(prezzo_rif):
     try:
         # 1. LIMIT BUY
         id_buy = f"lbuy_{int(time.time())}"
+        print(f"-> [DEBUG] Invio Limit BUY a {prezzo_buy:.2f}...")
         ord_buy = client.create_order(
             client_order_id=id_buy,
             product_id=PRODUCT_ID,
@@ -132,6 +138,7 @@ def piazza_nuova_griglia(prezzo_rif):
         
         # 2. LIMIT SELL
         id_sell = f"lsell_{int(time.time())}"
+        print(f"-> [DEBUG] Invio Limit SELL a {prezzo_sell:.2f}...")
         ord_sell = client.create_order(
             client_order_id=id_sell,
             product_id=PRODUCT_ID,
@@ -147,10 +154,10 @@ def piazza_nuova_griglia(prezzo_rif):
         id_ven = ord_sell.get('order_id') if isinstance(ord_sell, dict) else ord_sell.order_id
         
         if id_acq and id_ven:
-            print(f"📐 Griglia OK! Buy: {prezzo_buy:.2f} | Sell: {prezzo_sell:.2f}")
+            print(f"📐 Griglia piazzata! Buy: {prezzo_buy:.2f} | Sell: {prezzo_sell:.2f}")
             return True
     except Exception as e:
-        print(f"Errore piazzamento: {e}")
+        print(f"❌ [DEBUG] Errore durante l'invio degli ordini: {e}")
     return False
 
 def main():
@@ -159,7 +166,7 @@ def main():
     print(f"5. [DEBUG] Prezzo salvato nel file: {prezzo_riferimento}")
     
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
-    print(f"6. [DEBUG] Ordini trovati sul book - Buy: {id_ordine_acquisto} | Sell: {id_ordine_vendita}")
+    print(f"6. [DEBUG] Analisi completata. Buy: {id_ordine_acquisto} | Sell: {id_ordine_vendita}")
     
     if id_ordine_acquisto is None and id_ordine_vendita is None:
         if prezzo_riferimento is None:
@@ -168,7 +175,7 @@ def main():
                 salva_prezzo(prezzo_riferimento)
         
         if prezzo_riferimento:
-            print("Nessun ordine. Rigenero...")
+            print("Nessun ordine attivo. Genero nuova griglia...")
             piazza_nuova_griglia(prezzo_riferimento)
         return
 
