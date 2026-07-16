@@ -1,9 +1,12 @@
 import time
 import requests
 import os
+import sys
 from coinbase.rest import RESTClient
 
-# ================= CONFIGURAZIONE UTENTE (DA SELEZIONARE VIA GITHUB SECRETS) =================
+print("1. [DEBUG] Avvio dello script...")
+
+# ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 COINBASE_KEY_NAME = os.getenv("COINBASE_KEY_NAME")
@@ -13,16 +16,29 @@ PRODUCT_ID = "ETH-EUR"
 BUDGET_STEP_EUR = 19.90      
 GRID_DIST_PCT = 0.0120       
 FILE_STATO = "stato_bot.txt"  
-# ============================================================================================
+# =========================================================
 
-client = RESTClient(api_key=COINBASE_KEY_NAME, api_secret=COINBASE_KEY_SECRET)
+# Controllo rapido delle variabili
+if not COINBASE_KEY_NAME or not COINBASE_KEY_SECRET:
+    print("❌ [DEBUG] Errore: Chiavi API Coinbase mancanti nei Secrets di GitHub!")
+    sys.exit(1)
+
+print("2. [DEBUG] Inizializzazione RESTClient di Coinbase...")
+# Inizializziamo il client con un timeout esplicito per evitare blocchi infiniti
+client = RESTClient(
+    api_key=COINBASE_KEY_NAME, 
+    api_secret=COINBASE_KEY_SECRET,
+    timeout=15
+)
+print("3. [DEBUG] Client pronto.")
 
 def invia_telegram(messaggio):
+    print(f"-> [DEBUG] Invio messaggio Telegram...")
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": messaggio, "parse_mode": "Markdown"}
     try: 
-        # NESSUN PROXY SU GITHUB: Connessione diretta e istantanea
-        requests.post(url, json=payload, timeout=10)
+        requests.post(url, json=payload, timeout=8)
+        print("-> [DEBUG] Telegram inviato.")
     except Exception as e: 
         print(f"⚠️ Telegram non raggiungibile: {e}")
 
@@ -43,19 +59,27 @@ def salva_prezzo(prezzo):
         print(f"Errore salvataggio file: {e}")
 
 def ottieni_prezzo_reale():
-    try: return float(client.get_product(product_id=PRODUCT_ID)['price'])
-    except: return None
+    print("-> [DEBUG] Richiesta prezzo ETH...")
+    try: 
+        res = client.get_product(product_id=PRODUCT_ID)
+        prezzo = float(res['price'])
+        print(f"-> [DEBUG] Prezzo ottenuto: {prezzo}")
+        return prezzo
+    except Exception as e: 
+        print(f"❌ [DEBUG] Errore richiesta prezzo: {e}")
+        return None
 
 def cancella_tutti_ordini():
+    print("-> [DEBUG] Controllo cancellazione vecchi ordini...")
     try:
         ordini = client.list_orders(order_status=["OPEN"])
         if 'orders' in ordini:
             id_ordini = [o['order_id'] for o in ordini['orders'] if o['product_id'] == PRODUCT_ID]
             if id_ordini:
                 client.cancel_orders(order_ids=id_ordini)
-                time.sleep(2)
+                time.sleep(1)
     except Exception as e:
-        print(f"Errore cancellazione ordini: {e}")
+        print(f"Errore cancellazione: {e}")
 
 def controlla_stato_ordine(order_id):
     try:
@@ -65,6 +89,7 @@ def controlla_stato_ordine(order_id):
         return "UNKNOWN"
 
 def recupera_ordini_griglia_esistenti():
+    print("-> [DEBUG] Recupero ordini esistenti...")
     id_buy, id_sell = None, None
     try:
         ordini_aperti = client.list_orders(order_status=["OPEN"])
@@ -77,10 +102,11 @@ def recupera_ordini_griglia_esistenti():
                     elif 'lsell_' in c_id:
                         id_sell = o['order_id']
     except Exception as e:
-        print(f"Errore recupero ordini: {e}")
+        print(f"Errore recupero: {e}")
     return id_buy, id_sell
 
 def piazza_nuova_griglia(prezzo_rif):
+    print("-> [DEBUG] Piazzamento nuova griglia...")
     cancella_tutti_ordini()
     
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
@@ -121,15 +147,19 @@ def piazza_nuova_griglia(prezzo_rif):
         id_ven = ord_sell.get('order_id') if isinstance(ord_sell, dict) else ord_sell.order_id
         
         if id_acq and id_ven:
-            print(f"📐 Griglia piazzata. Buy: {prezzo_buy:.2f} | Sell: {prezzo_sell:.2f}")
+            print(f"📐 Griglia OK! Buy: {prezzo_buy:.2f} | Sell: {prezzo_sell:.2f}")
             return True
     except Exception as e:
-        print(f"Errore piazzamento ordini: {e}")
+        print(f"Errore piazzamento: {e}")
     return False
 
 def main():
+    print("4. [DEBUG] Lettura prezzo salvato...")
     prezzo_riferimento = leggi_prezzo_salvato()
+    print(f"5. [DEBUG] Prezzo salvato nel file: {prezzo_riferimento}")
+    
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
+    print(f"6. [DEBUG] Ordini trovati sul book - Buy: {id_ordine_acquisto} | Sell: {id_ordine_vendita}")
     
     if id_ordine_acquisto is None and id_ordine_vendita is None:
         if prezzo_riferimento is None:
@@ -138,7 +168,7 @@ def main():
                 salva_prezzo(prezzo_riferimento)
         
         if prezzo_riferimento:
-            print("Nessun ordine sul book. Rigenerazione griglia...")
+            print("Nessun ordine. Rigenero...")
             piazza_nuova_griglia(prezzo_riferimento)
         return
 
@@ -159,23 +189,15 @@ def main():
         nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
         if piazza_nuova_griglia(nuovo_pivot):
-            invia_telegram(
-                f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\n"
-                f"L'ordine Limit è stato eseguito a circa *{nuovo_pivot:.2f} EUR*.\n"
-                f"Nuova griglia riposizionata."
-            )
+            invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
             
     elif eseguito_vendita:
         nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
         if piazza_nuova_griglia(nuovo_pivot):
-            invia_telegram(
-                f"🔴 *COINBASE: VENDITA COMPLETATA!*\n"
-                f"Profitto incassato a circa *{nuovo_pivot:.2f} EUR*.\n"
-                f"Nuova griglia riposizionata."
-            )
+            invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
     else:
-        print("Entrambi gli ordini sono ancora pendenti sul book. Esco.")
+        print("7. [DEBUG] Entrambi gli ordini sono ancora OPEN. Esco.")
 
 if __name__ == "__main__":
     main()
