@@ -2,7 +2,7 @@ name: Run Coinbase Grid Bot
 
 on:
   schedule:
-    - cron: '0 * * * *'  # GitHub lo avvierà stabilmente una volta all'ora
+    - cron: '0 * * * *'  # Si avvia stabilmente una volta all'ora
   workflow_dispatch:
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true  # Necessario per permettere allo script Python di fare il push
+          persist-credentials: true
 
       - name: Configura Python
         uses: actions/setup-python@v5
@@ -24,8 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Esegui Bot in Loop (Ogni 20 min)
-        timeout-minutes: 55  # Lascia il tempo al container di girare per quasi un'ora
+      - name: Esegui Bot in Loop (Ogni 5 min)
+        timeout-minutes: 59  # Massimo spazio di manovra prima del limite di GitHub
         env:
           PYTHONUNBUFFERED: "1"
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
