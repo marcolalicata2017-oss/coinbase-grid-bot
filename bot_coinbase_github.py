@@ -17,7 +17,7 @@ GRID_DIST_PCT = 0.0120
 FILE_STATO = "stato_bot.txt"  
 
 # --- PARAMETRI COMPOSITING DINAMICO ---
-PERCENTUALE_BUDGET = 0.020    # Usa il 2.0% del saldo EUR libero su Coinbase
+PERCENTUALE_BUDGET = 0.10    # Usa il 10.0% del saldo EUR libero su Coinbase
 MIN_BUDGET_EUR = 15.00        # Soglia minima di sicurezza per evitare blocchi Coinbase
 # =========================================================
 
