@@ -2,9 +2,10 @@ import time
 import requests
 import os
 import sys
+import subprocess
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio dello script (Versione Size Dinamica su Saldo Reale)...")
+print("1. [DEBUG] Avvio dello script (Versione Loop Continuo su GitHub Actions)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -59,6 +60,25 @@ def salva_prezzo(prezzo):
     except Exception as e: 
         print(f"Errore salvataggio file: {e}")
 
+def git_commit_and_push():
+    print("-> [DEBUG] Controllo aggiornamenti stato_bot.txt per Git...")
+    try:
+        subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
+        subprocess.run(["git", "add", FILE_STATO], check=True)
+        
+        # Controlla se ci sono reali cambiamenti prima di fare il commit
+        status = subprocess.run(["git", "diff", "--quiet", "--staged"], capture_output=True)
+        if status.returncode != 0:  # Ci sono modifiche da salvare
+            print("-> [DEBUG] Rilevate modifiche a stato_bot.txt. Eseguo Commit & Push...")
+            subprocess.run(["git", "commit", "-m", "Aggiornato stato_bot.txt [skip ci]"], check=True)
+            subprocess.run(["git", "push"], check=True)
+            print("➡️ [DEBUG] Git Push completato con successo.")
+        else:
+            print("-> [DEBUG] Nessuna modifica rilevata in stato_bot.txt. Salto il push.")
+    except Exception as e:
+        print(f"⚠️ Errore durante il push su GitHub: {e}")
+
 def ottieni_prezzo_reale():
     print("-> [DEBUG] Richiesta prezzo ETH...")
     for tentativo in range(3):
@@ -88,10 +108,7 @@ def calcola_budget_dinamico():
                     disponibile_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
                     saldo_libero = float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
 
-                    # Calcoliamo la size in base alla percentuale desiderata
                     size_calcolata = saldo_libero * PERCENTUALE_BUDGET
-
-                    # Applichiamo i limiti di salvaguardia
                     size_finale = max(size_calcolata, MIN_BUDGET_EUR)
                     print(f"💰 [DEBUG] Saldo EUR libero: {saldo_libero:.2f} EUR | Size calcolata ({PERCENTUALE_BUDGET*100}%): {size_calcolata:.2f} EUR -> Utilizzo: {size_finale:.2f} EUR")
                     return round(size_finale, 2)
@@ -145,8 +162,6 @@ def recupera_ordini_griglia_esistenti():
     for tentativo in range(3):
         try:
             res = client.list_orders(order_status=["OPEN"])
-            print("-> [DEBUG] Risposta ricevuta correttamente da Coinbase!")
-
             ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
 
             if ordini:
@@ -176,13 +191,9 @@ def piazza_nuova_griglia(prezzo_rif):
     print("-> [DEBUG] Preparazione piazzamento nuova griglia...")
     cancella_tutti_ordini()
 
-    # Recuperiamo il budget dinamico calcolato sul saldo EUR attuale
     budget_step = calcola_budget_dinamico()
-
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
     prezzo_sell = prezzo_rif * (1.0 + GRID_DIST_PCT)
-    
-    # Calcolo quantita ETH troncando a 5 decimali per evitare rifiuti sul book di Coinbase
     quantita_eth_sell = round(budget_step / prezzo_sell, 5)
 
     for tentativo in range(3):
@@ -236,7 +247,7 @@ def main():
     print(f"6. [DEBUG] Analisi completata. Buy: {id_ordine_acquisto} | Sell: {id_ordine_vendita}")
 
     if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is None:
-        print("❌ [DEBUG] Recupero dati fallito per problemi di rete. Termino l'esecuzione per sicurezza.")
+        print("❌ [DEBUG] Recupero dati fallito per problemi di rete. Termino l'esecuzione del ciclo.")
         return
 
     if id_ordine_acquisto is None and id_ordine_vendita is None:
@@ -269,7 +280,6 @@ def main():
     else:
         print("⚠️ [DEBUG] Ordine VENDITA non rilevato sul book.")
 
-    # --- LOGICA DI SICUREZZA AGGIORNATA ---
     if eseguito_acquisto:
         nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
@@ -282,16 +292,30 @@ def main():
         if piazza_nuova_griglia(nuovo_pivot):
             invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
 
-    # Rilevamento asimmetria: uno dei due ordini è sparito senza essere stato riempito (caso tuo screenshot)
+    # Sblocco per griglie asimmetriche (Gestione errore dello screenshot)
     elif (id_ordine_acquisto is None and id_ordine_vendita is not None) or (id_ordine_acquisto is not None and id_ordine_vendita is None):
-        print("⚠️ [DEBUG] Rilevata griglia asimmetrica (un ordine manca all'appello). Sblocco la situazione...")
+        print("⚠️ [DEBUG] Rilevata griglia asimmetrica. Forzo reset basato su prezzo attuale...")
         nuovo_prezzo = ottieni_prezzo_reale()
         if nuovo_prezzo:
             salva_prezzo(nuovo_prezzo)
             piazza_nuova_griglia(nuovo_prezzo)
 
     else:
-        print("7. [DEBUG] Entrambi gli ordini sono regolarmente aperti e pendenti. Esco in silenzio.")
+        print("7. [DEBUG] Entrambi gli ordini sono ancora pendenti. Nessuna operazione necessaria.")
 
 if __name__ == "__main__":
-    main()
+    # Esegue il loop interno 3 volte a intervalli di 20 minuti (Totale 60 minuti)
+    TEMPO_ATTESA_MINUTI = 20
+    
+    for ciclo in range(3):
+        print(f"\n🚀 === INIZIO CICLO {ciclo + 1} DI 3 ===")
+        main()
+        
+        # Sincronizza lo stato attuale su GitHub subito dopo l'esecuzione del ciclo
+        git_commit_and_push()
+        
+        if ciclo < 2:  # Evita di aspettare dopo l'ultimo ciclo
+            print(f"💤 Ciclo completato. In attesa di {TEMPO_ATTESA_MINUTI} minuti per il prossimo controllo...")
+            time.sleep(TEMPO_ATTESA_MINUTI * 60)
+            
+    print("\n🏁 [DEBUG] Tutti e 3 i cicli orari sono terminati. GitHub Actions si spegne regolarmente.")
