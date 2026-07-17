@@ -5,7 +5,7 @@ import sys
 import subprocess
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio dello script (Loop 55min con SELL d'emergenza in caso di Euro esauriti)...")
+print("1. [DEBUG] Avvio dello script (Notifiche selettive: Trade e Reset con Saldo)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -58,7 +58,7 @@ def leggi_prezzo_salvato():
         try:
             with open(FILE_STATO, "r") as f:
                 contenuto = f.read().strip()
-                if contenido: return float(contenuto)
+                if contenuto: return float(contenuto)
         except: pass
     return None
 
@@ -84,7 +84,6 @@ def ottieni_prezzo_reale():
     return None
 
 def controlla_saldo_eur():
-    """Recupera il saldo EUR reale e calcola il budget per il BUY."""
     print("-> [DEBUG] Recupero del saldo EUR disponibile su Coinbase...")
     for tentativo in range(3):
         try:
@@ -151,50 +150,47 @@ def recupera_ordini_griglia_esistenti():
             time.sleep(2)
     return None, None
 
-def piazza_nuova_griglia(prezzo_rif):
-    print("-> [DEBUG] Preparazione piazzamento nuova griglia...")
+def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset"):
+    print(f"-> [DEBUG] Preparazione piazzamento nuova griglia per: {motivo_reset}...")
     
     saldo_eur = controlla_saldo_eur()
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
     prezzo_sell = prezzo_rif * (1.0 + GRID_DIST_PCT)
     
-    # Calcolo budget teorico basato sul 10%
     budget_buy_teorico = max(saldo_eur * PERCENTUALE_BUDGET, MIN_BUDGET_EUR)
-    
-    # Quantità fissa speculare calcolata sull'ipotetico acquisto da fare/fatto
     quantita_eth_fissa = budget_buy_teorico / prezzo_buy
     
     cancella_tutti_ordini()
     
-    # --- GESTIONE ECCEZIONE: MENO DI 15 EURO NEL PORTAFOGLIO ---
     piazza_buy = True
     if saldo_eur < MIN_BUDGET_EUR:
-        print(f"⚠️ [ECCEZIONE] Saldo EUR insufficiente ({saldo_eur:.2f} EUR). Salto il piazzamento del BUY e mantengo SOLO il SELL.")
+        print(f"⚠️ [ECCEZIONE] Saldo EUR insufficiente ({saldo_eur:.2f} EUR). Salto il BUY.")
         piazza_buy = False
 
     for tentativo in range(3):
         try:
-            # 1. Piazza il BUY solo se abbiamo abbastanza Euro
             if piazza_buy:
                 id_buy = f"lbuy_{int(time.time())}"
-                print(f"-> [DEBUG] Invio Limit BUY a {prezzo_buy:.2f} EUR (Valore: {budget_buy_teorico:.2f} EUR)...")
                 client.create_order(
                     client_order_id=id_buy, product_id=PRODUCT_ID, side="BUY",
                     order_configuration={"limit_limit_gtc": {"quote_size": f"{budget_buy_teorico:.2f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
                 )
             
-            # 2. Piazza SEMPRE il SELL (anche se non abbiamo fondi per ricomprare)
             id_sell = f"lsell_{int(time.time()) + 1}"
-            print(f"-> [DEBUG] Invio Limit SELL a {prezzo_sell:.2f} EUR (Quantità speculare: {quantita_eth_fissa:.5f} ETH)...")
             client.create_order(
                 client_order_id=id_sell, product_id=PRODUCT_ID, side="SELL",
                 order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
             )
             
-            if piazza_buy:
-                print("📐 Griglia speculare completa inviata con successo!")
-            else:
-                print("📐 Ordine di vendita di protezione inviato con successo (Griglia in solo SELL)!")
+            # --- NOTIFICA DI RESET CON SALDO INCLUSO ---
+            msg_telegram = f"🔄 *COINBASE: GRIGLIA RESETTATA*\n" \
+                           f"Motivo: _{motivo_reset}_\n" \
+                           f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                           f"Saldo Libero: *{saldo_eur:.2f} EUR*"
+            if not piazza_buy:
+                msg_telegram += f"\n⚠️ _Attenzione: Solo ordine SELL abilitato (Euro < {MIN_BUDGET_EUR}€)_"
+                
+            invia_telegram(msg_telegram)
             return True
         except Exception as e:
             print(f"⚠️ Errore invio ordini: {e}")
@@ -205,15 +201,29 @@ def esegui_singolo_controllo():
     prezzo_riferimento = leggi_prezzo_salvato()
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
     
+    # Se tutto è vuoto, è la prima inizializzazione assoluta
     if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is None:
+        prezzo_riferimento = ottieni_prezzo_reale()
+        if prezzo_riferimento:
+            salva_prezzo(prezzo_riferimento)
+            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Prima Inizializzazione")
         return
         
+    # Se gli ordini non ci sono ma il prezzo è salvato, la griglia si è persa/sbilanciata
     if id_ordine_acquisto is None and id_ordine_vendita is None:
-        if prezzo_riferimento is None:
-            prezzo_riferimento = ottieni_prezzo_reale()
-            if prezzo_riferimento: salva_prezzo(prezzo_riferimento)
+        prezzo_riferimento = ottieni_prezzo_reale()
         if prezzo_riferimento:
-            piazza_nuova_griglia(prezzo_riferimento)
+            salva_prezzo(prezzo_riferimento)
+            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Ripristino Griglia Mancante")
+        return
+
+    # Rilevamento asimmetria (un ordine è sparito ma non è contrassegnato FILLED nel flusso standard)
+    if (id_ordine_acquisto is None and id_ordine_vendita is not None) or (id_ordine_acquisto is not None and id_ordine_vendita is None):
+        print("-> [DEBUG] Rilevata griglia asimmetrica/incompleta. Eseguo reset strutturale.")
+        prezzo_riferimento = ottieni_prezzo_reale()
+        if prezzo_riferimento:
+            salva_prezzo(prezzo_riferimento)
+            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Rilevata Asimmetria Book")
         return
 
     eseguito_acquisto = False
@@ -227,22 +237,22 @@ def esegui_singolo_controllo():
     if eseguito_acquisto:
         nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
-        if piazza_nuova_griglia(nuovo_pivot):
-            invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nNuova griglia riposizionata.")
+        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Ordine Acquisto")
+        invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
+        
     elif eseguito_vendita:
         nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
-        if piazza_nuova_griglia(nuovo_pivot):
-            invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nProfitti incassati e liquidità ripristinata!")
+        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Ordine Vendita")
+        invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nProfitti incassati!")
     else:
-        print("-> [DEBUG] Ordini pendenti analizzati. Nessun trade eseguito in questo ciclo.")
+        print("-> [DEBUG] Ordini pendenti analizzati. Nessun trade eseguito.")
 
 def main():
     totale_cicli = 11
     minuti_attesa = 5
     
-    print(f"-> [DEBUG] Invio notifica di avvio esecuzione...")
-    invia_telegram("🤖 *Il bot si è svegliato su GitHub!* Avvio la sessione di monitoraggio continuo...")
+    print("-> [DEBUG] Avvio sessione di monitoraggio in background...")
 
     for ciclo in range(1, totale_cicli + 1):
         print(f"\n⏱️ === INIZIO CICLO {ciclo} DI {totale_cicli} ===")
@@ -252,7 +262,7 @@ def main():
             print(f"❌ Errore critico nel ciclo {ciclo}: {e}")
             
         if ciclo < totale_cicli:
-            print(f"Ciclo completato. In attesa di {minuti_attesa} minuti...")
+            print(f"Ciclo completato. In attesa di {minuti_attesa} minutes...")
             time.sleep(minuti_attesa * 60)
             
     print("\n🏁 Sessione di monitoraggio completata. Il workflow termina qui.")
