@@ -5,7 +5,7 @@ import sys
 import subprocess
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio dello script (Notifiche selettive: Trade e Reset con Saldo)...")
+print("1. [DEBUG] Avvio dello script (Flusso Ottimizzato con Rilevamento Intelligente Esecuzioni)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -150,7 +150,7 @@ def recupera_ordini_griglia_esistenti():
             time.sleep(2)
     return None, None
 
-def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset"):
+def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset", tipo_notifica="RESET"):
     print(f"-> [DEBUG] Preparazione piazzamento nuova griglia per: {motivo_reset}...")
     
     saldo_eur = controlla_saldo_eur()
@@ -182,13 +182,23 @@ def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset"):
                 order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
             )
             
-            # --- NOTIFICA DI RESET CON SALDO INCLUSO ---
-            msg_telegram = f"🔄 *COINBASE: GRIGLIA RESETTATA*\n" \
-                           f"Motivo: _{motivo_reset}_\n" \
-                           f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                           f"Saldo Libero: *{saldo_eur:.2f} EUR*"
+            # --- STRUTTURA DELLE NOTIFICHE IN BASE AL CONTESTO ---
+            if tipo_notifica == "ACQUISTO":
+                msg_telegram = f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\n" \
+                               f"Nuovo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                               f"Saldo Libero: *{saldo_eur:.2f} EUR*"
+            elif tipo_notifica == "VENDITA":
+                msg_telegram = f"🔴 *COINBASE: VENDITA COMPLETATA!*\n" \
+                               f"Nuovo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                               f"Profitti Incassati! Saldo: *{saldo_eur:.2f} EUR*"
+            else:
+                msg_telegram = f"🔄 *COINBASE: GRIGLIA RESETTATA*\n" \
+                               f"Motivo: _{motivo_reset}_\n" \
+                               f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                               f"Saldo Libero: *{saldo_eur:.2f} EUR*"
+                               
             if not piazza_buy:
-                msg_telegram += f"\n⚠️ _Attenzione: Solo ordine SELL abilitato (Euro < {MIN_BUDGET_EUR}€)_"
+                msg_telegram += f"\n⚠️ _Solo ordine SELL attivo (Euro < {MIN_BUDGET_EUR}€)_"
                 
             invia_telegram(msg_telegram)
             return True
@@ -201,31 +211,53 @@ def esegui_singolo_controllo():
     prezzo_riferimento = leggi_prezzo_salvato()
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
     
-    # Se tutto è vuoto, è la prima inizializzazione assoluta
+    # 1. Prima inizializzazione assoluta
     if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is None:
         prezzo_riferimento = ottieni_prezzo_reale()
         if prezzo_riferimento:
             salva_prezzo(prezzo_riferimento)
-            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Prima Inizializzazione")
+            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Prima Inizializzazione", tipo_notifica="RESET")
         return
         
-    # Se gli ordini non ci sono ma il prezzo è salvato, la griglia si è persa/sbilanciata
-    if id_ordine_acquisto is None and id_ordine_vendita is None:
-        prezzo_riferimento = ottieni_prezzo_reale()
-        if prezzo_riferimento:
-            salva_prezzo(prezzo_riferimento)
-            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Ripristino Griglia Mancante")
+    # 2. SE ENTRAMBI GLI ORDINI SONO SPARITI DAL BOOK MA IL PIVOT ESISTE (Il nocciolo del problema)
+    if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is not None:
+        print("-> [DEBUG] Entrambi gli ordini sono spariti dagli OPEN. Verifico la posizione del mercato...")
+        prezzo_spot = ottieni_prezzo_reale()
+        if prezzo_spot:
+            if prezzo_spot < prezzo_riferimento:
+                # Il mercato è sceso sotto il pivot: ha eseguito l'acquisto
+                nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
+                salva_prezzo(nuovo_pivot)
+                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Acquisto Rilevata", tipo_notifica="ACQUISTO")
+            else:
+                # Il mercato è salito sopra il pivot: ha eseguito la vendita
+                nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
+                salva_prezzo(nuovo_pivot)
+                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Vendita Rilevata", tipo_notifica="VENDITA")
         return
 
-    # Rilevamento asimmetria (un ordine è sparito ma non è contrassegnato FILLED nel flusso standard)
+    # 3. SE UN SOLO ORDINE È SPARITO DALLO STATO OPEN (Asimmetria temporanea da ritardo API)
     if (id_ordine_acquisto is None and id_ordine_vendita is not None) or (id_ordine_acquisto is not None and id_ordine_vendita is None):
-        print("-> [DEBUG] Rilevata griglia asimmetrica/incompleta. Eseguo reset strutturale.")
-        prezzo_riferimento = ottieni_prezzo_reale()
-        if prezzo_riferimento:
-            salva_prezzo(prezzo_riferimento)
-            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Rilevata Asimmetria Book")
+        print("-> [DEBUG] Rilevato sbilanciamento momentaneo. Interrogo il prezzo spot per determinare l'eseguito...")
+        prezzo_spot = ottieni_prezzo_reale()
+        if prezzo_spot and prezzo_riferimento:
+            if prezzo_spot < prezzo_riferimento and id_ordine_acquisto is None:
+                # Mancava l'acquisto ed il prezzo conferma il trend in discesa
+                nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
+                salva_prezzo(nuovo_pivot)
+                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Acquisto (Da Asimmetria)", tipo_notifica="ACQUISTO")
+            elif prezzo_spot > prezzo_riferimento and id_ordine_vendita is None:
+                # Mancava la vendita ed il prezzo conferma il trend in salita
+                nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
+                salva_prezzo(nuovo_pivot)
+                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Vendita (Da Asimmetria)", tipo_notifica="VENDITA")
+            else:
+                # Caso limite: asimmetria casuale o ordine rimosso a mano -> Reset standard prudenziale
+                salva_prezzo(prezzo_spot)
+                piazza_nuova_griglia(prezzo_spot, motivo_reset="Reset Asimmetria Generica", tipo_notifica="RESET")
         return
 
+    # 4. CONTROLLO STANDARD (Se entrambi gli ordini sono presenti, controlliamo il FILLED classico)
     eseguito_acquisto = False
     eseguito_vendita = False
 
@@ -237,16 +269,13 @@ def esegui_singolo_controllo():
     if eseguito_acquisto:
         nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
-        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Ordine Acquisto")
-        invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
-        
+        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Standard BUY", tipo_notifica="ACQUISTO")
     elif eseguito_vendita:
         nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
-        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Ordine Vendita")
-        invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nProfitti incassati!")
+        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Standard SELL", tipo_notifica="VENDITA")
     else:
-        print("-> [DEBUG] Ordini pendenti analizzati. Nessun trade eseguito.")
+        print("-> [DEBUG] Ordini pendenti analizzati. Nessun movimento rilevato.")
 
 def main():
     totale_cicli = 11
@@ -262,7 +291,7 @@ def main():
             print(f"❌ Errore critico nel ciclo {ciclo}: {e}")
             
         if ciclo < totale_cicli:
-            print(f"Ciclo completato. In attesa di {minuti_attesa} minutes...")
+            print(f"Ciclo completato. In attesa di {minuti_attesa} minuti...")
             time.sleep(minuti_attesa * 60)
             
     print("\n🏁 Sessione di monitoraggio completata. Il workflow termina qui.")
