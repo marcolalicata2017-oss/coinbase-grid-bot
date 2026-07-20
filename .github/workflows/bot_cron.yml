@@ -1,35 +1,32 @@
-name: Run Coinbase Grid Bot
+name: Bot Coinbase Grid & Circuit Breaker
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Si avvia stabilmente una volta all'ora
-  workflow_dispatch:
+    # Esegue il workflow ogni 30 minuti spaccati (al minuto :00 e al minuto :30)
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Mantiene la possibilità di avviarlo manualmente
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: true
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Configura Python
-        uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/python-commits@v4 # O la tua versione corrente di setup-python
         with:
           python-version: '3.10'
 
-      - name: Installa dipendenze
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install coinbase-advanced-py pandas numpy requests
 
-      - name: Esegui Bot in Loop (Ogni 5 min)
-        timeout-minutes: 59  # Massimo spazio di manovra prima del limite di GitHub
+      - name: Run Bot Script
         env:
-          PYTHONUNBUFFERED: "1"
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           COINBASE_KEY_NAME: ${{ secrets.COINBASE_KEY_NAME }}
           COINBASE_KEY_SECRET: ${{ secrets.COINBASE_KEY_SECRET }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python bot_coinbase_github.py
