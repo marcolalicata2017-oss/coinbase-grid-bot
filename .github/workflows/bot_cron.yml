@@ -33,4 +33,4 @@ jobs:
           COINBASE_KEY_SECRET: ${{ secrets.COINBASE_KEY_SECRET }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python bot_coinbase_github.py
+        run: python -u bot_coinbase_github.py
