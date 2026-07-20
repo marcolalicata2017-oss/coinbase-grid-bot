@@ -253,11 +253,11 @@ def esegui_singolo_controllo():
         print("-> [DEBUG] Nessun trade eseguito. Ordini pendenti regolari.")
 
 def main():
-    # 5 cicli interni distanziati da 10 minuti = 50 minuti di esecuzione continua
-    totale_cicli = 5
-    minuti_attesa = 10
+    # 3 cicli interni distanziati da 8 minuti per sessione da 30m di GitHub
+    totale_cicli = 3
+    minuti_attesa = 8
     
-    print("-> [DEBUG] Avvio sessione di monitoraggio continuo (10 minuti di intervallo)...")
+    print("-> [DEBUG] Avvio sessione di monitoraggio (2 controlli per finestra di 30m)...")
 
     for ciclo in range(1, totale_cicli + 1):
         print(f"\n⏱️ === CONTROLLO {ciclo} DI {totale_cicli} ===")
@@ -270,7 +270,7 @@ def main():
             print(f"Controllo completato. In attesa di {minuti_attesa} minuti...")
             time.sleep(minuti_attesa * 60)
             
-    print("\n🏁 Sessione terminata pulita. Il workflow si chiude per lasciare spazio al successivo.")
+    print("\n🏁 Sessione terminata. Il runner si spegne in anticipo per far spazio al cron dei 30 minuti.")
 
 if __name__ == "__main__":
     main()
