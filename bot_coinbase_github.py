@@ -104,24 +104,34 @@ def registra_su_diario_di_bordo(prezzo_eth, ema50, saldo_eur, eth_posseduti, eve
         print(f"Errore scrittura Diario di Bordo: {e}")
 
 def ottieni_prezzo_e_ema50():
-    print("-> [DEBUG] Calcolo prezzo attuale e EMA50 oraria...")
+    print("-> [DEBUG] Calcolo prezzo attuale e EMA50 oraria...", flush=True)
+    # Usiamo direttamente l'API pubblica REST di Coinbase per le candele orarie (granularity 3600s)
+    # È pubblica, istantanea e non si blocca mai!
+    url = f"https://api.exchange.coinbase.com/products/{PRODUCT_ID}/candles?granularity=3600"
+    headers = {"User-Agent": "Python-Bot"}
+
     for tentativo in range(3):
         try:
-            candles = client.get_candles(product_id=PRODUCT_ID, granularity="ONE_HOUR")
-            lista_candele = candles.get('candles', []) if isinstance(candles, dict) else getattr(candles, 'candles', [])
-            
-            if not lista_candele or len(lista_candele) < 50:
-                time.sleep(2)
-                continue
-
-            prezzi_chiusura = [float(c.get('close') if isinstance(c, dict) else getattr(c, 'close')) for c in reversed(lista_candele)]
-            s_prezzi = pd.Series(prezzi_chiusura)
-            ema50 = s_prezzi.ewm(span=50, adjust=False).mean().iloc[-1]
-            prezzo_attuale = prezzi_chiusura[-1]
-
-            return prezzo_attuale, ema50
+            resp = requests.get(url, headers=headers, timeout=8)
+            if resp.status_code == 200:
+                data = resp.json()
+                # data è una lista di liste: [time, low, high, open, close, volume]
+                # Le candele sono ordinate dalla più recente alla più vecchia
+                if len(data) >= 50:
+                    # Invertiamo per avere l'ordine cronologico (vecchia -> recente)
+                    prezzi_chiusura = [float(candela[4]) for candela in reversed(data)]
+                    s_prezzi = pd.Series(prezzi_chiusura)
+                    ema50 = s_prezzi.ewm(span=50, adjust=False).mean().iloc[-1]
+                    prezzo_attuale = prezzi_chiusura[-1]
+                    print(f"-> [DEBUG] Prezzo attuale: {prezzo_attuale:.2f} EUR | EMA50: {ema50:.2f} EUR", flush=True)
+                    return prezzo_attuale, ema50
+            else:
+                print(f"⚠️ [DEBUG] Risposta API candele HTTP {resp.status_code}, riprovo...", flush=True)
         except Exception as e:
-            time.sleep(2)
+            print(f"⚠️ [DEBUG] Errore connessione candele: {e}", flush=True)
+        time.sleep(2)
+
+    print("❌ [DEBUG] Impossibile recuperare i dati del prezzo e dell'EMA50.", flush=True)
     return None, None
 
 def controlla_saldi():
