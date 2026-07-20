@@ -17,17 +17,20 @@ CONFIG_ASSETS = {
     "ETH-EUR": {
         "grid_dist": 0.012,     # 1.2%
         "emoji": "🔷",
-        "min_order_eur": 5.0
+        "min_order_eur": 5.0,
+        "decimals": 4
     },
     "BTC-EUR": {
         "grid_dist": 0.010,     # 1.0%
         "emoji": "🪙",
-        "min_order_eur": 5.0
+        "min_order_eur": 5.0,
+        "decimals": 5
     },
     "SOL-EUR": {
         "grid_dist": 0.018,     # 1.8%
         "emoji": "🟣",
-        "min_order_eur": 5.0
+        "min_order_eur": 5.0,
+        "decimals": 2
     }
 }
 
@@ -147,6 +150,8 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     cfg = CONFIG_ASSETS[pair]
     dist_pct = cfg["grid_dist"]
     emoji = cfg["emoji"]
+    min_order_eur = cfg["min_order_eur"]
+    dec = cfg.get("decimals", 4)
     symbol_crypto = pair.split("-")[0]
 
     saldo_eur_pool, dict_cripto = controlla_saldi_globali()
@@ -155,22 +160,27 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     prezzo_buy = prezzo_rif * (1.0 - dist_pct)
     prezzo_sell = prezzo_rif * (1.0 + dist_pct)
 
-    # Budget BUY dinamico dal Pool EUR
-    budget_buy_teorico = max(saldo_eur_pool * PERCENTUALE_BUDGET_BUY, cfg["min_order_eur"])
+    # Budget BUY dinamico calcolato dal Pool EUR
+    budget_buy_teorico = max(saldo_eur_pool * PERCENTUALE_BUDGET_BUY, min_order_eur)
     quantita_crypto_buy = budget_buy_teorico / prezzo_buy
 
-    # FIX QUANTITÀ SELL: il minimo tra la quantità teorica e la crypto reale posseduta
+    # Quantità SELL: il minimo tra la quantità teorica e la crypto realmente posseduta
     quantita_crypto_sell = min(quantita_crypto_buy, crypto_posseduta)
+
+    # Formattazione rigorosa con la precisione decimali di ciascun asset
+    base_size_buy = f"{quantita_crypto_buy:.{dec}f}"
+    base_size_sell = f"{quantita_crypto_sell:.{dec}f}"
 
     cancella_ordini_pair(pair)
 
-    piazza_buy = autorizza_buy and (saldo_eur_pool >= cfg["min_order_eur"])
-    piazza_sell = (quantita_crypto_sell * prezzo_sell) >= cfg["min_order_eur"]
+    piazza_buy = autorizza_buy and (saldo_eur_pool >= min_order_eur)
+    piazza_sell = (quantita_crypto_sell * prezzo_sell) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Tentativo piazzamento -> BUY: {piazza_buy} (Budget EUR Pool: {saldo_eur_pool:.2f}) | SELL: {piazza_sell} ({crypto_posseduta:.5f} {symbol_crypto})", flush=True)
+    print(f"-> [DEBUG {pair}] Tentativo piazzamento -> BUY: {piazza_buy} (Budget EUR Pool: {saldo_eur_pool:.2f}) | SELL: {piazza_sell} ({crypto_posseduta:.{dec}f} {symbol_crypto})", flush=True)
 
     timestamp = int(time.time())
-    
+
+    # Invio Ordine BUY
     if piazza_buy:
         try:
             res_buy = client.create_order(
@@ -179,7 +189,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 side="BUY",
                 order_configuration={
                     "limit_limit_gtc": {
-                        "base_size": f"{quantita_crypto_buy:.5f}",
+                        "base_size": base_size_buy,
                         "limit_price": f"{prezzo_buy:.2f}",
                         "post_only": False
                     }
@@ -189,6 +199,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         except Exception as e:
             print(f"❌ [DEBUG {pair}] ERRORE Invio Ordine BUY: {e}", flush=True)
 
+    # Invio Ordine SELL
     if piazza_sell:
         try:
             res_sell = client.create_order(
@@ -197,7 +208,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 side="SELL",
                 order_configuration={
                     "limit_limit_gtc": {
-                        "base_size": f"{quantita_crypto_sell:.5f}",
+                        "base_size": base_size_sell,
                         "limit_price": f"{prezzo_sell:.2f}",
                         "post_only": False
                     }
@@ -212,7 +223,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
           f"Motivo: _{motivo_reset}_\n" \
           f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
           f"Pool EUR Disponibile: *{saldo_eur_pool:.2f} EUR*\n" \
-          f"Crypto Posseduta: *{crypto_posseduta:.5f} {symbol_crypto}*"
+          f"Crypto Posseduta: *{crypto_posseduta:.{dec}f} {symbol_crypto}*"
     
     if not autorizza_buy:
         msg += f"\n🛡️ *CIRCUIT BREAKER*: Prezzo < EMA50. _Euro al sicuro nel Pool_."
