@@ -5,9 +5,10 @@ import sys
 import subprocess
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio Bot Coinbase (Griglia + Circuit Breaker EMA50)...")
+print("1. [DEBUG] Avvio Bot Coinbase (Griglia + Circuit Breaker + Diario di Bordo)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -18,6 +19,7 @@ COINBASE_KEY_SECRET = os.getenv("COINBASE_KEY_SECRET")
 PRODUCT_ID = "ETH-EUR"       
 GRID_DIST_PCT = 0.0120       
 FILE_STATO = "stato_bot.txt"  
+FILE_DIARIO = "diario_di_bordo.csv"
 
 PERCENTUALE_BUDGET = 0.10    # Usa il 10% del saldo EUR libero
 MIN_BUDGET_EUR = 15.00        # Soglia minima Coinbase
@@ -45,15 +47,25 @@ def invia_telegram(messaggio):
     except Exception as e: 
         print(f"⚠️ Telegram non raggiungibile: {e}")
 
-def esegui_git_pull():
+def esegui_git_sync():
     try:
         subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"], check=True)
         subprocess.run(["git", "--permanent-auth", "pull", "--rebase", "origin", "main"], timeout=15, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as e:
         print(f"⚠️ [DEBUG] Avviso durante il git pull: {e}")
 
+def esegui_git_push(messaggio_commit="Update stato bot"):
+    try:
+        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "commit", "-m", messaggio_commit], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["git", "push", "origin", "main"], timeout=15, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"-> [DEBUG] Git push completato: {messaggio_commit}")
+    except Exception as e:
+        print(f"⚠️ [DEBUG] Avviso durante il git push: {e}")
+
 def leggi_prezzo_salvato():
-    esegui_git_pull()
+    esegui_git_sync()
     if os.path.exists(FILE_STATO):
         try:
             with open(FILE_STATO, "r") as f:
@@ -63,7 +75,6 @@ def leggi_prezzo_salvato():
     return None
 
 def salva_prezzo(prezzo):
-    esegui_git_pull()
     try:
         with open(FILE_STATO, "w") as f: 
             f.write(f"{prezzo:.2f}")
@@ -71,45 +82,68 @@ def salva_prezzo(prezzo):
     except Exception as e: 
         print(f"Errore salvataggio file: {e}")
 
+def registra_su_diario_di_bordo(prezzo_eth, ema50, saldo_eur, eth_posseduti, evento, trend_ok):
+    esegui_git_sync()
+    valore_eth_eur = eth_posseduti * prezzo_eth
+    valore_totale = saldo_eur + valore_eth_eur
+    ora_attuale = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stato_cb = "DISATTIVATO" if trend_ok else "ATTIVO (PROTEZIONE EUR)"
+
+    intestazione = "Data_Ora,Prezzo_ETH,EMA50,Saldo_EUR,ETH_Posseduti,Valore_Totale_EUR,Stato_Circuit_Breaker,Evento\n"
+    riga = f"{ora_attuale},{prezzo_eth:.2f},{ema50:.2f},{saldo_eur:.2f},{eth_posseduti:.6f},{valore_totale:.2f},{stato_cb},{evento}\n"
+
+    file_esiste = os.path.exists(FILE_DIARIO)
+    try:
+        with open(FILE_DIARIO, "a") as f:
+            if not file_esiste:
+                f.write(intestazione)
+            f.write(riga)
+        print(f"-> [DEBUG] Diario di Bordo aggiornato: {evento}")
+        esegui_git_push(f"Diario di bordo: {evento}")
+    except Exception as e:
+        print(f"Errore scrittura Diario di Bordo: {e}")
+
 def ottieni_prezzo_e_ema50():
     print("-> [DEBUG] Calcolo prezzo attuale e EMA50 oraria...")
     for tentativo in range(3):
         try:
-            # Richiediamo le candele orarie a Coinbase
             candles = client.get_candles(product_id=PRODUCT_ID, granularity="ONE_HOUR")
             lista_candele = candles.get('candles', []) if isinstance(candles, dict) else getattr(candles, 'candles', [])
             
             if not lista_candele or len(lista_candele) < 50:
-                print("⚠️ Candele insufficienti per EMA50, riprovo...")
                 time.sleep(2)
                 continue
 
-            # Invertiamo per avere la serie storica in ordine cronologico
             prezzi_chiusura = [float(c.get('close') if isinstance(c, dict) else getattr(c, 'close')) for c in reversed(lista_candele)]
-            
             s_prezzi = pd.Series(prezzi_chiusura)
             ema50 = s_prezzi.ewm(span=50, adjust=False).mean().iloc[-1]
             prezzo_attuale = prezzi_chiusura[-1]
 
             return prezzo_attuale, ema50
         except Exception as e:
-            print(f"⚠️ Errore recupero candele: {e}")
             time.sleep(2)
     return None, None
 
-def controlla_saldo_eur():
+def controlla_saldi():
+    saldo_eur = 0.0
+    eth_posseduti = 0.0
     for tentativo in range(3):
         try:
             conti = client.get_accounts()
             lista_conti = conti.get('accounts', []) if isinstance(conti, dict) else getattr(conti, 'accounts', [])
             for conto in lista_conti:
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
+                disponibile_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
+                valore = float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
+                
                 if valuta == "EUR":
-                    disponibile_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
-                    return float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
+                    saldo_eur = valore
+                elif valuta == "ETH":
+                    eth_posseduti = valore
+            return saldo_eur, eth_posseduti
         except Exception as e:
             time.sleep(2)
-    return 0.0
+    return 0.0, 0.0
 
 def cancella_tutti_ordini():
     for tentativo in range(3):
@@ -120,7 +154,6 @@ def cancella_tutti_ordini():
                 id_ordini = [o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id') for o in ordini if (o.get('product_id') if isinstance(o, dict) else getattr(o, 'product_id')) == PRODUCT_ID]
                 if id_ordini:
                     client.cancel_orders(order_ids=id_ordini)
-                    print(f"-> [DEBUG] Cancellati {len(id_ordini)} ordini pendenti.")
             return
         except Exception as e:
             time.sleep(2)
@@ -154,10 +187,8 @@ def recupera_ordini_griglia_esistenti():
             time.sleep(2)
     return None, None
 
-def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset"):
-    print(f"-> [DEBUG] Impostazione griglia (Circuit Breaker BUY = {autorizza_buy})...")
-    
-    saldo_eur = controlla_saldo_eur()
+def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0):
+    saldo_eur, eth_posseduti = controlla_saldi()
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
     prezzo_sell = prezzo_rif * (1.0 + GRID_DIST_PCT)
     
@@ -168,12 +199,10 @@ def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset"):
     
     piazza_buy = autorizza_buy
     if saldo_eur < MIN_BUDGET_EUR:
-        print(f"⚠️ Saldo EUR insufficiente ({saldo_eur:.2f} EUR). Salto BUY.")
         piazza_buy = False
 
     for tentativo in range(3):
         try:
-            # 1. Ordine BUY (Piazzato usando base_size esatta in ETH)
             if piazza_buy:
                 id_buy = f"lbuy_{int(time.time())}"
                 client.create_order(
@@ -181,81 +210,69 @@ def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset"):
                     order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
                 )
             
-            # 2. Ordine SELL
             id_sell = f"lsell_{int(time.time()) + 1}"
             client.create_order(
                 client_order_id=id_sell, product_id=PRODUCT_ID, side="SELL",
                 order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
             )
             
-            # NOTIFICA TELEGRAM SOLO SU RESET/CAMBIO STATO
+            # NOTIFICA TELEGRAM
+            valore_totale_eur = saldo_eur + (eth_posseduti * prezzo_rif)
             msg_telegram = f"🔄 *COINBASE: RESET GRIGLIA*\n" \
                            f"Motivo: _{motivo_reset}_\n" \
                            f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                           f"Saldo Libero: *{saldo_eur:.2f} EUR*"
+                           f"Portafoglio Totale: *{valore_totale_eur:.2f} EUR*"
             if not autorizza_buy:
-                msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO*: Prezzo < EMA50. _Acquisti Sospesi (Euro al sicuro)_."
-            elif not piazza_buy:
-                msg_telegram += f"\n⚠️ _BUY disabilitato per Euro < {MIN_BUDGET_EUR}€_"
-                
+                msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO*: Prezzo < EMA50. _Euro al sicuro_."
+            
             invia_telegram(msg_telegram)
+            registra_su_diario_di_bordo(prezzo_rif, ema50, saldo_eur, eth_posseduti, motivo_reset, autorizza_buy)
             return True
         except Exception as e:
-            print(f"⚠️ Errore invio ordini: {e}")
             time.sleep(2)
     return False
 
 def esegui_singolo_controllo():
     prezzo_attuale, ema50 = ottieni_prezzo_e_ema50()
-    if not prezzo_attuale or not ema50:
-        print("❌ Impossibile recuperare i dati di mercato. Salto ciclo.")
-        return
+    if not prezzo_attuale or not ema50: return
 
-    # REGOLA CIRCUIT BREAKER
     trend_ok = (prezzo_attuale >= ema50)
     prezzo_riferimento = leggi_prezzo_salvato()
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
     
-    # 1. Prima Inizializzazione o Ripristino da Vuoto
+    # 1. Inizializzazione / Prima Esecuzione
     if id_ordine_acquisto is None and id_ordine_vendita is None:
         salva_prezzo(prezzo_attuale)
-        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione / Ripristino")
+        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione", ema50=ema50)
         return
 
-    # 2. Se scatta il Circuit Breaker mentre c'è un BUY aperto, lo cancelliamo subito
+    # 2. Circuit Breaker Trigger
     if not trend_ok and id_ordine_acquisto is not None:
-        print("🛡️ [CIRCUIT BREAKER] Il prezzo è sceso sotto EMA50. Cancello il BUY e metto gli Euro al sicuro.")
         salva_prezzo(prezzo_attuale)
-        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Bear Trend)")
+        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", ema50=ema50)
         return
 
     # 3. Controllo Esecuzione Ordini
-    eseguito_acquisto = False
-    eseguito_vendita = False
-
-    if id_ordine_acquisto:
-        if controlla_stato_ordine(id_ordine_acquisto) == "FILLED": eseguito_acquisto = True
-    if id_ordine_vendita:
-        if controlla_stato_ordine(id_ordine_vendita) == "FILLED": eseguito_vendita = True
+    eseguito_acquisto = (controlla_stato_ordine(id_ordine_acquisto) == "FILLED") if id_ordine_acquisto else False
+    eseguito_vendita = (controlla_stato_ordine(id_ordine_vendita) == "FILLED") if id_ordine_vendita else False
 
     if eseguito_acquisto:
         nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
+        saldo_eur, eth_posseduti = controlla_saldi()
         invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
-        piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Acquisto")
+        piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Acquisto", ema50=ema50)
         
     elif eseguito_vendita:
         nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
+        saldo_eur, eth_posseduti = controlla_saldi()
         invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nProfitti incassati!")
-        piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Vendita")
-    else:
-        print("-> [DEBUG] Nessun trade eseguito. Ordini pendenti regolari.")
+        piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Vendita", ema50=ema50)
 
 def main():
-    # 3 cicli interni distanziati da 8 minuti per sessione da 30m di GitHub
-    totale_cicli = 3
-    minuti_attesa = 8
+    totale_cicli = 2
+    minuti_attesa = 12
     
     print("-> [DEBUG] Avvio sessione di monitoraggio (2 controlli per finestra di 30m)...")
 
@@ -267,10 +284,7 @@ def main():
             print(f"❌ Errore nel ciclo {ciclo}: {e}")
             
         if ciclo < totale_cicli:
-            print(f"Controllo completato. In attesa di {minuti_attesa} minuti...")
             time.sleep(minuti_attesa * 60)
-            
-    print("\n🏁 Sessione terminata. Il runner si spegne in anticipo per far spazio al cron dei 30 minuti.")
 
 if __name__ == "__main__":
     main()
