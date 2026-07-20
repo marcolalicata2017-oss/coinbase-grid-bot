@@ -211,11 +211,20 @@ def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset", e
     budget_buy_teorico = max(saldo_eur * PERCENTUALE_BUDGET, MIN_BUDGET_EUR)
     quantita_eth_fissa = budget_buy_teorico / prezzo_buy
     
+    # FIX PUNTO 1: Se gli ETH posseduti sono meno della quantità teorica, vende TUTTI gli ETH a disposizione
+    quantita_eth_sell = min(quantita_eth_fissa, eth_posseduti)
+    
     cancella_tutti_ordini()
     
     piazza_buy = autorizza_buy
     if saldo_eur < MIN_BUDGET_EUR:
         piazza_buy = False
+
+    # Verifica se la quantità ETH da vendere copre il valore minimo richiesto da Coinbase
+    piazza_sell = True
+    if (quantita_eth_sell * prezzo_sell) < MIN_BUDGET_EUR:
+        piazza_sell = False
+        print("⚠️ [DEBUG] Saldo ETH insufficiente per raggiungere la soglia minima di vendita EUR.", flush=True)
 
     for tentativo in range(3):
         try:
@@ -226,11 +235,12 @@ def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset", e
                     order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
                 )
             
-            id_sell = f"lsell_{int(time.time()) + 1}"
-            client.create_order(
-                client_order_id=id_sell, product_id=PRODUCT_ID, side="SELL",
-                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
-            )
+            if piazza_sell:
+                id_sell = f"lsell_{int(time.time()) + 1}"
+                client.create_order(
+                    client_order_id=id_sell, product_id=PRODUCT_ID, side="SELL",
+                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_sell:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+                )
             
             # NOTIFICA TELEGRAM
             valore_totale_eur = saldo_eur + (eth_posseduti * prezzo_rif)
@@ -245,6 +255,7 @@ def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset", e
             registra_su_diario_di_bordo(prezzo_rif, ema50, saldo_eur, eth_posseduti, motivo_reset, autorizza_buy)
             return True
         except Exception as e:
+            print(f"⚠️ [DEBUG] Errore inserimento ordini griglia: {e}", flush=True)
             time.sleep(2)
     return False
 
@@ -256,33 +267,39 @@ def esegui_singolo_controllo():
     prezzo_riferimento = leggi_prezzo_salvato()
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
     
-    # 1. Inizializzazione / Prima Esecuzione
+    # 1. Inizializzazione da Zero (nessun ordine presente)
     if id_ordine_acquisto is None and id_ordine_vendita is None:
         salva_prezzo(prezzo_attuale)
-        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione", ema50=ema50)
+        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione / Reset Totale", ema50=ema50)
         return
 
-    # 2. Circuit Breaker Trigger
+    # 2. Circuit Breaker Trigger (Prezzo sotto EMA50 ma c'è un ordine BUY pendente)
     if not trend_ok and id_ordine_acquisto is not None:
         salva_prezzo(prezzo_attuale)
         piazza_nuova_griglia(prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", ema50=ema50)
         return
 
-    # 3. Controllo Esecuzione Ordini
+    # 3. FIX PUNTO 2: Ripristino Griglia Asimmetrica / Ordine Scomparso
+    # Se c'è un solo ordine aperto (es. manca il SELL o il BUY), esegue l'auto-healing della griglia
+    if (id_ordine_acquisto is None and id_ordine_vendita is not None) or (id_ordine_acquisto is not None and id_ordine_vendita is None):
+        print("⚠️ [DEBUG] Rilevata asimmetria nella griglia (un ordine manca). Forzatura Reset e Riallineamento...", flush=True)
+        salva_prezzo(prezzo_attuale)
+        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento Griglia Asimmetrica", ema50=ema50)
+        return
+
+    # 4. Controllo Esecuzione Ordinaria Ordini
     eseguito_acquisto = (controlla_stato_ordine(id_ordine_acquisto) == "FILLED") if id_ordine_acquisto else False
     eseguito_vendita = (controlla_stato_ordine(id_ordine_vendita) == "FILLED") if id_ordine_vendita else False
 
     if eseguito_acquisto:
-        nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
+        nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT) if prezzo_riferimento else prezzo_attuale
         salva_prezzo(nuovo_pivot)
-        saldo_eur, eth_posseduti = controlla_saldi()
         invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
         piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Acquisto", ema50=ema50)
         
     elif eseguito_vendita:
-        nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
+        nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT) if prezzo_riferimento else prezzo_attuale
         salva_prezzo(nuovo_pivot)
-        saldo_eur, eth_posseduti = controlla_saldi()
         invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nProfitti incassati!")
         piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Vendita", ema50=ema50)
 
