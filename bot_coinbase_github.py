@@ -157,47 +157,69 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
 
     # Budget BUY dinamico dal Pool EUR
     budget_buy_teorico = max(saldo_eur_pool * PERCENTUALE_BUDGET_BUY, cfg["min_order_eur"])
-    quantita_eth_buy = budget_buy_teorico / prezzo_buy
+    quantita_crypto_buy = budget_buy_teorico / prezzo_buy
 
     # FIX QUANTITÀ SELL: il minimo tra la quantità teorica e la crypto reale posseduta
-    quantita_eth_sell = min(quantita_eth_buy, crypto_posseduta)
+    quantita_crypto_sell = min(quantita_crypto_buy, crypto_posseduta)
 
     cancella_ordini_pair(pair)
 
-    # Verifiche autorizzazione ordini
     piazza_buy = autorizza_buy and (saldo_eur_pool >= cfg["min_order_eur"])
-    piazza_sell = (quantita_eth_sell * prezzo_sell) >= cfg["min_order_eur"]
+    piazza_sell = (quantita_crypto_sell * prezzo_sell) >= cfg["min_order_eur"]
 
-    try:
-        timestamp = int(time.time())
-        if piazza_buy:
-            client.create_order(
-                client_order_id=f"lbuy_{pair}_{timestamp}", product_id=pair, side="BUY",
-                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_buy:.5f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
+    print(f"-> [DEBUG {pair}] Tentativo piazzamento -> BUY: {piazza_buy} (Budget EUR Pool: {saldo_eur_pool:.2f}) | SELL: {piazza_sell} ({crypto_posseduta:.5f} {symbol_crypto})", flush=True)
+
+    timestamp = int(time.time())
+    
+    if piazza_buy:
+        try:
+            res_buy = client.create_order(
+                client_order_id=f"lbuy_{symbol_crypto.lower()}_{timestamp}",
+                product_id=pair,
+                side="BUY",
+                order_configuration={
+                    "limit_limit_gtc": {
+                        "base_size": f"{quantita_crypto_buy:.5f}",
+                        "limit_price": f"{prezzo_buy:.2f}",
+                        "post_only": False
+                    }
+                }
             )
-        
-        if piazza_sell:
-            client.create_order(
-                client_order_id=f"lsell_{pair}_{timestamp+1}", product_id=pair, side="SELL",
-                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_sell:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+            print(f"✅ [DEBUG {pair}] Ordine BUY Inviato: {res_buy}", flush=True)
+        except Exception as e:
+            print(f"❌ [DEBUG {pair}] ERRORE Invio Ordine BUY: {e}", flush=True)
+
+    if piazza_sell:
+        try:
+            res_sell = client.create_order(
+                client_order_id=f"lsell_{symbol_crypto.lower()}_{timestamp+1}",
+                product_id=pair,
+                side="SELL",
+                order_configuration={
+                    "limit_limit_gtc": {
+                        "base_size": f"{quantita_crypto_sell:.5f}",
+                        "limit_price": f"{prezzo_sell:.2f}",
+                        "post_only": False
+                    }
+                }
             )
+            print(f"✅ [DEBUG {pair}] Ordine SELL Inviato: {res_sell}", flush=True)
+        except Exception as e:
+            print(f"❌ [DEBUG {pair}] ERRORE Invio Ordine SELL: {e}", flush=True)
 
-        # Notifica Telegram
-        msg = f"{emoji} *COINBASE: RESET GRIGLIA ({pair})*\n" \
-              f"Motivo: _{motivo_reset}_\n" \
-              f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-              f"Pool EUR Disponibile: *{saldo_eur_pool:.2f} EUR*\n" \
-              f"Crypto Posseduta: *{crypto_posseduta:.5f} {symbol_crypto}*"
-        
-        if not autorizza_buy:
-            msg += f"\n🛡️ *CIRCUIT BREAKER*: Prezzo < EMA50. _Euro al sicuro nel Pool_."
+    # Notifica Telegram
+    msg = f"{emoji} *COINBASE: RESET GRIGLIA ({pair})*\n" \
+          f"Motivo: _{motivo_reset}_\n" \
+          f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+          f"Pool EUR Disponibile: *{saldo_eur_pool:.2f} EUR*\n" \
+          f"Crypto Posseduta: *{crypto_posseduta:.5f} {symbol_crypto}*"
+    
+    if not autorizza_buy:
+        msg += f"\n🛡️ *CIRCUIT BREAKER*: Prezzo < EMA50. _Euro al sicuro nel Pool_."
 
-        invia_telegram(msg)
-        registra_su_diario_di_bordo(pair, prezzo_rif, ema50, saldo_eur_pool, crypto_posseduta, motivo_reset, autorizza_buy)
-        return True
-    except Exception as e:
-        print(f"⚠️ Errore creazione ordini per {pair}: {e}", flush=True)
-        return False
+    invia_telegram(msg)
+    registra_su_diario_di_bordo(pair, prezzo_rif, ema50, saldo_eur_pool, crypto_posseduta, motivo_reset, autorizza_buy)
+    return True
 
 # ==========================================
 # ESECUZIONE DEL CICLO SINGLE/MULTI-ASSET
