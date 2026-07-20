@@ -135,6 +135,7 @@ def ottieni_prezzo_e_ema50():
     return None, None
 
 def controlla_saldi():
+    print("-> [DEBUG] Verifica saldi conto...", flush=True)
     saldo_eur = 0.0
     eth_posseduti = 0.0
     for tentativo in range(3):
@@ -150,8 +151,10 @@ def controlla_saldi():
                     saldo_eur = valore
                 elif valuta == "ETH":
                     eth_posseduti = valore
+            print(f"-> [DEBUG] Saldi letti: {saldo_eur:.2f} EUR | {eth_posseduti:.5f} ETH", flush=True)
             return saldo_eur, eth_posseduti
         except Exception as e:
+            print(f"⚠️ [DEBUG] Errore lettura saldi (tentativo {tentativo+1}): {e}", flush=True)
             time.sleep(2)
     return 0.0, 0.0
 
@@ -179,6 +182,7 @@ def controlla_stato_ordine(order_id):
     return "UNKNOWN"
 
 def recupera_ordini_griglia_esistenti():
+    print("-> [DEBUG] Controllo ordini aperti...", flush=True)
     id_buy, id_sell = None, None
     for tentativo in range(3):
         try:
@@ -192,8 +196,10 @@ def recupera_ordini_griglia_esistenti():
                         o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
                         if 'lbuy_' in c_id: id_buy = o_id
                         elif 'lsell_' in c_id: id_sell = o_id
+            print(f"-> [DEBUG] Ordini trovati -> BUY ID: {id_buy} | SELL ID: {id_sell}", flush=True)
             return id_buy, id_sell
         except Exception as e:
+            print(f"⚠️ [DEBUG] Errore lettura ordini (tentativo {tentativo+1}): {e}", flush=True)
             time.sleep(2)
     return None, None
 
