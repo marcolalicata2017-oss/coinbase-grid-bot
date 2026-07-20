@@ -3,9 +3,11 @@ import requests
 import os
 import sys
 import subprocess
+import pandas as pd
+import numpy as np
 from coinbase.rest import RESTClient
 
-print("1. [DEBUG] Avvio dello script (Flusso Ottimizzato con Rilevamento Intelligente Esecuzioni)...")
+print("1. [DEBUG] Avvio Bot Coinbase (Griglia + Circuit Breaker EMA50)...")
 
 # ================= CONFIGURAZIONE UTENTE =================
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -17,9 +19,8 @@ PRODUCT_ID = "ETH-EUR"
 GRID_DIST_PCT = 0.0120       
 FILE_STATO = "stato_bot.txt"  
 
-# --- PARAMETRI COMPOSITING DINAMICO ---
-PERCENTUALE_BUDGET = 0.10    # Usa il 10% del saldo EUR libero su Coinbase
-MIN_BUDGET_EUR = 15.00        # Soglia minima di sicurezza imposta da Coinbase
+PERCENTUALE_BUDGET = 0.10    # Usa il 10% del saldo EUR libero
+MIN_BUDGET_EUR = 15.00        # Soglia minima Coinbase
 # =========================================================
 
 if not COINBASE_KEY_NAME or not COINBASE_KEY_SECRET:
@@ -46,11 +47,10 @@ def invia_telegram(messaggio):
 
 def esegui_git_pull():
     try:
-        print("-> [DEBUG] Esecuzione git pull preventivo per sincronizzare lo stato...")
         subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"], check=True)
         subprocess.run(["git", "--permanent-auth", "pull", "--rebase", "origin", "main"], timeout=15, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as e:
-        print(f"⚠️ [DEBUG] Avviso durante il git pull: {e}. Procedo comunque.")
+        print(f"⚠️ [DEBUG] Avviso durante il git pull: {e}")
 
 def leggi_prezzo_salvato():
     esegui_git_pull()
@@ -67,56 +67,60 @@ def salva_prezzo(prezzo):
     try:
         with open(FILE_STATO, "w") as f: 
             f.write(f"{prezzo:.2f}")
-        print(f"-> [DEBUG] Prezzo {prezzo:.2f} salvato nel file locale.")
+        print(f"-> [DEBUG] Prezzo Pivot {prezzo:.2f} salvato su file.")
     except Exception as e: 
         print(f"Errore salvataggio file: {e}")
 
-def ottieni_prezzo_reale():
-    print("-> [DEBUG] Richiesta prezzo ETH...")
+def ottieni_prezzo_e_ema50():
+    print("-> [DEBUG] Calcolo prezzo attuale e EMA50 oraria...")
     for tentativo in range(3):
-        try: 
-            res = client.get_product(product_id=PRODUCT_ID)
-            prezzo_str = res.get('price') if isinstance(res, dict) else getattr(res, 'price', None)
-            if prezzo_str:
-                return float(prezzo_str)
-        except Exception as e: 
+        try:
+            # Richiediamo le candele orarie a Coinbase
+            candles = client.get_candles(product_id=PRODUCT_ID, granularity="ONE_HOUR")
+            lista_candele = candles.get('candles', []) if isinstance(candles, dict) else getattr(candles, 'candles', [])
+            
+            if not lista_candele or len(lista_candele) < 50:
+                print("⚠️ Candele insufficienti per EMA50, riprovo...")
+                time.sleep(2)
+                continue
+
+            # Invertiamo per avere la serie storica in ordine cronologico
+            prezzi_chiusura = [float(c.get('close') if isinstance(c, dict) else getattr(c, 'close')) for c in reversed(lista_candele)]
+            
+            s_prezzi = pd.Series(prezzi_chiusura)
+            ema50 = s_prezzi.ewm(span=50, adjust=False).mean().iloc[-1]
+            prezzo_attuale = prezzi_chiusura[-1]
+
+            return prezzo_attuale, ema50
+        except Exception as e:
+            print(f"⚠️ Errore recupero candele: {e}")
             time.sleep(2)
-    return None
+    return None, None
 
 def controlla_saldo_eur():
-    print("-> [DEBUG] Recupero del saldo EUR disponibile su Coinbase...")
     for tentativo in range(3):
         try:
             conti = client.get_accounts()
             lista_conti = conti.get('accounts', []) if isinstance(conti, dict) else getattr(conti, 'accounts', [])
-            
             for conto in lista_conti:
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
                 if valuta == "EUR":
                     disponibile_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
-                    saldo_libero = float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
-                    return saldo_libero
+                    return float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
         except Exception as e:
             time.sleep(2)
     return 0.0
 
 def cancella_tutti_ordini():
-    print("-> [DEBUG] Controllo cancellazione vecchi ordini...")
     for tentativo in range(3):
         try:
             res = client.list_orders(order_status=["OPEN"])
             ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
             if ordini:
-                id_ordini = []
-                for o in ordini:
-                    p_id = o.get('product_id') if isinstance(o, dict) else getattr(o, 'product_id', None)
-                    o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
-                    if p_id == PRODUCT_ID and o_id:
-                        id_ordini.append(o_id)
+                id_ordini = [o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id') for o in ordini if (o.get('product_id') if isinstance(o, dict) else getattr(o, 'product_id')) == PRODUCT_ID]
                 if id_ordini:
                     client.cancel_orders(order_ids=id_ordini)
                     print(f"-> [DEBUG] Cancellati {len(id_ordini)} ordini pendenti.")
-                    time.sleep(1)
             return
         except Exception as e:
             time.sleep(2)
@@ -141,17 +145,17 @@ def recupera_ordini_griglia_esistenti():
                 for o in ordini:
                     p_id = o.get('product_id') if isinstance(o, dict) else getattr(o, 'product_id', None)
                     if p_id == PRODUCT_ID:
-                        c_id = o.get('client_order_id', '') if isinstance(o, dict) else getattr(o, 'client_order_id', '')
+                        c_id = str(o.get('client_order_id', '') if isinstance(o, dict) else getattr(o, 'client_order_id', ''))
                         o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
-                        if 'lbuy_' in str(c_id): id_buy = o_id
-                        elif 'lsell_' in str(c_id): id_sell = o_id
+                        if 'lbuy_' in c_id: id_buy = o_id
+                        elif 'lsell_' in c_id: id_sell = o_id
             return id_buy, id_sell
         except Exception as e:
             time.sleep(2)
     return None, None
 
-def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset", tipo_notifica="RESET"):
-    print(f"-> [DEBUG] Preparazione piazzamento nuova griglia per: {motivo_reset}...")
+def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset"):
+    print(f"-> [DEBUG] Impostazione griglia (Circuit Breaker BUY = {autorizza_buy})...")
     
     saldo_eur = controlla_saldo_eur()
     prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
@@ -162,43 +166,37 @@ def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset", tipo_notifica="RESET"
     
     cancella_tutti_ordini()
     
-    piazza_buy = True
+    piazza_buy = autorizza_buy
     if saldo_eur < MIN_BUDGET_EUR:
-        print(f"⚠️ [ECCEZIONE] Saldo EUR insufficiente ({saldo_eur:.2f} EUR). Salto il BUY.")
+        print(f"⚠️ Saldo EUR insufficiente ({saldo_eur:.2f} EUR). Salto BUY.")
         piazza_buy = False
 
     for tentativo in range(3):
         try:
+            # 1. Ordine BUY (Piazzato usando base_size esatta in ETH)
             if piazza_buy:
                 id_buy = f"lbuy_{int(time.time())}"
                 client.create_order(
                     client_order_id=id_buy, product_id=PRODUCT_ID, side="BUY",
-                    order_configuration={"limit_limit_gtc": {"quote_size": f"{budget_buy_teorico:.2f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
+                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
                 )
             
+            # 2. Ordine SELL
             id_sell = f"lsell_{int(time.time()) + 1}"
             client.create_order(
                 client_order_id=id_sell, product_id=PRODUCT_ID, side="SELL",
                 order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_eth_fissa:.5f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
             )
             
-            # --- STRUTTURA DELLE NOTIFICHE IN BASE AL CONTESTO ---
-            if tipo_notifica == "ACQUISTO":
-                msg_telegram = f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\n" \
-                               f"Nuovo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                               f"Saldo Libero: *{saldo_eur:.2f} EUR*"
-            elif tipo_notifica == "VENDITA":
-                msg_telegram = f"🔴 *COINBASE: VENDITA COMPLETATA!*\n" \
-                               f"Nuovo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                               f"Profitti Incassati! Saldo: *{saldo_eur:.2f} EUR*"
-            else:
-                msg_telegram = f"🔄 *COINBASE: GRIGLIA RESETTATA*\n" \
-                               f"Motivo: _{motivo_reset}_\n" \
-                               f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                               f"Saldo Libero: *{saldo_eur:.2f} EUR*"
-                               
-            if not piazza_buy:
-                msg_telegram += f"\n⚠️ _Solo ordine SELL attivo (Euro < {MIN_BUDGET_EUR}€)_"
+            # NOTIFICA TELEGRAM SOLO SU RESET/CAMBIO STATO
+            msg_telegram = f"🔄 *COINBASE: RESET GRIGLIA*\n" \
+                           f"Motivo: _{motivo_reset}_\n" \
+                           f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                           f"Saldo Libero: *{saldo_eur:.2f} EUR*"
+            if not autorizza_buy:
+                msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO*: Prezzo < EMA50. _Acquisti Sospesi (Euro al sicuro)_."
+            elif not piazza_buy:
+                msg_telegram += f"\n⚠️ _BUY disabilitato per Euro < {MIN_BUDGET_EUR}€_"
                 
             invia_telegram(msg_telegram)
             return True
@@ -208,56 +206,30 @@ def piazza_nuova_griglia(prezzo_rif, motivo_reset="Reset", tipo_notifica="RESET"
     return False
 
 def esegui_singolo_controllo():
+    prezzo_attuale, ema50 = ottieni_prezzo_e_ema50()
+    if not prezzo_attuale or not ema50:
+        print("❌ Impossibile recuperare i dati di mercato. Salto ciclo.")
+        return
+
+    # REGOLA CIRCUIT BREAKER
+    trend_ok = (prezzo_attuale >= ema50)
     prezzo_riferimento = leggi_prezzo_salvato()
     id_ordine_acquisto, id_ordine_vendita = recupera_ordini_griglia_esistenti()
     
-    # 1. Prima inizializzazione assoluta
-    if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is None:
-        prezzo_riferimento = ottieni_prezzo_reale()
-        if prezzo_riferimento:
-            salva_prezzo(prezzo_riferimento)
-            piazza_nuova_griglia(prezzo_riferimento, motivo_reset="Prima Inizializzazione", tipo_notifica="RESET")
-        return
-        
-    # 2. SE ENTRAMBI GLI ORDINI SONO SPARITI DAL BOOK MA IL PIVOT ESISTE (Il nocciolo del problema)
-    if id_ordine_acquisto is None and id_ordine_vendita is None and prezzo_riferimento is not None:
-        print("-> [DEBUG] Entrambi gli ordini sono spariti dagli OPEN. Verifico la posizione del mercato...")
-        prezzo_spot = ottieni_prezzo_reale()
-        if prezzo_spot:
-            if prezzo_spot < prezzo_riferimento:
-                # Il mercato è sceso sotto il pivot: ha eseguito l'acquisto
-                nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
-                salva_prezzo(nuovo_pivot)
-                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Acquisto Rilevata", tipo_notifica="ACQUISTO")
-            else:
-                # Il mercato è salito sopra il pivot: ha eseguito la vendita
-                nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
-                salva_prezzo(nuovo_pivot)
-                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Vendita Rilevata", tipo_notifica="VENDITA")
+    # 1. Prima Inizializzazione o Ripristino da Vuoto
+    if id_ordine_acquisto is None and id_ordine_vendita is None:
+        salva_prezzo(prezzo_attuale)
+        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione / Ripristino")
         return
 
-    # 3. SE UN SOLO ORDINE È SPARITO DALLO STATO OPEN (Asimmetria temporanea da ritardo API)
-    if (id_ordine_acquisto is None and id_ordine_vendita is not None) or (id_ordine_acquisto is not None and id_ordine_vendita is None):
-        print("-> [DEBUG] Rilevato sbilanciamento momentaneo. Interrogo il prezzo spot per determinare l'eseguito...")
-        prezzo_spot = ottieni_prezzo_reale()
-        if prezzo_spot and prezzo_riferimento:
-            if prezzo_spot < prezzo_riferimento and id_ordine_acquisto is None:
-                # Mancava l'acquisto ed il prezzo conferma il trend in discesa
-                nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
-                salva_prezzo(nuovo_pivot)
-                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Acquisto (Da Asimmetria)", tipo_notifica="ACQUISTO")
-            elif prezzo_spot > prezzo_riferimento and id_ordine_vendita is None:
-                # Mancava la vendita ed il prezzo conferma il trend in salita
-                nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
-                salva_prezzo(nuovo_pivot)
-                piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Vendita (Da Asimmetria)", tipo_notifica="VENDITA")
-            else:
-                # Caso limite: asimmetria casuale o ordine rimosso a mano -> Reset standard prudenziale
-                salva_prezzo(prezzo_spot)
-                piazza_nuova_griglia(prezzo_spot, motivo_reset="Reset Asimmetria Generica", tipo_notifica="RESET")
+    # 2. Se scatta il Circuit Breaker mentre c'è un BUY aperto, lo cancelliamo subito
+    if not trend_ok and id_ordine_acquisto is not None:
+        print("🛡️ [CIRCUIT BREAKER] Il prezzo è sceso sotto EMA50. Cancello il BUY e metto gli Euro al sicuro.")
+        salva_prezzo(prezzo_attuale)
+        piazza_nuova_griglia(prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Bear Trend)")
         return
 
-    # 4. CONTROLLO STANDARD (Se entrambi gli ordini sono presenti, controlliamo il FILLED classico)
+    # 3. Controllo Esecuzione Ordini
     eseguito_acquisto = False
     eseguito_vendita = False
 
@@ -269,32 +241,36 @@ def esegui_singolo_controllo():
     if eseguito_acquisto:
         nuovo_pivot = prezzo_riferimento * (1.0 - GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
-        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Standard BUY", tipo_notifica="ACQUISTO")
+        invia_telegram(f"🟢 *COINBASE: ACQUISTO COMPLETATO!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.")
+        piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Acquisto")
+        
     elif eseguito_vendita:
         nuovo_pivot = prezzo_riferimento * (1.0 + GRID_DIST_PCT)
         salva_prezzo(nuovo_pivot)
-        piazza_nuova_griglia(nuovo_pivot, motivo_reset="Esecuzione Standard SELL", tipo_notifica="VENDITA")
+        invia_telegram(f"🔴 *COINBASE: VENDITA COMPLETATA!*\nPrezzo: *{nuovo_pivot:.2f} EUR*.\nProfitti incassati!")
+        piazza_nuova_griglia(nuovo_pivot, autorizza_buy=trend_ok, motivo_reset="Esecuzione Vendita")
     else:
-        print("-> [DEBUG] Ordini pendenti analizzati. Nessun movimento rilevato.")
+        print("-> [DEBUG] Nessun trade eseguito. Ordini pendenti regolari.")
 
 def main():
-    totale_cicli = 11
-    minuti_attesa = 5
+    # 5 cicli interni distanziati da 10 minuti = 50 minuti di esecuzione continua
+    totale_cicli = 5
+    minuti_attesa = 10
     
-    print("-> [DEBUG] Avvio sessione di monitoraggio in background...")
+    print("-> [DEBUG] Avvio sessione di monitoraggio continuo (10 minuti di intervallo)...")
 
     for ciclo in range(1, totale_cicli + 1):
-        print(f"\n⏱️ === INIZIO CICLO {ciclo} DI {totale_cicli} ===")
+        print(f"\n⏱️ === CONTROLLO {ciclo} DI {totale_cicli} ===")
         try:
             esegui_singolo_controllo()
         except Exception as e:
-            print(f"❌ Errore critico nel ciclo {ciclo}: {e}")
+            print(f"❌ Errore nel ciclo {ciclo}: {e}")
             
         if ciclo < totale_cicli:
-            print(f"Ciclo completato. In attesa di {minuti_attesa} minuti...")
+            print(f"Controllo completato. In attesa di {minuti_attesa} minuti...")
             time.sleep(minuti_attesa * 60)
             
-    print("\n🏁 Sessione di monitoraggio completata. Il workflow termina qui.")
+    print("\n🏁 Sessione terminata pulita. Il workflow si chiude per lasciare spazio al successivo.")
 
 if __name__ == "__main__":
     main()
