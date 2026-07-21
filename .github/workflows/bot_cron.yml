@@ -2,8 +2,8 @@ name: Bot Coinbase Grid & Circuit Breaker
 
 on:
   schedule:
-    # Esegue ogni 30 minuti (al minuto :00 e :30)
-    - cron: '*/30 * * * *'
+    # Esegue al minuto :07 e :37 invece che a :00 e :30 (evita i picchi di traffico!)
+    - cron: '7,37 * * * *'
   workflow_dispatch: # Permette l'avvio manuale da interfaccia GitHub
 
 # Permessi di scrittura per salvare diario_di_bordo.csv e stato_bot.txt
