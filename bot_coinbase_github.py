@@ -245,27 +245,48 @@ def esegui_gestione_asset(pair):
     trend_ok = (prezzo_attuale >= ema50)
     id_buy, id_sell = recupera_ordini_pair(pair)
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)}", flush=True)
+    # Legge i saldi correnti per capire quanti token possediamo
+    saldo_eur_pool, dict_cripto = controlla_saldi_globali()
+    crypto_posseduta = dict_cripto.get(symbol_crypto, 0.0)
+    dec = cfg.get("decimals", 4)
+    min_order_eur = cfg["min_order_eur"]
+
+    # Calcola se la quantità di crypto posseduta basterebbe per un ordine SELL valido
+    ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
+
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto: {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
 
     # 1. Inizializzazione Totale (Nessun ordine aperto)
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Multi-Asset", ema50=ema50)
         return
 
-    # 2. Circuit Breaker Active (Prezzo sotto EMA50 ma BUY pendente)
+    # 2. Circuit Breaker Trigger (Prezzo sotto EMA50 ma BUY ancora pendente)
     if not trend_ok and id_buy is not None:
         piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", ema50=ema50)
         return
 
-    # 3. Auto-Healing Griglia Asimmetrica / Primo Acquisto completato
-    if (id_buy is None and id_sell is not None) or (id_buy is not None and id_sell is None):
-        print(f"⚠️ [DEBUG {pair}] Asimmetria rilevata. Riallineamento...", flush=True)
-        piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento Griglia Asimmetrica", ema50=ema50)
+    # 3. Gestione Asimmetria Intelligente
+    if id_buy is None and id_sell is not None:
+        # Manca il BUY ma c'è il SELL -> VERO disallineamento -> Reset
+        print(f"⚠️ [DEBUG {pair}] Manca ordine BUY. Riallineamento griglia...", flush=True)
+        piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Ordine BUY Mancante", ema50=ema50)
         return
 
+    if id_buy is not None and id_sell is None:
+        # Manca il SELL: è un'asimmetria valida SOLO SE possediamo token che dovrebbero essere in vendita!
+        if ha_crypto_per_sell:
+            print(f"⚠️ [DEBUG {pair}] Manca ordine SELL ma possediamo {crypto_posseduta:.{dec}f} {symbol_crypto}. Riallineamento...", flush=True)
+            piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento Ordine SELL Mancante", ema50=ema50)
+            return
+        else:
+            # Abbiamo 0 token e il BUY è attivo: SITUAZIONE CORRETTA! Il bot non fa nulla e aspetta l'esecuzione.
+            print(f"ℹ️ [DEBUG {pair}] Ordine BUY pendente in attesa di esecuzione (0 {symbol_crypto} in portafoglio). Nessuna azione richiesta.", flush=True)
+            return
+
 def main():
-    totale_cicli = 2
-    minuti_attesa = 12
+    totale_cicli = 5      # 5 controlli consecutivi
+    minuti_attesa = 11    # ogni 11 minuti (Totale: ~55 minuti continui)
 
     print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - Pool Fluido...", flush=True)
 
