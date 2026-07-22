@@ -36,6 +36,7 @@ CONFIG_ASSETS = {
 }
 
 PERCENTUALE_BUDGET_BUY = 0.10  # 10% del Pool EUR disponibile ad ogni riacquisto
+SOGLIA_EMA_TOLLERANZA = 0.95    # Soglia di protezione cash impostata al 95% della EMA50 (-5%)
 FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
 
@@ -166,7 +167,7 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur, dict_cripto, stat
             barra_asset = genera_barra_progresso(pct_asset)
             msg_report += f"`[{barra_asset}]` {pct_asset*100:.0f}% {cfg['emoji']} {sym} ({val:.2f} EUR | {qta:.{cfg['decimals']}f} {sym})\n"
 
-        msg_report += "\n🛡️ *Stato Circuit Breaker:*\n"
+        msg_report += "\n🛡️ *Stato Circuit Breaker (Soglia 95% EMA50):*\n"
         for pair, cb_attivo in stati_cb.items():
             emoji_asset = CONFIG_ASSETS[pair]["emoji"]
             stato_txt = "ATTIVO 🔴" if cb_attivo else "DISATTIVATO 🟢"
@@ -286,9 +287,9 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     is_starter_buy = False
     piazza_buy = autorizza_buy
 
-    # LOGICA STARTER: Se Prezzo < EMA50 ma 0 token, acquisto al PREZZO ATTUALE
+    # LOGICA STARTER: Se Prezzo < (EMA50 * 0.95) e 0 token, acquisto al PREZZO ATTUALE
     if not autorizza_buy and not ha_crypto_sufficiente:
-        print(f"💡 [{pair} STARTER BUY] Prezzo < EMA50 e 0 {symbol_crypto}: Acquisto immediato al prezzo attuale!", flush=True)
+        print(f"💡 [{pair} STARTER BUY] Prezzo < 95% EMA50 e 0 {symbol_crypto}: Acquisto immediato al prezzo attuale!", flush=True)
         piazza_buy = True
         is_starter_buy = True
         prezzo_compra_effettivo = prezzo_rif
@@ -329,7 +330,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                                f"Pool EUR Libero: *{saldo_eur:.2f} EUR*"
 
                 if not autorizza_buy:
-                    msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO* (Prezzo < EMA50)."
+                    msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO* (Prezzo < 95% EMA50: {ema50*0.95:.2f} EUR)."
                     if is_starter_buy:
                         msg_telegram += f"\n🛒 _Ordine d'acquisto immediato inviato a {prezzo_rif:.2f} EUR per non rimanere a 0 token._"
 
@@ -353,7 +354,10 @@ def esegui_gestione_asset(pair):
     prezzo_attuale, ema50 = ottieni_prezzo_e_ema50(pair)
     if not prezzo_attuale or not ema50: return None, False
 
-    trend_ok = (prezzo_attuale >= ema50)
+    # NUOVA SOGLIA: trend_ok rimane True finché il prezzo è sopra il 95% della EMA50
+    soglia_protezione = ema50 * SOGLIA_EMA_TOLLERANZA
+    trend_ok = (prezzo_attuale >= soglia_protezione)
+    
     id_buy, id_sell = recupera_ordini_pair(pair)
 
     saldo_eur_pool, dict_cripto = controlla_saldi_globali()
@@ -363,16 +367,16 @@ def esegui_gestione_asset(pair):
 
     ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto: {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} (Soglia 95%: {soglia_protezione:.2f}) | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto: {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
 
     # 1. Inizializzazione Totale (Nessun ordine aperto)
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Multi-Asset", ema50=ema50)
         return prezzo_attuale, not trend_ok
 
-    # 2. Circuit Breaker Trigger (Prezzo sotto EMA50 ma BUY ancora pendente)
+    # 2. Circuit Breaker Trigger (Prezzo sotto 95% EMA50 ma BUY ancora pendente)
     if not trend_ok and id_buy is not None:
-        piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", ema50=ema50)
+        piazza_nuova_griglia(pair, prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Sotto 95% EMA50)", ema50=ema50)
         return prezzo_attuale, True
 
     # 3. Gestione Asimmetria Intelligente
