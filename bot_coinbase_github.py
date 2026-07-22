@@ -146,91 +146,76 @@ def cancella_ordini_pair(product_id):
 # ==========================================
 # LOGICA DI PIAZZAMENTO GRIGLIA DEDICATA
 # ==========================================
-def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0):
-    cfg = CONFIG_ASSETS[pair]
-    dist_pct = cfg["grid_dist"]
-    emoji = cfg["emoji"]
-    min_order_eur = cfg["min_order_eur"]
-    dec = cfg.get("decimals", 4)
-    symbol_crypto = pair.split("-")[0]
+# Variabile globale o di stato per tracciare la notifica precedente
+ULTIMO_STATO_CB = None
 
-    saldo_eur_pool, dict_cripto = controlla_saldi_globali()
-    crypto_posseduta = dict_cripto.get(symbol_crypto, 0.0)
-
-    prezzo_buy = prezzo_rif * (1.0 - dist_pct)
-    prezzo_sell = prezzo_rif * (1.0 + dist_pct)
-
-    # Budget BUY dinamico calcolato dal Pool EUR
-    budget_buy_teorico = max(saldo_eur_pool * PERCENTUALE_BUDGET_BUY, min_order_eur)
-    quantita_crypto_buy = budget_buy_teorico / prezzo_buy
-
-    # Quantità SELL: il minimo tra la quantità teorica e la crypto realmente posseduta
-    quantita_crypto_sell = min(quantita_crypto_buy, crypto_posseduta)
-
-    # Formattazione rigorosa con la precisione decimali di ciascun asset
-    base_size_buy = f"{quantita_crypto_buy:.{dec}f}"
-    base_size_sell = f"{quantita_crypto_sell:.{dec}f}"
-
-    cancella_ordini_pair(pair)
-
-    piazza_buy = autorizza_buy and (saldo_eur_pool >= min_order_eur)
-    piazza_sell = (quantita_crypto_sell * prezzo_sell) >= min_order_eur
-
-    print(f"-> [DEBUG {pair}] Tentativo piazzamento -> BUY: {piazza_buy} (Budget EUR Pool: {saldo_eur_pool:.2f}) | SELL: {piazza_sell} ({crypto_posseduta:.{dec}f} {symbol_crypto})", flush=True)
-
-    timestamp = int(time.time())
-
-    # Invio Ordine BUY
-    if piazza_buy:
-        try:
-            res_buy = client.create_order(
-                client_order_id=f"lbuy_{symbol_crypto.lower()}_{timestamp}",
-                product_id=pair,
-                side="BUY",
-                order_configuration={
-                    "limit_limit_gtc": {
-                        "base_size": base_size_buy,
-                        "limit_price": f"{prezzo_buy:.2f}",
-                        "post_only": False
-                    }
-                }
-            )
-            print(f"✅ [DEBUG {pair}] Ordine BUY Inviato: {res_buy}", flush=True)
-        except Exception as e:
-            print(f"❌ [DEBUG {pair}] ERRORE Invio Ordine BUY: {e}", flush=True)
-
-    # Invio Ordine SELL
-    if piazza_sell:
-        try:
-            res_sell = client.create_order(
-                client_order_id=f"lsell_{symbol_crypto.lower()}_{timestamp+1}",
-                product_id=pair,
-                side="SELL",
-                order_configuration={
-                    "limit_limit_gtc": {
-                        "base_size": base_size_sell,
-                        "limit_price": f"{prezzo_sell:.2f}",
-                        "post_only": False
-                    }
-                }
-            )
-            print(f"✅ [DEBUG {pair}] Ordine SELL Inviato: {res_sell}", flush=True)
-        except Exception as e:
-            print(f"❌ [DEBUG {pair}] ERRORE Invio Ordine SELL: {e}", flush=True)
-
-    # Notifica Telegram
-    msg = f"{emoji} *COINBASE: RESET GRIGLIA ({pair})*\n" \
-          f"Motivo: _{motivo_reset}_\n" \
-          f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-          f"Pool EUR Disponibile: *{saldo_eur_pool:.2f} EUR*\n" \
-          f"Crypto Posseduta: *{crypto_posseduta:.{dec}f} {symbol_crypto}*"
+def piazza_nuova_griglia(prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0):
+    global ULTIMO_STATO_CB
     
-    if not autorizza_buy:
-        msg += f"\n🛡️ *CIRCUIT BREAKER*: Prezzo < EMA50. _Euro al sicuro nel Pool_."
+    saldo_eur, token_posseduti = controlla_saldi()
+    prezzo_buy = prezzo_rif * (1.0 - GRID_DIST_PCT)
+    prezzo_sell = prezzo_rif * (1.0 + GRID_DIST_PCT)
+    
+    budget_buy_teorico = max(saldo_eur * PERCENTUALE_BUDGET, MIN_BUDGET_EUR)
+    quantita_token_fissa = budget_buy_teorico / prezzo_buy
+    
+    cancella_tutti_ordini()
+    
+    # --- LOGICA STARTER / ACCUMULO A ZERO TOKEN ---
+    # Se il trend è negativo (CB attivo) MA abbiamo 0 token, autorizziamo l'acquisto iniziale!
+    ha_token_sufficienti = (token_posseduti * prezzo_rif) >= MIN_BUDGET_EUR
+    
+    piazza_buy = autorizza_buy
+    if not autorizza_buy and not ha_token_sufficienti:
+        print("💡 [LOGICA STARTER] Prezzo < EMA50 ma 0 token in portafoglio: Autorizzato acquisto d'accumulo!", flush=True)
+        piazza_buy = True
+        motivo_reset += " (Acquisto Starter 0 Token)"
 
-    invia_telegram(msg)
-    registra_su_diario_di_bordo(pair, prezzo_rif, ema50, saldo_eur_pool, crypto_posseduta, motivo_reset, autorizza_buy)
-    return True
+    if saldo_eur < MIN_BUDGET_EUR:
+        piazza_buy = False
+
+    for tentativo in range(3):
+        try:
+            if piazza_buy:
+                id_buy = f"lbuy_{int(time.time())}"
+                client.create_order(
+                    client_order_id=id_buy, product_id=PRODUCT_ID, side="BUY",
+                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_fissa:.4f}", "limit_price": f"{prezzo_buy:.2f}", "post_only": False}}
+                )
+            
+            # Piazziamo il SELL solo se abbiamo token in portafoglio
+            if ha_token_sufficienti:
+                id_sell = f"lsell_{int(time.time()) + 1}"
+                client.create_order(
+                    client_order_id=id_sell, product_id=PRODUCT_ID, side="SELL",
+                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_fissa:.4f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+                )
+            
+            # --- GESTIONE NOTIFICHE TELEGRAM (ANTI-SPAM) ---
+            stato_cb_attuale = "ATTIVO" if not autorizza_buy else "DISATTIVATO"
+            
+            # Notifica inviata SOLO se lo stato del CB è cambiato o se è un'azione reale (Reset/Trade)
+            if ULTIMO_STATO_CB != stato_cb_attuale or "Esecuzione" in motivo_reset or "Starter" in motivo_reset:
+                valore_totale_eur = saldo_eur + (token_posseduti * prezzo_rif)
+                msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA*\n" \
+                               f"Evento: _{motivo_reset}_\n" \
+                               f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                               f"Portafoglio Totale: *{valore_totale_eur:.2f} EUR*"
+                
+                if not autorizza_buy:
+                    msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO* (Prezzo < EMA50)."
+                    if not ha_token_sufficienti:
+                        msg_telegram += f"\n🛒 _Piazzato ordine d'acquisto starter per non restare a 0 token._"
+                
+                invia_telegram(msg_telegram)
+                ULTIMO_STATO_CB = stato_cb_attuale
+            
+            registra_su_diario_di_bordo(prezzo_rif, ema50, saldo_eur, token_posseduti, motivo_reset, autorizza_buy)
+            return True
+        except Exception as e:
+            print(f"⚠️ Errore piazzamento griglia: {e}", flush=True)
+            time.sleep(2)
+    return False
 
 # ==========================================
 # ESECUZIONE DEL CICLO SINGLE/MULTI-ASSET
