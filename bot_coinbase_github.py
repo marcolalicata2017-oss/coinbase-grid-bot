@@ -21,12 +21,11 @@ CONFIG_ASSETS = {
         "min_order_eur": 5.0,
         "decimals": 4
     },
-  "BTC-EUR": {
+    "BTC-EUR": {
         "grid_dist": 0.010,     # 1.0%
         "emoji": "🪙",
         "min_order_eur": 5.0,
-        "decimals": 8           # <--- Modificato da 5 a 8
-    },
+        "decimals": 8           # 8 decimali per BTC
     },
     "SOL-EUR": {
         "grid_dist": 0.018,     # 1.8%
@@ -312,15 +311,14 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                     order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token:.{dec}f}", "limit_price": f"{prezzo_compra_effettivo:.2f}", "post_only": False}}
                 )
 
-           if ha_crypto_sufficiente:
+            if ha_crypto_sufficiente:
                 id_sell = f"lsell_{int(time.time()) + 1}"
                 
                 # 1. Calcola la quantità teorica basata sul budget
                 quantita_sell_teorica = budget_buy_teorico / prezzo_sell
                 
                 # 2. Prendi il MINIMO tra la quantità teorica e la crypto realmente posseduta
-                # (Evita l'errore INSUFFICIENT_FUNDS se in pancia hai meno crypto del 10% del pool EUR)
-                quantita_sell me = min(quantita_sell_teorica, crypto_posseduta)
+                quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
                 
                 client.create_order(
                     client_order_id=id_sell, product_id=pair, side="SELL",
