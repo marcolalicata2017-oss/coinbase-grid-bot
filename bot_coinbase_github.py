@@ -35,7 +35,7 @@ CONFIG_ASSETS = {
     }
 }
 
-PERCENTUALE_BUDGET_BUY = 0.10  # 10% del Pool EUR disponibile ad ogni riacquisto
+PERCENTUALE_BUDGET_BASE = 0.10  # 10% del Pool EUR per acquisti standard vicini alla EMA50
 SOGLIA_EMA_TOLLERANZA = 0.95    # Soglia di protezione cash impostata al 95% della EMA50 (-5%)
 FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
@@ -229,7 +229,6 @@ def controlla_saldi_globali():
             for conto in lista_conti:
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
                 
-                # Estrazione Saldo Disponibile + Saldo Bloccato (holds/orders)
                 disp_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
                 hold_data = conto.get('hold', {}) if isinstance(conto, dict) else getattr(conto, 'hold', None)
                 
@@ -286,7 +285,7 @@ def cancella_ordini_pair(product_id):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA DEDICATA
+# LOGICA DI PIAZZAMENTO GRIGLIA DEDICATA (MARTINGALA INCLUSA)
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0):
     global ULTIMO_STATO_CB
@@ -303,8 +302,24 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist)
 
-    budget_buy_teorico = max(saldo_eur_totale * PERCENTUALE_BUDGET_BUY, min_order_eur)
-    
+    # ----------------------------------------------------
+    # LOGICA MARTINGALA: Position Sizing Basato su Sconto EMA50
+    # ----------------------------------------------------
+    scarto_ema = (prezzo_rif - ema50) / ema50 if ema50 > 0 else 0.0
+
+    if scarto_ema < -0.04:      # Prezzo più del -4% sotto EMA50 (Sconto Forte)
+        pct_budget = 0.16
+        label_martingala = " (Martingala +60%)"
+    elif scarto_ema < -0.02:    # Prezzo tra -2% e -4% sotto EMA50 (Sconto Medio)
+        pct_budget = 0.13
+        label_martingala = " (Martingala +30%)"
+    else:                       # Prezzo vicino a EMA50
+        pct_budget = PERCENTUALE_BUDGET_BASE
+        label_martingala = ""
+
+    budget_buy_teorico = max(saldo_eur_totale * pct_budget, min_order_eur)
+    motivo_reset += label_martingala
+
     cancella_ordini_pair(pair)
 
     ha_crypto_sufficiente = (crypto_posseduta * prezzo_rif) >= min_order_eur
@@ -338,10 +353,8 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             if ha_crypto_sufficiente:
                 id_sell = f"lsell_{int(time.time()) + 1}"
                 
-                # 1. Calcola la quantità teorica basata sul budget
-                quantita_sell_teorica = budget_buy_teorico / prezzo_sell
-                
-                # 2. Prendi il MINIMO tra la quantità teorica e la crypto realmente posseduta (inclusi ordini)
+                # Quantità teorica basata sul budget standard
+                quantita_sell_teorica = (saldo_eur_totale * PERCENTUALE_BUDGET_BASE) / prezzo_sell
                 quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
                 
                 client.create_order(
