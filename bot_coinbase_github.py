@@ -76,7 +76,7 @@ def genera_barra_progresso(percentuale, lung=10):
     vuoti = lung - pieni
     return "█" * pieni + "░" * vuoti
 
-def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur, dict_cripto, stati_cb):
+def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb):
     """Traccia il valore giornaliero su CSV e invia il report visivo SOLO la Domenica sera."""
     ora_dt = datetime.now()
     oggi = ora_dt.strftime("%Y-%m-%d")
@@ -86,12 +86,12 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur, dict_cripto, stat
     
     for pair, prezzo in prezzi_attuali.items():
         sym = pair.split("-")[0]
-        qta = dict_cripto.get(sym, 0.0)
+        qta = dict_cripto_totale.get(sym, 0.0)
         val = qta * (prezzo if prezzo else 0.0)
         dettagli_cripto_val[sym] = (val, qta)
         valore_cripto_totale += val
 
-    valore_totale = saldo_eur + valore_cripto_totale
+    valore_totale = saldo_eur_totale + valore_cripto_totale
 
     file_esiste = os.path.exists(FILE_PORTAFOGLIO_GIORNALIERO)
     gia_registrato_oggi = False
@@ -108,7 +108,7 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur, dict_cripto, stat
     if not gia_registrato_oggi:
         print(f"📊 [CSV] Registrazione valore portafoglio per il giorno {oggi}...", flush=True)
         intestazione = "Data,Saldo_EUR,Valore_Crypto_EUR,Valore_Totale_EUR\n"
-        riga = f"{oggi},{saldo_eur:.2f},{valore_cripto_totale:.2f},{valore_totale:.2f}\n"
+        riga = f"{oggi},{saldo_eur_totale:.2f},{valore_cripto_totale:.2f},{valore_totale:.2f}\n"
         
         try:
             with open(FILE_PORTAFOGLIO_GIORNALIERO, "a", encoding="utf-8") as f:
@@ -135,30 +135,45 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur, dict_cripto, stat
         print("📊 [TELEGRAM] Generazione Report Visivo Settimanale della Domenica...", flush=True)
         
         valore_7_gg_fa = valore_totale
+        valore_iniziale_esperimento = valore_totale
+        
         try:
-            df = pd.read_csv(FILE_PORTAFOGLIO_GIORNALIERO)
-            if len(df) >= 7:
-                valore_7_gg_fa = float(df.iloc[-7]["Valore_Totale_EUR"])
-            elif len(df) > 1:
-                valore_7_gg_fa = float(df.iloc[0]["Valore_Totale_EUR"])
+            if os.path.exists(FILE_PORTAFOGLIO_GIORNALIERO):
+                df = pd.read_csv(FILE_PORTAFOGLIO_GIORNALIERO)
+                if not df.empty:
+                    # Primo dato in assoluto (Inizio Esperimento)
+                    valore_iniziale_esperimento = float(df.iloc[0]["Valore_Totale_EUR"])
+                    
+                    # Dato di esattamente 7 giorni fa (Domenica scorsa)
+                    if len(df) >= 7:
+                        valore_7_gg_fa = float(df.iloc[-7]["Valore_Totale_EUR"])
+                    else:
+                        valore_7_gg_fa = valore_iniziale_esperimento
         except Exception as e:
             print(f"Avviso lettura storico per delta: {e}", flush=True)
 
-        diff_eur = valore_totale - valore_7_gg_fa
-        pct_diff = ((valore_totale - valore_7_gg_fa) / valore_7_gg_fa * 100) if valore_7_gg_fa > 0 else 0.0
-        
-        emoji_trend = "🟢" if diff_eur >= 0 else "🔴"
-        segno = "+" if diff_eur >= 0 else ""
+        # Calcolo Variazione Settimanale (W-o-W)
+        diff_sett = valore_totale - valore_7_gg_fa
+        pct_sett = ((diff_sett) / valore_7_gg_fa * 100) if valore_7_gg_fa > 0 else 0.0
+        emoji_sett = "🟢" if diff_sett >= 0 else "🔴"
+        segno_sett = "+" if diff_sett >= 0 else ""
 
-        pct_eur = (saldo_eur / valore_totale) if valore_totale > 0 else 1.0
+        # Calcolo Crescita Overall (Inizio Esperimento)
+        diff_overall = valore_totale - valore_iniziale_esperimento
+        pct_overall = ((diff_overall) / valore_iniziale_esperimento * 100) if valore_iniziale_esperimento > 0 else 0.0
+        emoji_overall = "🟢" if diff_overall >= 0 else "🔴"
+        segno_overall = "+" if diff_overall >= 0 else ""
+
+        pct_eur = (saldo_eur_totale / valore_totale) if valore_totale > 0 else 1.0
         barra_eur = genera_barra_progresso(pct_eur)
 
         msg_report = f"📊 *REPORT SETTIMANALE PORTAFOGLIO*\n" \
                      f"📅 Domenica {ora_dt.strftime('%d/%m/%Y')}\n\n" \
                      f"💰 Valore Totale: *{valore_totale:.2f} EUR*\n" \
-                     f"📈 Variazione Settimana: *{segno}{pct_diff:.2f}%* ({emoji_trend} {segno}{diff_eur:.2f} EUR)\n\n" \
-                     f"📊 *Composizione Portafoglio:*\n" \
-                     f"`[{barra_eur}]` {pct_eur*100:.0f}% Saldo EUR ({saldo_eur:.2f} EUR)\n"
+                     f"📈 Rispetto a Dom. Scorsa: *{segno_sett}{pct_sett:.2f}%* ({emoji_sett} {segno_sett}{diff_sett:.2f} EUR)\n" \
+                     f"🚀 Crescita Overall: *{segno_overall}{pct_overall:.2f}%* ({emoji_overall} {segno_overall}{diff_overall:.2f} EUR)\n\n" \
+                     f"📊 *Composizione Portafoglio (Inclusi Ordini Pendenti):*\n" \
+                     f"`[{barra_eur}]` {pct_eur*100:.0f}% Saldo EUR ({saldo_eur_totale:.2f} EUR)\n"
 
         for pair, cfg in CONFIG_ASSETS.items():
             sym = pair.split("-")[0]
@@ -203,26 +218,35 @@ def ottieni_prezzo_e_ema50(product_id):
     return None, None
 
 def controlla_saldi_globali():
-    saldo_eur = 0.0
-    cripto_dict = {"ETH": 0.0, "BTC": 0.0, "SOL": 0.0}
+    """Restituisce il saldo TOTALE (disponibile + impegnato negli ordini pendenti)."""
+    saldo_eur_totale = 0.0
+    cripto_dict_totale = {"ETH": 0.0, "BTC": 0.0, "SOL": 0.0}
+    
     for tentativo in range(3):
         try:
             conti = client.get_accounts()
             lista_conti = conti.get('accounts', []) if isinstance(conti, dict) else getattr(conti, 'accounts', [])
             for conto in lista_conti:
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
-                disponibile_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
-                valore = float(disponibile_data.get('value', 0.0)) if isinstance(disponibile_data, dict) else float(getattr(disponibile_data, 'value', 0.0))
+                
+                # Estrazione Saldo Disponibile + Saldo Bloccato (holds/orders)
+                disp_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
+                hold_data = conto.get('hold', {}) if isinstance(conto, dict) else getattr(conto, 'hold', None)
+                
+                v_disp = float(disp_data.get('value', 0.0)) if isinstance(disp_data, dict) else float(getattr(disp_data, 'value', 0.0)) if disp_data else 0.0
+                v_hold = float(hold_data.get('value', 0.0)) if isinstance(hold_data, dict) else float(getattr(hold_data, 'value', 0.0)) if hold_data else 0.0
+                
+                valore_totale = v_disp + v_hold
                 
                 if valuta == "EUR":
-                    saldo_eur = valore
-                elif valuta in cripto_dict:
-                    cripto_dict[valuta] = valore
-            return saldo_eur, cripto_dict
+                    saldo_eur_totale = valore_totale
+                elif valuta in cripto_dict_totale:
+                    cripto_dict_totale[valuta] = valore_totale
+            return saldo_eur_totale, cripto_dict_totale
         except Exception as e:
             print(f"⚠️ Errore lettura saldi (tentativo {tentativo+1}): {e}", flush=True)
             time.sleep(2)
-    return 0.0, cripto_dict
+    return 0.0, cripto_dict_totale
 
 def recupera_ordini_pair(product_id):
     id_buy, id_sell = None, None
@@ -273,13 +297,13 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     dec = cfg["decimals"]
     emoji = cfg["emoji"]
 
-    saldo_eur, dict_cripto = controlla_saldi_globali()
-    crypto_posseduta = dict_cripto.get(symbol_crypto, 0.0)
+    saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
+    crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
 
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist)
 
-    budget_buy_teorico = max(saldo_eur * PERCENTUALE_BUDGET_BUY, min_order_eur)
+    budget_buy_teorico = max(saldo_eur_totale * PERCENTUALE_BUDGET_BUY, min_order_eur)
     
     cancella_ordini_pair(pair)
 
@@ -299,7 +323,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
 
     quantita_token = budget_buy_teorico / prezzo_compra_effettivo
 
-    if saldo_eur < min_order_eur:
+    if saldo_eur_totale < min_order_eur:
         piazza_buy = False
 
     for tentativo in range(3):
@@ -317,7 +341,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 # 1. Calcola la quantità teorica basata sul budget
                 quantita_sell_teorica = budget_buy_teorico / prezzo_sell
                 
-                # 2. Prendi il MINIMO tra la quantità teorica e la crypto realmente posseduta
+                # 2. Prendi il MINIMO tra la quantità teorica e la crypto realmente posseduta (inclusi ordini)
                 quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
                 
                 client.create_order(
@@ -329,11 +353,10 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             stato_precedente = ULTIMO_STATO_CB.get(pair)
 
             if stato_precedente != stato_cb_attuale or "Esecuzione" in motivo_reset or is_starter_buy:
-                valore_totale = saldo_eur + (crypto_posseduta * prezzo_rif)
                 msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA {pair}* {emoji}\n" \
                                f"Evento: _{motivo_reset}_\n" \
                                f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                               f"Pool EUR Libero: *{saldo_eur:.2f} EUR*"
+                               f"Pool EUR Totale: *{saldo_eur_totale:.2f} EUR*"
 
                 if not autorizza_buy:
                     msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO* (Prezzo < 95% EMA50: {ema50*0.95:.2f} EUR)."
@@ -343,7 +366,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 invia_telegram(msg_telegram)
                 ULTIMO_STATO_CB[pair] = stato_cb_attuale
 
-            registra_su_diario_di_bordo(pair, prezzo_rif, ema50, saldo_eur, crypto_posseduta, motivo_reset, autorizza_buy)
+            registra_su_diario_di_bordo(pair, prezzo_rif, ema50, saldo_eur_totale, crypto_posseduta, motivo_reset, autorizza_buy)
             return True
         except Exception as e:
             print(f"⚠️ Errore piazzamento griglia ({pair}): {e}", flush=True)
@@ -360,20 +383,19 @@ def esegui_gestione_asset(pair):
     prezzo_attuale, ema50 = ottieni_prezzo_e_ema50(pair)
     if not prezzo_attuale or not ema50: return None, False
 
-    # NUOVA SOGLIA: trend_ok rimane True finché il prezzo è sopra il 95% della EMA50
     soglia_protezione = ema50 * SOGLIA_EMA_TOLLERANZA
     trend_ok = (prezzo_attuale >= soglia_protezione)
     
     id_buy, id_sell = recupera_ordini_pair(pair)
 
-    saldo_eur_pool, dict_cripto = controlla_saldi_globali()
-    crypto_posseduta = dict_cripto.get(symbol_crypto, 0.0)
+    saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
+    crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
     dec = cfg.get("decimals", 4)
     min_order_eur = cfg["min_order_eur"]
 
     ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} (Soglia 95%: {soglia_protezione:.2f}) | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto: {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} (Soglia 95%: {soglia_protezione:.2f}) | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto (Totale): {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
 
     # 1. Inizializzazione Totale (Nessun ordine aperto)
     if id_buy is None and id_sell is None:
@@ -422,8 +444,8 @@ def main():
         
         # TRACCIAMENTO ED ELABORAZIONE REPORT DOMENICALE
         try:
-            saldo_eur, dict_cripto = controlla_saldi_globali()
-            traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur, dict_cripto, stati_cb)
+            saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
+            traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb)
         except Exception as e:
             print(f"⚠️ Errore tracciamento portafoglio: {e}", flush=True)
 
