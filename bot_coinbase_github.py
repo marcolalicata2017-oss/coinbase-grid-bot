@@ -218,14 +218,29 @@ def controlla_saldi_globali():
         try:
             conti = client.get_accounts()
             lista_conti = conti.get('accounts', []) if isinstance(conti, dict) else getattr(conti, 'accounts', [])
+            
             for conto in lista_conti:
+                # Estrazione valuta
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
                 
-                disp_data = conto.get('available_balance', {}) if isinstance(conto, dict) else float(getattr(conto, 'available_balance', None)) if hasattr(conto, 'available_balance') else None
-                hold_data = conto.get('hold', {}) if isinstance(conto, dict) else float(getattr(conto, 'hold', None)) if hasattr(conto, 'hold') else None
+                # Estrazione dati bilancio (disponibile e in hold)
+                disp_obj = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', {})
+                hold_obj = conto.get('hold', {}) if isinstance(conto, dict) else getattr(conto, 'hold', {})
                 
-                v_disp = float(disp_data.get('value', 0.0)) if isinstance(disp_data, dict) else float(getattr(disp_data, 'value', 0.0)) if disp_data else 0.0
-                v_hold = float(hold_data.get('value', 0.0)) if isinstance(hold_data, dict) else float(getattr(hold_data, 'value', 0.0)) if hold_data else 0.0
+                # Estrazione sicura del valore numerico "value"
+                def estrai_valore(obj):
+                    if not obj: return 0.0
+                    if isinstance(obj, dict):
+                        return float(obj.get('value', 0.0))
+                    elif hasattr(obj, 'value'):
+                        return float(getattr(obj, 'value', 0.0))
+                    try:
+                        return float(obj)
+                    except:
+                        return 0.0
+
+                v_disp = estrai_valore(disp_obj)
+                v_hold = estrai_valore(hold_obj)
                 
                 valore_totale = v_disp + v_hold
                 
@@ -233,10 +248,13 @@ def controlla_saldi_globali():
                     saldo_eur_totale = valore_totale
                 elif valuta in cripto_dict_totale:
                     cripto_dict_totale[valuta] = valore_totale
+                    
             return saldo_eur_totale, cripto_dict_totale
+
         except Exception as e:
             print(f"⚠️ Errore lettura saldi (tentativo {tentativo+1}): {e}", flush=True)
             time.sleep(2)
+            
     return 0.0, cripto_dict_totale
 
 def recupera_ordini_pair(product_id):
