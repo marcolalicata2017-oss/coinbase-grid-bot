@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import requests
 import pandas as pd
 from datetime import datetime
@@ -35,7 +36,7 @@ CONFIG_ASSETS = {
     }
 }
 
-PERCENTUALE_BUDGET_BASE = 0.10  # 10% del Pool EUR per acquisti standard vicini alla EMA50
+PERCENTUALE_BUDGET_BASE = 0.10  # 10% del Pool EUR per acquisti/vendite standard
 SOGLIA_EMA_TOLLERANZA = 0.95    # Soglia di protezione cash impostata al 95% della EMA50 (-5%)
 FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
@@ -77,7 +78,6 @@ def genera_barra_progresso(percentuale, lung=10):
     return "█" * pieni + "░" * vuoti
 
 def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb):
-    """Traccia il valore giornaliero su CSV e invia il report visivo SOLO la Domenica sera."""
     ora_dt = datetime.now()
     oggi = ora_dt.strftime("%Y-%m-%d")
 
@@ -104,7 +104,6 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
                     gia_registrato_oggi = True
         except: pass
 
-    # 1. Registrazione Silenziosa sul CSV (1 riga al giorno)
     if not gia_registrato_oggi:
         print(f"📊 [CSV] Registrazione valore portafoglio per il giorno {oggi}...", flush=True)
         intestazione = "Data,Saldo_EUR,Valore_Crypto_EUR,Valore_Totale_EUR\n"
@@ -118,7 +117,6 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except Exception as e:
             print(f"Errore registrazione CSV portafoglio: {e}", flush=True)
 
-    # 2. Controllo Invio Report Visivo: Solo DOMENICA (weekday == 6) dalle ore 20:00 in poi
     is_domenica = (ora_dt.weekday() == 6)
     is_sera = (ora_dt.hour >= 20)
     
@@ -141,10 +139,7 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
             if os.path.exists(FILE_PORTAFOGLIO_GIORNALIERO):
                 df = pd.read_csv(FILE_PORTAFOGLIO_GIORNALIERO)
                 if not df.empty:
-                    # Primo dato in assoluto (Inizio Esperimento)
                     valore_iniziale_esperimento = float(df.iloc[0]["Valore_Totale_EUR"])
-                    
-                    # Dato di esattamente 7 giorni fa (Domenica scorsa)
                     if len(df) >= 7:
                         valore_7_gg_fa = float(df.iloc[-7]["Valore_Totale_EUR"])
                     else:
@@ -152,13 +147,11 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except Exception as e:
             print(f"Avviso lettura storico per delta: {e}", flush=True)
 
-        # Calcolo Variazione Settimanale (W-o-W)
         diff_sett = valore_totale - valore_7_gg_fa
         pct_sett = ((diff_sett) / valore_7_gg_fa * 100) if valore_7_gg_fa > 0 else 0.0
         emoji_sett = "🟢" if diff_sett >= 0 else "🔴"
         segno_sett = "+" if diff_sett >= 0 else ""
 
-        # Calcolo Crescita Overall (Inizio Esperimento)
         diff_overall = valore_totale - valore_iniziale_esperimento
         pct_overall = ((diff_overall) / valore_iniziale_esperimento * 100) if valore_iniziale_esperimento > 0 else 0.0
         emoji_overall = "🟢" if diff_overall >= 0 else "🔴"
@@ -218,7 +211,6 @@ def ottieni_prezzo_e_ema50(product_id):
     return None, None
 
 def controlla_saldi_globali():
-    """Restituisce il saldo TOTALE (disponibile + impegnato negli ordini pendenti)."""
     saldo_eur_totale = 0.0
     cripto_dict_totale = {"ETH": 0.0, "BTC": 0.0, "SOL": 0.0}
     
@@ -229,8 +221,8 @@ def controlla_saldi_globali():
             for conto in lista_conti:
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
                 
-                disp_data = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', None)
-                hold_data = conto.get('hold', {}) if isinstance(conto, dict) else getattr(conto, 'hold', None)
+                disp_data = conto.get('available_balance', {}) if isinstance(conto, dict) else float(getattr(conto, 'available_balance', None)) if hasattr(conto, 'available_balance') else None
+                hold_data = conto.get('hold', {}) if isinstance(conto, dict) else float(getattr(conto, 'hold', None)) if hasattr(conto, 'hold') else None
                 
                 v_disp = float(disp_data.get('value', 0.0)) if isinstance(disp_data, dict) else float(getattr(disp_data, 'value', 0.0)) if disp_data else 0.0
                 v_hold = float(hold_data.get('value', 0.0)) if isinstance(hold_data, dict) else float(getattr(hold_data, 'value', 0.0)) if hold_data else 0.0
@@ -251,33 +243,34 @@ def recupera_ordini_pair(product_id):
     id_buy, id_sell = None, None
     for tentativo in range(3):
         try:
-            res = client.list_orders(order_status=["OPEN"])
+            res = client.list_orders(product_id=product_id, order_status=["OPEN"])
             ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
-            if ordini:
-                for o in ordini:
-                    p_id = o.get('product_id') if isinstance(o, dict) else getattr(o, 'product_id', None)
-                    if p_id == product_id:
-                        c_id = str(o.get('client_order_id', '') if isinstance(o, dict) else getattr(o, 'client_order_id', ''))
-                        o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
-                        if 'lbuy_' in c_id: id_buy = o_id
-                        elif 'lsell_' in c_id: id_sell = o_id
+            
+            for o in ordini:
+                side = o.get('side') if isinstance(o, dict) else getattr(o, 'side', None)
+                o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
+                
+                if side == "BUY":
+                    id_buy = o_id
+                elif side == "SELL":
+                    id_sell = o_id
+                    
             return id_buy, id_sell
         except Exception as e:
             print(f"⚠️ Errore lettura ordini ({product_id}): {e}", flush=True)
             time.sleep(2)
+            
     return None, None
 
 def cancella_ordini_pair(product_id):
     try:
-        res = client.list_orders(order_status=["OPEN"])
+        res = client.list_orders(product_id=product_id, order_status=["OPEN"])
         ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
         ids_da_cancellare = []
         if ordini:
             for o in ordini:
-                p_id = o.get('product_id') if isinstance(o, dict) else getattr(o, 'product_id', None)
-                if p_id == product_id:
-                    o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
-                    if o_id: ids_da_cancellare.append(o_id)
+                o_id = o.get('order_id') if isinstance(o, dict) else getattr(o, 'order_id', None)
+                if o_id: ids_da_cancellare.append(o_id)
         if ids_da_cancellare:
             client.cancel_orders(order_ids=ids_da_cancellare)
             print(f"-> [DEBUG] Cancellati ordini aperti per {product_id}", flush=True)
@@ -285,7 +278,7 @@ def cancella_ordini_pair(product_id):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA DEDICATA (MARTINGALA INCLUSA)
+# LOGICA DI PIAZZAMENTO (BUY COSTANTE & SELL MARTINGALA SU SALITA)
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0):
     global ULTIMO_STATO_CB
@@ -303,30 +296,35 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     prezzo_sell = prezzo_rif * (1.0 + grid_dist)
 
     # ----------------------------------------------------
-    # LOGICA MARTINGALA: Position Sizing Basato su Sconto EMA50
+    # MARTINGALA INVERSA SULLA SALITA (VENDITA PROGRESSIVA)
     # ----------------------------------------------------
     scarto_ema = (prezzo_rif - ema50) / ema50 if ema50 > 0 else 0.0
 
-    if scarto_ema < -0.04:      # Prezzo più del -4% sotto EMA50 (Sconto Forte)
-        pct_budget = 0.16
-        label_martingala = " (Martingala +60%)"
-    elif scarto_ema < -0.02:    # Prezzo tra -2% e -4% sotto EMA50 (Sconto Medio)
-        pct_budget = 0.13
-        label_martingala = " (Martingala +30%)"
-    else:                       # Prezzo vicino a EMA50
-        pct_budget = PERCENTUALE_BUDGET_BASE
+    # Gli acquisti mantengono una dimensione base costante del 10%
+    pct_budget_buy = PERCENTUALE_BUDGET_BASE
+
+    # La vendita scatta in percentuale crescente man mano che il prezzo SALE sopra la EMA50
+    if scarto_ema > 0.04:         # Prezzo oltre +4% sopra la EMA50 (Forte impulso in salita)
+        pct_budget_sell = 0.16     # Vende il 16% (Take Profit Aggressivo +60%)
+        label_martingala = " (SELL Martingala Salita +60%)"
+    elif scarto_ema > 0.02:       # Prezzo tra +2% e +4% sopra la EMA50
+        pct_budget_sell = 0.13     # Vende il 13% (Take Profit Medio +30%)
+        label_martingala = " (SELL Martingala Salita +30%)"
+    else:                         # Prezzo vicino o sotto alla EMA50
+        pct_budget_sell = PERCENTUALE_BUDGET_BASE  # Vende il 10% standard
         label_martingala = ""
 
-    budget_buy_teorico = max(saldo_eur_totale * pct_budget, min_order_eur)
+    budget_buy_teorico = max(saldo_eur_totale * pct_budget_buy, min_order_eur)
     motivo_reset += label_martingala
 
     cancella_ordini_pair(pair)
 
-    ha_crypto_sufficiente = (crypto_posseduta * prezzo_rif) >= min_order_eur
+    valore_crypto_eur = crypto_posseduta * prezzo_rif
+    ha_crypto_sufficiente = valore_crypto_eur >= (min_order_eur * 1.05)  # Buffer +5% fee
     is_starter_buy = False
     piazza_buy = autorizza_buy
 
-    # LOGICA STARTER: Se Prezzo < (EMA50 * 0.95) e 0 token, acquisto al PREZZO ATTUALE
+    # LOGICA STARTER BUY
     if not autorizza_buy and not ha_crypto_sufficiente:
         print(f"💡 [{pair} STARTER BUY] Prezzo < 95% EMA50 e 0 {symbol_crypto}: Acquisto immediato al prezzo attuale!", flush=True)
         piazza_buy = True
@@ -336,31 +334,35 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     else:
         prezzo_compra_effettivo = prezzo_buy_grid
 
-    quantita_token = budget_buy_teorico / prezzo_compra_effettivo
+    quantita_token_buy = budget_buy_teorico / prezzo_compra_effettivo
 
     if saldo_eur_totale < min_order_eur:
         piazza_buy = False
 
     for tentativo in range(3):
         try:
+            # 1. PIAZZAMENTO UNICO ORDINE BUY
             if piazza_buy:
-                id_buy = f"lbuy_{int(time.time())}"
+                id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
                 client.create_order(
                     client_order_id=id_buy, product_id=pair, side="BUY",
-                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token:.{dec}f}", "limit_price": f"{prezzo_compra_effettivo:.2f}", "post_only": False}}
+                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_buy:.{dec}f}", "limit_price": f"{prezzo_compra_effettivo:.2f}", "post_only": False}}
                 )
 
+            # 2. PIAZZAMENTO UNICO ORDINE SELL CON SIZE CRESCENTE IN SALITA
             if ha_crypto_sufficiente:
-                id_sell = f"lsell_{int(time.time()) + 1}"
+                id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
                 
-                # Quantità teorica basata sul budget standard
-                quantita_sell_teorica = (saldo_eur_totale * PERCENTUALE_BUDGET_BASE) / prezzo_sell
+                # Quantità di vendita basata sulla percentuale maggiorata durante i rally di prezzo
+                quantita_sell_teorica = (saldo_eur_totale * pct_budget_sell) / prezzo_sell
                 quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
                 
-                client.create_order(
-                    client_order_id=id_sell, product_id=pair, side="SELL",
-                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
-                )
+                # Verifica rispetto del minimo di ordine
+                if (quantita_sell * prezzo_sell) >= min_order_eur:
+                    client.create_order(
+                        client_order_id=id_sell, product_id=pair, side="SELL",
+                        order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+                    )
 
             stato_cb_attuale = "ATTIVO" if not autorizza_buy else "DISATTIVATO"
             stato_precedente = ULTIMO_STATO_CB.get(pair)
@@ -369,6 +371,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA {pair}* {emoji}\n" \
                                f"Evento: _{motivo_reset}_\n" \
                                f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                               f"Target SELL (+{grid_dist*100:.1f}%): *{prezzo_sell:.2f} EUR*\n" \
                                f"Pool EUR Totale: *{saldo_eur_totale:.2f} EUR*"
 
                 if not autorizza_buy:
@@ -422,8 +425,8 @@ def esegui_gestione_asset(pair):
 
     # 3. Gestione Asimmetria Intelligente
     if id_buy is None and id_sell is not None:
-        print(f"⚠️ [DEBUG {pair}] Manca ordine BUY. Riallineamento griglia...", flush=True)
-        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Ordine BUY Mancante", ema50=ema50)
+        print(f"⚠️ [DEBUG {pair}] Manca ordine BUY. Ordine precedente eseguito, riallineamento griglia...", flush=True)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Griglia per BUY Eseguito", ema50=ema50)
         return prezzo_attuale, not trend_ok
 
     if id_buy is not None and id_sell is None:
@@ -455,7 +458,6 @@ def main():
             except Exception as e:
                 print(f"❌ Errore nella gestione di {pair}: {e}", flush=True)
         
-        # TRACCIAMENTO ED ELABORAZIONE REPORT DOMENICALE
         try:
             saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
             traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb)
