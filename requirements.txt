@@ -1,2 +1,4 @@
 requests
 coinbase-advanced-py
+scikit-learn
+joblib
