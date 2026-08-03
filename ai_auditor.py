@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import requests
 from datetime import datetime, timedelta
-import google.generativeai as genai
+from google import genai
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -26,9 +26,8 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
-    # Inizializzazione SDK Classico
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Forziamo il client su Google AI Studio per l'uso con API Key
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Carica Dati
     df_diario = pd.read_csv(FILE_DIARIO) if os.path.exists(FILE_DIARIO) else pd.DataFrame()
@@ -64,7 +63,11 @@ def esegui_audit():
         """
 
     try:
-        response = model.generate_content(prompt)
+        # Usiamo gemini-2.0-flash col nuovo SDK
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
         testo_report = response.text
         
         intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
