@@ -76,10 +76,10 @@ def esegui_audit():
         Fai solo una sintesi rapida ed essenziale delle operazioni delle ultime 24h, indicando se lo stato del portafoglio e il comportamento del bot sono stati regolari. NON proporre modifiche ai parametri.
         """
 
-    try:
-        # Passiamo a gemini-1.5-flash per il Free Tier senza blocchi di quota zero
+   try:
+        # Alias universale per evitare il 404 su SDK google-genai
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-1.5-flash-latest',
             contents=prompt
         )
         testo_report = response.text
