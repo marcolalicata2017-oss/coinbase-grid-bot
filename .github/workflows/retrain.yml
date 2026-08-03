@@ -1,0 +1,38 @@
+name: Retrain ML Model
+
+on:
+  schedule:
+    # Esegue ogni Domenica notte alle 02:00 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch: # Permette l'avvio manuale su richiesta
+
+permissions:
+  contents: write
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests scikit-learn joblib
+
+      - name: Run ML Training
+        run: python train.py
+
+      - name: Commit & Push Model File
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add modello_volatilta.pkl
+          git commit -m "🧠 [ML AUTOMATION] Retraining modello completato" || exit 0
+          git push origin main
