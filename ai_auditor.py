@@ -26,7 +26,7 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
-    # Inizializzazione Nuovo Client Ufficiale Google GenAI
+    # Inizializzazione Client Ufficiale Google GenAI
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Carica Dati
@@ -63,8 +63,9 @@ def esegui_audit():
         """
 
     try:
+        # Usiamo il modello stabile gemini-1.5-flash
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents=prompt,
         )
         testo_report = response.text
