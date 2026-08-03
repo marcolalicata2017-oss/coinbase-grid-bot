@@ -14,7 +14,9 @@ FILE_PORTAFOGLIO = "storico_portafoglio_giornaliero.csv"
 FILE_CONFIG = "config.json"
 
 def invia_telegram(messaggio):
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: return
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: 
+        print("⚠️ Token o Chat ID Telegram non configurati!")
+        return
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": messaggio, "parse_mode": "Markdown"}
@@ -36,18 +38,21 @@ def esegui_audit():
     
     config_attuale = {}
     if os.path.exists(FILE_CONFIG):
-        with open(FILE_CONFIG, "r") as f:
-            config_attuale = json.load(f)
+        try:
+            with open(FILE_CONFIG, "r") as f:
+                config_attuale = json.load(f)
+        except Exception as e:
+            print(f"⚠️ Errore lettura config.json: {e}")
 
     ora_dt = datetime.now()
     is_domenica = (ora_dt.weekday() == 6)
 
-    # Filtra dati recenti
+    # Filtra dati recenti (7 giorni per la domenica, 1 giorno negli altri casi)
     data_limite = (ora_dt - timedelta(days=7 if is_domenica else 1)).strftime("%Y-%m-%d")
-    diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty else pd.DataFrame()
+    diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty and 'Data_Ora' in df_diario.columns else pd.DataFrame()
 
     prompt = f"""
-    Sei un Quant Trader & Risk Manager specializzato in Grid Trading.
+    Sei un Quant Trader & Risk Manager specializzato in Grid Trading per mercati Crypto.
     
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
     Tipo Audit: {"SETTIMANALE STRATEGICO & BACKTEST" if is_domenica else "GIORNALIERO INFORMATIVO"}
@@ -58,7 +63,7 @@ def esegui_audit():
     DATI DIARIO DI BORDO RECENTI:
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata nel periodo."}
 
-    Fornisci un report sintetico in italiano formattato per Telegram (Markdown).
+    Fornisci un report sintetico in italiano formattato per Telegram (in Markdown).
     """
 
     if is_domenica:
@@ -76,8 +81,8 @@ def esegui_audit():
         Fai solo una sintesi rapida ed essenziale delle operazioni delle ultime 24h, indicando se lo stato del portafoglio e il comportamento del bot sono stati regolari. NON proporre modifiche ai parametri.
         """
 
-   try:
-        # Alias universale per evitare il 404 su SDK google-genai
+    try:
+        # Uso dell'alias universale 'gemini-1.5-flash-latest' per evitare errori 404
         response = client.models.generate_content(
             model='gemini-1.5-flash-latest',
             contents=prompt
