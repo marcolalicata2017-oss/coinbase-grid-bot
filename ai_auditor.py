@@ -63,18 +63,18 @@ def esegui_audit():
         """
 
     try:
-        # Usiamo gemini-2.0-flash per il nuovo SDK google-genai
+        # Nome modello completo e stabile per il Free Tier
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',
             contents=prompt,
         )
         testo_report = response.text
         
         intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
         invia_telegram(intestazione + testo_report)
-        print("✅ Audit completato e notifica Telegram inviata!")
+        print("✅ Audit completato e notifica Telegram inviata!", flush=True)
     except Exception as e:
-        print(f"❌ Errore durante l'audit AI: {e}")
+        print(f"❌ Errore durante l'audit AI: {e}", flush=True)
 
 if __name__ == "__main__":
     esegui_audit()
