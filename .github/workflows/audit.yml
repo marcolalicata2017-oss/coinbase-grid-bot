@@ -1,8 +1,6 @@
 name: AI Post-Trade Audit
 
 on:
-  schedule:
-    - cron: '0 21 * * *' # Corrisponde alle 23:00 Italiane (UTC+2)
   workflow_dispatch:
 
 jobs:
