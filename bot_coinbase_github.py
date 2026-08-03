@@ -59,7 +59,7 @@ else:
     print("ℹ️ [ML INFERENCE] File modello non trovato. Operatività con parametri standard.", flush=True)
 
 # ==========================================
-# UTILITIES TELEGRAM & DIARIO
+# UTILITIES TELEGRAM & DIARIO DI BORDO AVANZATO
 # ==========================================
 def invia_telegram(messaggio):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: return
@@ -70,14 +70,21 @@ def invia_telegram(messaggio):
     except Exception as e:
         print(f"⚠️ [DEBUG] Errore invio Telegram: {e}", flush=True)
 
-def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_posseduta, motivo, trend_ok):
+def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_posseduta, motivo, trend_ok,
+                                rsi=50.0, vol_ratio=1.0, target_buy=0.0, target_sell=0.0, 
+                                grid_buy_pct=0.0, grid_sell_pct=0.0):
     ora_corrente = time.strftime("%Y-%m-%d %H:%M:%S")
     file_esistente = os.path.exists(FILE_DIARIO)
+    
+    # Intestazione estesa per AI Auditor
+    intestazione = "Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vol_Ratio,Target_BUY,Target_SELL,Grid_BUY_Pct,Grid_SELL_Pct,Motivo\n"
+    riga = f"{ora_corrente},{pair},{prezzo_pivot:.2f},{ema50:.2f},{saldo_eur:.2f},{crypto_posseduta:.5f},{trend_ok},{rsi:.1f},{vol_ratio:.2f},{target_buy:.2f},{target_sell:.2f},{grid_buy_pct*100:.2f}%,{grid_sell_pct*100:.2f}%,{motivo}\n"
+
     try:
         with open(FILE_DIARIO, "a", encoding="utf-8") as f:
             if not file_esistente:
-                f.write("Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,Motivo\n")
-            f.write(f"{ora_corrente},{pair},{prezzo_pivot:.2f},{ema50:.2f},{saldo_eur:.2f},{crypto_posseduta:.5f},{trend_ok},{motivo}\n")
+                f.write(intestazione)
+            f.write(riga)
     except Exception as e:
         print(f"⚠️ Errore scrittura diario di bordo ({pair}): {e}", flush=True)
 
@@ -202,10 +209,9 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except: pass
 
 # ==========================================
-# CHIAMATE API COINBASE & FEATURE ENGINEERING (RSI, VOLUMI, ML)
+# CHIAMATE API COINBASE & FEATURE ENGINEERING
 # ==========================================
 def ottieni_dati_mercato_avanzati(product_id):
-    """Calcola prezzo attuale, EMA50, RSI(14), Volume Ratio e Feature ML."""
     url = f"https://api.exchange.coinbase.com/products/{product_id}/candles?granularity=3600"
     headers = {"User-Agent": "Python-Bot"}
     for tentativo in range(3):
@@ -224,7 +230,6 @@ def ottieni_dati_mercato_avanzati(product_id):
                     prezzo_attuale = prezzi_chiusura[-1]
                     ema50 = s_prezzi.ewm(span=50, adjust=False).mean().iloc[-1]
 
-                    # 1. Calcolo RSI (14 periodi)
                     delta = s_prezzi.diff()
                     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -232,12 +237,10 @@ def ottieni_dati_mercato_avanzati(product_id):
                     rsi_series = 100 - (100 / (1 + rs))
                     rsi_attuale = rsi_series.iloc[-1] if not pd.isna(rsi_series.iloc[-1]) else 50.0
 
-                    # 2. Calcolo Volume Ratio (Volume Ultima Ora vs Media 24h)
                     vol_ora_attuale = s_volumi.iloc[-1]
                     vol_medio_24h = s_volumi.tail(24).mean()
                     volume_ratio = (vol_ora_attuale / vol_medio_24h) if vol_medio_24h > 0 else 1.0
 
-                    # 3. Feature ML
                     returns = s_prezzi.pct_change()
                     returns_ultimo = returns.iloc[-1] if not pd.isna(returns.iloc[-1]) else 0.0
                     vol_24h = returns.tail(24).std() if len(returns) >= 24 else 0.0
@@ -330,7 +333,7 @@ def cancella_ordini_pair(product_id):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO (ML GRID + DYNAMIC PROFIT TAKING + MARTINGALA)
+# LOGICA DI PIAZZAMENTO CON REGISTRAZIONE ARRICCHITA
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", 
                          ema50=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0):
@@ -342,9 +345,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     dec = cfg["decimals"]
     emoji = cfg["emoji"]
 
-    # ----------------------------------------------------
     # 1. DISCESA / BUY: ML Volatility Grid Spacing
-    # ----------------------------------------------------
     grid_dist_buy = grid_dist_base
     if MODELLO_ML is not None and ema50 > 0:
         try:
@@ -353,28 +354,22 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             predizione_alta_vol = MODELLO_ML.predict(input_ml)[0]
             
             if predizione_alta_vol == 1:
-                grid_dist_buy = grid_dist_base * 1.5  # Amplia BUY del +50% in alta volatilità
+                grid_dist_buy = grid_dist_base * 1.5
                 motivo_reset += " ⚡[ML: High Vol Grid]"
         except Exception as e:
             print(f"⚠️ Errore inferenza ML su {pair}: {e}", flush=True)
 
-    # ----------------------------------------------------
-    # 2. SALITA / SELL: DYNAMIC PROFIT TAKING (MOMENTUM & VOLUMI)
-    # ----------------------------------------------------
+    # 2. SALITA / SELL: DYNAMIC PROFIT TAKING
     if rsi >= 65 and volume_ratio >= 1.5:
-        # Momentum Ultra-Bullish: Allarga il target SELL al doppio o triplo per far correre i profitti
         grid_dist_sell = max(grid_dist_base * 2.0, 0.025)
         label_profit = f" 🚀[Dynamic Profit HIGH: +{grid_dist_sell*100:.1f}%]"
     elif rsi >= 55:
-        # Momentum Medio-Alto: Allarga leggermente (+30%)
         grid_dist_sell = grid_dist_base * 1.3
         label_profit = f" 📈[Dynamic Profit MED: +{grid_dist_sell*100:.1f}%]"
     elif rsi <= 40:
-        # Momentum Debole / Mercato Pigro: Avvicina il target per uscire rapidamente
         grid_dist_sell = max(grid_dist_base * 0.75, 0.008)
         label_profit = f" 🎯[Dynamic Profit FAST: +{grid_dist_sell*100:.1f}%]"
     else:
-        # Momentum Standard
         grid_dist_sell = grid_dist_base
         label_profit = ""
 
@@ -386,19 +381,17 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
 
-    # ----------------------------------------------------
-    # 3. MARTINGALA INVERSA SULLA SALITA (SIZE VENDITA)
-    # ----------------------------------------------------
+    # 3. MARTINGALA INVERSA
     scarto_ema = (prezzo_rif - ema50) / ema50 if ema50 > 0 else 0.0
     pct_budget_buy = PERCENTUALE_BUDGET_BASE
 
-    if scarto_ema > 0.04:         # Prezzo oltre +4% sopra la EMA50
-        pct_budget_sell = 0.16     # Vende il 16% (Take Profit Aggressivo +60%)
+    if scarto_ema > 0.04:
+        pct_budget_sell = 0.16
         label_martingala = " (SELL Martingala Salita +60%)"
-    elif scarto_ema > 0.02:       # Prezzo tra +2% e +4% sopra la EMA50
-        pct_budget_sell = 0.13     # Vende il 13% (Take Profit Medio +30%)
+    elif scarto_ema > 0.02:
+        pct_budget_sell = 0.13
         label_martingala = " (SELL Martingala Salita +30%)"
-    else:                         # Prezzo vicino o sotto alla EMA50
+    else:
         pct_budget_sell = PERCENTUALE_BUDGET_BASE
         label_martingala = ""
 
@@ -408,11 +401,10 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     cancella_ordini_pair(pair)
 
     valore_crypto_eur = crypto_posseduta * prezzo_rif
-    ha_crypto_sufficiente = valore_crypto_eur >= (min_order_eur * 1.05)  # Buffer +5% fee
+    ha_crypto_sufficiente = valore_crypto_eur >= (min_order_eur * 1.05)
     is_starter_buy = False
     piazza_buy = autorizza_buy
 
-    # LOGICA STARTER BUY
     if not autorizza_buy and not ha_crypto_sufficiente:
         print(f"💡 [{pair} STARTER BUY] Prezzo < 95% EMA50 e 0 {symbol_crypto}: Acquisto immediato!", flush=True)
         piazza_buy = True
@@ -429,7 +421,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
 
     for tentativo in range(3):
         try:
-            # 1. PIAZZAMENTO ORDINE BUY
             if piazza_buy:
                 id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
                 client.create_order(
@@ -437,7 +428,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                     order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_buy:.{dec}f}", "limit_price": f"{prezzo_compra_effettivo:.2f}", "post_only": False}}
                 )
 
-            # 2. PIAZZAMENTO ORDINE SELL (PREZZO DINAMICO + SIZE MARTINGALA)
             if ha_crypto_sufficiente:
                 id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
                 quantita_sell_teorica = (saldo_eur_totale * pct_budget_sell) / prezzo_sell
@@ -469,7 +459,13 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 invia_telegram(msg_telegram)
                 ULTIMO_STATO_CB[pair] = stato_cb_attuale
 
-            registra_su_diario_di_bordo(pair, prezzo_rif, ema50, saldo_eur_totale, crypto_posseduta, motivo_reset, autorizza_buy)
+            # REGISTRAZIONE SUL DIARIO CON TUTTI I DETTAGLI DEDICATI ALL'AI AUDITOR
+            registra_su_diario_di_bordo(
+                pair=pair, prezzo_pivot=prezzo_rif, ema50=ema50, saldo_eur=saldo_eur_totale, 
+                crypto_posseduta=crypto_posseduta, motivo=motivo_reset, trend_ok=autorizza_buy,
+                rsi=rsi, vol_ratio=volume_ratio, target_buy=prezzo_buy_grid, target_sell=prezzo_sell,
+                grid_buy_pct=grid_dist_buy, grid_sell_pct=grid_dist_sell
+            )
             return True
         except Exception as e:
             print(f"⚠️ Errore piazzamento griglia ({pair}): {e}", flush=True)
@@ -493,7 +489,6 @@ def esegui_gestione_asset(pair):
 
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
     crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
-    dec = cfg.get("decimals", 4)
     min_order_eur = cfg["min_order_eur"]
 
     ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
@@ -530,7 +525,7 @@ def esegui_gestione_asset(pair):
     return prezzo_attuale, not trend_ok
 
 def main():
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - Dynamic Profit Mode...", flush=True)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - Auditor Data Tracking Active...", flush=True)
 
     prezzi_attuali = {}
     stati_cb = {}
