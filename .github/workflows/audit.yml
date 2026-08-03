@@ -1,0 +1,29 @@
+name: AI Post-Trade Audit
+
+on:
+  schedule:
+    - cron: '0 21 * * *' # Corrisponde alle 23:00 Italiane (UTC+2)
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codice
+        uses: actions/checkout@v3
+
+      - name: Configura Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Installa Dipendenze
+        run: |
+          pip install pandas google-generativeai requests
+
+      - name: Esegui AI Auditor
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python ai_auditor.py
