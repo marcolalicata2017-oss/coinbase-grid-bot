@@ -1,0 +1,24 @@
+{
+  "CONFIG_ASSETS": {
+    "ETH-EUR": {
+      "grid_dist": 0.012,
+      "emoji": "🔷",
+      "min_order_eur": 5.0,
+      "decimals": 4
+    },
+    "BTC-EUR": {
+      "grid_dist": 0.010,
+      "emoji": "🪙",
+      "min_order_eur": 5.0,
+      "decimals": 8
+    },
+    "SOL-EUR": {
+      "grid_dist": 0.018,
+      "emoji": "🟣",
+      "min_order_eur": 5.0,
+      "decimals": 2
+    }
+  },
+  "PERCENTUALE_BUDGET_BASE": 0.10,
+  "SOGLIA_EMA_TOLLERANZA": 0.95
+}
