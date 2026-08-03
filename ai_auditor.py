@@ -27,11 +27,8 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
-    # Inizializzazione Client specificando le API Developer ufficiali
-    client = genai.Client(
-        api_key=GEMINI_API_KEY,
-        http_options=types.HttpOptions(api_version='v1beta')
-    )
+    # Inizializzazione Client Ufficiale Google GenAI
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Carica Dati
     df_diario = pd.read_csv(FILE_DIARIO) if os.path.exists(FILE_DIARIO) else pd.DataFrame()
@@ -67,8 +64,9 @@ def esegui_audit():
         """
 
     try:
+        # Usiamo la sintassi 'models/gemini-1.5-flash'
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='models/gemini-1.5-flash',
             contents=prompt,
         )
         testo_report = response.text
