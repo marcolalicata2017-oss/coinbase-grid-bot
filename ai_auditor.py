@@ -11,6 +11,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO = "storico_portafoglio_giornaliero.csv"
+FILE_CONFIG = "config.json"
 
 def invia_telegram(messaggio):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: return
@@ -26,28 +27,34 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
-    # Forziamo il client su Google AI Studio per l'uso con API Key
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    # Carica Dati
+    # Carica Dati e Configurazione
     df_diario = pd.read_csv(FILE_DIARIO) if os.path.exists(FILE_DIARIO) else pd.DataFrame()
     df_portafoglio = pd.read_csv(FILE_PORTAFOGLIO) if os.path.exists(FILE_PORTAFOGLIO) else pd.DataFrame()
+    
+    config_attuale = {}
+    if os.path.exists(FILE_CONFIG):
+        with open(FILE_CONFIG, "r") as f:
+            config_attuale = json.load(f)
 
     ora_dt = datetime.now()
     is_domenica = (ora_dt.weekday() == 6)
 
     # Filtra dati recenti
     data_limite = (ora_dt - timedelta(days=7 if is_domenica else 1)).strftime("%Y-%m-%d")
-    
     diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty else pd.DataFrame()
 
     prompt = f"""
-    Sei un AI Post-Trade Auditor e Risk Manager per un bot quantitativo di trading a griglia su Coinbase.
+    Sei un Quant Trader & Risk Manager specializzato in Grid Trading.
     
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
-    Tipo Audit: {"SETTIMANALE STRATEGICO" if is_domenica else "GIORNALIERO INFORMATIVO"}
+    Tipo Audit: {"SETTIMANALE STRATEGICO & BACKTEST" if is_domenica else "GIORNALIERO INFORMATIVO"}
 
-    Dati Diario di Bordo recenti:
+    CONFIGURAZIONE ATTUALE BOT (config.json):
+    {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
+
+    DATI DIARIO DI BORDO RECENTI:
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata nel periodo."}
 
     Fornisci un report sintetico in italiano formattato per Telegram (Markdown).
@@ -55,22 +62,27 @@ def esegui_audit():
 
     if is_domenica:
         prompt += """
-        Trattandosi del Report Settimanale, analizza l'efficienza delle griglie e fornisci 2-3 raccomandazioni concrete sui parametri (es. distanze griglia o budget) motivando le scelte.
+        ISTRUZIONI AUDIT SETTIMANALE:
+        1. **Valutazione Ottimizzazione:** Analizza i dati registrati nel diario di bordo della settimana appena trascorsa rispetto alle configurazioni attuali.
+        2. **Backtest e Simulazione:** Valuta se parametrizzazioni alternative (es. distanze griglia `grid_dist` più strette/larghe, o diversa allocazione budget) avrebbero massimizzato la profittabilità netta tenendo conto dei prezzi toccati, della volatilità reale e delle commissioni.
+        3. **Regola della Potenzialità Netta:** 
+           - SE e SOLO SE il backtest/simulazione mostra un margine di miglioramento concreto e significativo rispetto alla resa attuale, proponi le modifiche motivandole con i numeri della simulazione.
+           - SE la configurazione attuale risulta già ottimale o se non ci sono margini di miglioramento rilevanti, CONFERMA esplicitamente che le configurazioni attuali sono già massimizzate per il regime di mercato rilevato. NON proporre modifiche per forza.
         """
     else:
         prompt += """
-        Trattandosi del Report Giornaliero, fai solo una sintesi delle operazioni delle ultime 24h, indicando se lo stato del portafoglio e il comportamento del bot sono stati regolari. NON proporre modifiche ai parametri.
+        ISTRUZIONI AUDIT GIORNALIERO:
+        Fai solo una sintesi rapida ed essenziale delle operazioni delle ultime 24h, indicando se lo stato del portafoglio e il comportamento del bot sono stati regolari. NON proporre modifiche ai parametri.
         """
 
     try:
-        # Usiamo gemini-2.0-flash col nuovo SDK
         response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=prompt
         )
         testo_report = response.text
         
-        intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
+        intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE & BACKTEST]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
         invia_telegram(intestazione + testo_report)
         print("✅ Audit completato e notifica Telegram inviata!")
     except Exception as e:
