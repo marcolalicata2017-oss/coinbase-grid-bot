@@ -63,9 +63,9 @@ def esegui_audit():
         """
 
     try:
-        # Usiamo il modello stabile gemini-1.5-flash
+        # Usiamo gemini-2.0-flash per il nuovo SDK google-genai
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt,
         )
         testo_report = response.text
