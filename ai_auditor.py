@@ -82,9 +82,9 @@ def esegui_audit():
         """
 
     try:
-        # Uso dell'alias universale 'gemini-1.5-flash-latest' per evitare errori 404
+        # Modello ufficiale gemini-3.5-flash
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.5-flash',
             contents=prompt
         )
         testo_report = response.text
