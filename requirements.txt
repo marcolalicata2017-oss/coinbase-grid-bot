@@ -1,4 +1,6 @@
-requests
 coinbase-advanced-py
+pandas
+numpy
+requests
 scikit-learn
 joblib
