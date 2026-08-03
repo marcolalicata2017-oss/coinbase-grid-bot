@@ -483,12 +483,16 @@ def esegui_gestione_asset(pair):
 
     return prezzo_attuale, not trend_ok
 
+# ==========================================
+# ESECUZIONE DEL CICLO (GITHUB ACTIONS MODE: 1 SOLO CICLO)
+# ==========================================
 def main():
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - GitHub Actions Mode...", flush=True)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - Run Singolo...", flush=True)
 
     prezzi_attuali = {}
     stati_cb = {}
 
+    # Esegue 1 SOLO controllo rapido senza cicli né time.sleep()
     for pair in CONFIG_ASSETS.keys():
         try:
             prezzo, cb_attivo = esegui_gestione_asset(pair)
@@ -497,13 +501,14 @@ def main():
         except Exception as e:
             print(f"❌ Errore nella gestione di {pair}: {e}", flush=True)
     
+    # Registrazione e Report
     try:
         saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
         traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb)
     except Exception as e:
         print(f"⚠️ Errore tracciamento portafoglio: {e}", flush=True)
 
-    print("✅ Esecuzione ciclo completata con successo!", flush=True)
+    print("✅ Ciclo completato in pochi secondi!", flush=True)
 
 if __name__ == "__main__":
     main()
