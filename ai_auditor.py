@@ -27,6 +27,7 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
+    # Inizializzazione Client Google GenAI
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Carica Dati e Configurazione
@@ -76,8 +77,9 @@ def esegui_audit():
         """
 
     try:
+        # Passiamo a gemini-1.5-flash per il Free Tier senza blocchi di quota zero
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',
             contents=prompt
         )
         testo_report = response.text
