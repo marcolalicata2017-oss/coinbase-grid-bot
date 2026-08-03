@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import pandas as pd
 import requests
 from datetime import datetime, timedelta
@@ -29,7 +30,7 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
-    # Inizializzazione Client Google GenAI
+    # Client ufficiale Google Gen AI SDK
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Carica Dati e Configurazione
@@ -47,7 +48,7 @@ def esegui_audit():
     ora_dt = datetime.now()
     is_domenica = (ora_dt.weekday() == 6)
 
-    # Filtra dati recenti (7 giorni per la domenica, 1 giorno negli altri casi)
+    # Filtra dati recenti (7 giorni per la domenica, 1 giorno per i giorni feriali)
     data_limite = (ora_dt - timedelta(days=7 if is_domenica else 1)).strftime("%Y-%m-%d")
     diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty and 'Data_Ora' in df_diario.columns else pd.DataFrame()
 
@@ -81,19 +82,40 @@ def esegui_audit():
         Fai solo una sintesi rapida ed essenziale delle operazioni delle ultime 24h, indicando se lo stato del portafoglio e il comportamento del bot sono stati regolari. NON proporre modifiche ai parametri.
         """
 
-    try:
-        # Modello ufficiale gemini-3.5-flash
-        response = client.models.generate_content(
-            model='gemini-3.5-flash',
-            contents=prompt
-        )
-        testo_report = response.text
+    # Lista modelli con fallback per massima resilienza
+    modelli_disponibili = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
+    testo_report = None
+
+    for modello in modelli_disponibili:
+        # Fino a 3 tentativi per modello per tollerare picchi momentanei (503 / 429)
+        for tentativo in range(3):
+            try:
+                print(f"🔄 Tentativo di chiamata con modello: {modello} (tentativo {tentativo + 1})...")
+                response = client.models.generate_content(
+                    model=modello,
+                    contents=prompt
+                )
+                testo_report = response.text
+                break  # Successo!
+            except Exception as e:
+                err_str = str(e)
+                if "503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str:
+                    attesa = 4 * (tentativo + 1)
+                    print(f"⚠️ Server occupato o quota saturata su {modello}. Attendo {attesa}s e riprovo...")
+                    time.sleep(attesa)
+                else:
+                    print(f"⚠️ Errore inconsueto su {modello}: {e}")
+                    break  # Cambia modello se l'errore non è risolvibile con l'attesa
         
+        if testo_report:
+            break
+
+    if testo_report:
         intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE & BACKTEST]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
         invia_telegram(intestazione + testo_report)
-        print("✅ Audit completato e notifica Telegram inviata!")
-    except Exception as e:
-        print(f"❌ Errore durante l'audit AI: {e}")
+        print("✅ Audit completato con successo e notifica Telegram inviata!")
+    else:
+        print("❌ Impossibile completare l'audit dopo molteplici tentativi su tutti i modelli disponibili.")
 
 if __name__ == "__main__":
     esegui_audit()
