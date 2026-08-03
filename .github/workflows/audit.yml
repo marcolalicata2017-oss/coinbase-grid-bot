@@ -17,7 +17,7 @@ jobs:
 
       - name: Installa Dipendenze
         run: |
-          pip install pandas google-generativeai requests
+          pip install pandas google-genai requests
 
       - name: Esegui AI Auditor
         env:
