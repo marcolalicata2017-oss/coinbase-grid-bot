@@ -4,6 +4,7 @@ import pandas as pd
 import requests
 from datetime import datetime, timedelta
 from google import genai
+from google.genai import types
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -26,8 +27,11 @@ def esegui_audit():
         print("❌ API Key di Gemini non configurata!")
         return
 
-    # Inizializzazione Client Ufficiale Google GenAI
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    # Inizializzazione Client specificando le API Developer ufficiali
+    client = genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=types.HttpOptions(api_version='v1beta')
+    )
 
     # Carica Dati
     df_diario = pd.read_csv(FILE_DIARIO) if os.path.exists(FILE_DIARIO) else pd.DataFrame()
@@ -63,7 +67,6 @@ def esegui_audit():
         """
 
     try:
-        # Nome modello completo e stabile per il Free Tier
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=prompt,
@@ -72,9 +75,9 @@ def esegui_audit():
         
         intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
         invia_telegram(intestazione + testo_report)
-        print("✅ Audit completato e notifica Telegram inviata!", flush=True)
+        print("✅ Audit completato e notifica Telegram inviata!")
     except Exception as e:
-        print(f"❌ Errore durante l'audit AI: {e}", flush=True)
+        print(f"❌ Errore durante l'audit AI: {e}")
 
 if __name__ == "__main__":
     esegui_audit()
