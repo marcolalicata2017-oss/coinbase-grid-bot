@@ -2,6 +2,8 @@ import os
 import time
 import uuid
 import requests
+import joblib
+import numpy as np
 import pandas as pd
 from datetime import datetime
 from coinbase.rest import RESTClient
@@ -40,10 +42,22 @@ PERCENTUALE_BUDGET_BASE = 0.10  # 10% del Pool EUR per acquisti/vendite standard
 SOGLIA_EMA_TOLLERANZA = 0.95    # Soglia di protezione cash impostata al 95% della EMA50 (-5%)
 FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
+FILE_MODELLO_ML = "modello_volatilta.pkl"
 
 client = RESTClient(api_key=COINBASE_KEY_NAME, api_secret=COINBASE_KEY_SECRET, timeout=10)
 
 ULTIMO_STATO_CB = {}
+
+# Caricamento Modello ML al boot (se disponibile)
+MODELLO_ML = None
+if os.path.exists(FILE_MODELLO_ML):
+    try:
+        MODELLO_ML = joblib.load(FILE_MODELLO_ML)
+        print("🤖 [ML INFERENCE] Modello di volatilità caricato con successo!", flush=True)
+    except Exception as e:
+        print(f"⚠️ [ML INFERENCE] Errore caricamento modello: {e}", flush=True)
+else:
+    print("ℹ️ [ML INFERENCE] File modello non trovato. Operatività con parametri standard.", flush=True)
 
 # ==========================================
 # UTILITIES TELEGRAM & DIARIO
@@ -189,9 +203,10 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except: pass
 
 # ==========================================
-# CHIAMATE API COINBASE
+# CHIAMATE API COINBASE & MODELLO ML
 # ==========================================
-def ottieni_prezzo_e_ema50(product_id):
+def ottieni_prezzo_ema_e_features(product_id):
+    """Ottiene prezzo attuale, EMA50 e calcola le Feature necessarie all'ML."""
     url = f"https://api.exchange.coinbase.com/products/{product_id}/candles?granularity=3600"
     headers = {"User-Agent": "Python-Bot"}
     for tentativo in range(3):
@@ -204,11 +219,18 @@ def ottieni_prezzo_e_ema50(product_id):
                     s_prezzi = pd.Series(prezzi_chiusura)
                     ema50 = s_prezzi.ewm(span=50, adjust=False).mean().iloc[-1]
                     prezzo_attuale = prezzi_chiusura[-1]
-                    return prezzo_attuale, ema50
+                    
+                    # Calcolo Feature ML (Returns e Volatilità ultime 24h)
+                    returns = s_prezzi.pct_change()
+                    returns_ultimo = returns.iloc[-1] if not pd.isna(returns.iloc[-1]) else 0.0
+                    vol_24h = returns.tail(24).std() if len(returns) >= 24 else 0.0
+                    vol_24h = 0.0 if pd.isna(vol_24h) else vol_24h
+                    
+                    return prezzo_attuale, ema50, returns_ultimo, vol_24h
         except Exception as e:
             print(f"⚠️ Errore API candele ({product_id}): {e}", flush=True)
         time.sleep(1)
-    return None, None
+    return None, None, 0.0, 0.0
 
 def controlla_saldi_globali():
     saldo_eur_totale = 0.0
@@ -220,14 +242,10 @@ def controlla_saldi_globali():
             lista_conti = conti.get('accounts', []) if isinstance(conti, dict) else getattr(conti, 'accounts', [])
             
             for conto in lista_conti:
-                # Estrazione valuta
                 valuta = conto.get('currency') if isinstance(conto, dict) else getattr(conto, 'currency', None)
-                
-                # Estrazione dati bilancio (disponibile e in hold)
                 disp_obj = conto.get('available_balance', {}) if isinstance(conto, dict) else getattr(conto, 'available_balance', {})
                 hold_obj = conto.get('hold', {}) if isinstance(conto, dict) else getattr(conto, 'hold', {})
                 
-                # Estrazione sicura del valore numerico "value"
                 def estrai_valore(obj):
                     if not obj: return 0.0
                     if isinstance(obj, dict):
@@ -241,7 +259,6 @@ def controlla_saldi_globali():
 
                 v_disp = estrai_valore(disp_obj)
                 v_hold = estrai_valore(hold_obj)
-                
                 valore_totale = v_disp + v_hold
                 
                 if valuta == "EUR":
@@ -296,16 +313,32 @@ def cancella_ordini_pair(product_id):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO (BUY COSTANTE & SELL MARTINGALA SU SALITA)
+# LOGICA DI PIAZZAMENTO (INTEGRAZIONE ML DINAMICA + SELL MARTINGALA)
 # ==========================================
-def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0):
+def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", ema50=0.0, returns_24h=0.0, vol_24h=0.0):
     global ULTIMO_STATO_CB
     cfg = CONFIG_ASSETS[pair]
     symbol_crypto = pair.split("-")[0]
-    grid_dist = cfg["grid_dist"]
+    grid_dist_base = cfg["grid_dist"]
     min_order_eur = cfg["min_order_eur"]
     dec = cfg["decimals"]
     emoji = cfg["emoji"]
+
+    # ----------------------------------------------------
+    # INFERENZA MACHINE LEARNING: Distanza Griglia Dinamica
+    # ----------------------------------------------------
+    grid_dist = grid_dist_base
+    if MODELLO_ML is not None and ema50 > 0:
+        try:
+            dist_ema50 = (prezzo_rif - ema50) / ema50
+            input_ml = [[returns_24h, vol_24h, dist_ema50]]
+            predizione_alta_vol = MODELLO_ML.predict(input_ml)[0]
+            
+            if predizione_alta_vol == 1:
+                grid_dist = grid_dist_base * 1.5  # Amplia del +50% in alta volatilità
+                motivo_reset += " ⚡[ML: High Volatility Grid]"
+        except Exception as e:
+            print(f"⚠️ Errore inferenza ML su {pair}: {e}", flush=True)
 
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
     crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
@@ -317,19 +350,16 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     # MARTINGALA INVERSA SULLA SALITA (VENDITA PROGRESSIVA)
     # ----------------------------------------------------
     scarto_ema = (prezzo_rif - ema50) / ema50 if ema50 > 0 else 0.0
-
-    # Gli acquisti mantengono una dimensione base costante del 10%
     pct_budget_buy = PERCENTUALE_BUDGET_BASE
 
-    # La vendita scatta in percentuale crescente man mano che il prezzo SALE sopra la EMA50
-    if scarto_ema > 0.04:         # Prezzo oltre +4% sopra la EMA50 (Forte impulso in salita)
+    if scarto_ema > 0.04:         # Prezzo oltre +4% sopra la EMA50
         pct_budget_sell = 0.16     # Vende il 16% (Take Profit Aggressivo +60%)
         label_martingala = " (SELL Martingala Salita +60%)"
     elif scarto_ema > 0.02:       # Prezzo tra +2% e +4% sopra la EMA50
         pct_budget_sell = 0.13     # Vende il 13% (Take Profit Medio +30%)
         label_martingala = " (SELL Martingala Salita +30%)"
     else:                         # Prezzo vicino o sotto alla EMA50
-        pct_budget_sell = PERCENTUALE_BUDGET_BASE  # Vende il 10% standard
+        pct_budget_sell = PERCENTUALE_BUDGET_BASE
         label_martingala = ""
 
     budget_buy_teorico = max(saldo_eur_totale * pct_budget_buy, min_order_eur)
@@ -370,12 +400,9 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             # 2. PIAZZAMENTO UNICO ORDINE SELL CON SIZE CRESCENTE IN SALITA
             if ha_crypto_sufficiente:
                 id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
-                
-                # Quantità di vendita basata sulla percentuale maggiorata durante i rally di prezzo
                 quantita_sell_teorica = (saldo_eur_totale * pct_budget_sell) / prezzo_sell
                 quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
                 
-                # Verifica rispetto del minimo di ordine
                 if (quantita_sell * prezzo_sell) >= min_order_eur:
                     client.create_order(
                         client_order_id=id_sell, product_id=pair, side="SELL",
@@ -414,7 +441,7 @@ def esegui_gestione_asset(pair):
     cfg = CONFIG_ASSETS[pair]
     symbol_crypto = pair.split("-")[0]
 
-    prezzo_attuale, ema50 = ottieni_prezzo_e_ema50(pair)
+    prezzo_attuale, ema50, returns_24h, vol_24h = ottieni_prezzo_ema_e_features(pair)
     if not prezzo_attuale or not ema50: return None, False
 
     soglia_protezione = ema50 * SOGLIA_EMA_TOLLERANZA
@@ -429,64 +456,54 @@ def esegui_gestione_asset(pair):
 
     ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} (Soglia 95%: {soglia_protezione:.2f}) | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto (Totale): {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} (Soglia 95%: {soglia_protezione:.2f}) | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Posseduto: {crypto_posseduta:.{dec}f} {symbol_crypto}", flush=True)
 
     # 1. Inizializzazione Totale (Nessun ordine aperto)
     if id_buy is None and id_sell is None:
-        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Multi-Asset", ema50=ema50)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Multi-Asset", ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h)
         return prezzo_attuale, not trend_ok
 
     # 2. Circuit Breaker Trigger (Prezzo sotto 95% EMA50 ma BUY ancora pendente)
     if not trend_ok and id_buy is not None:
-        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Sotto 95% EMA50)", ema50=ema50)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Sotto 95% EMA50)", ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h)
         return prezzo_attuale, True
 
     # 3. Gestione Asimmetria Intelligente
     if id_buy is None and id_sell is not None:
         print(f"⚠️ [DEBUG {pair}] Manca ordine BUY. Ordine precedente eseguito, riallineamento griglia...", flush=True)
-        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Griglia per BUY Eseguito", ema50=ema50)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Griglia per BUY Eseguito", ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h)
         return prezzo_attuale, not trend_ok
 
     if id_buy is not None and id_sell is None:
         if ha_crypto_per_sell:
             print(f"⚠️ [DEBUG {pair}] Manca ordine SELL ma possediamo {crypto_posseduta:.{dec}f} {symbol_crypto}. Riallineamento...", flush=True)
-            piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento Ordine SELL Mancante", ema50=ema50)
+            piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento Ordine SELL Mancante", ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h)
         else:
             print(f"ℹ️ [DEBUG {pair}] Ordine BUY pendente in attesa di esecuzione (0 {symbol_crypto} in portafoglio). Nessuna azione richiesta.", flush=True)
 
     return prezzo_attuale, not trend_ok
 
 def main():
-    totale_cicli = 5      # 5 controlli consecutivi
-    minuti_attesa = 11    # ogni 11 minuti (Totale: ~55 minuti continui)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - GitHub Actions Mode...", flush=True)
 
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset (BTC, ETH, SOL) - Pool Fluido...", flush=True)
+    prezzi_attuali = {}
+    stati_cb = {}
 
-    for ciclo in range(1, totale_cicli + 1):
-        print(f"\n⏱️ === CONTROLLO {ciclo} DI {totale_cicli} ===", flush=True)
-        
-        prezzi_attuali = {}
-        stati_cb = {}
-
-        for pair in CONFIG_ASSETS.keys():
-            try:
-                prezzo, cb_attivo = esegui_gestione_asset(pair)
-                prezzi_attuali[pair] = prezzo
-                stati_cb[pair] = cb_attivo
-            except Exception as e:
-                print(f"❌ Errore nella gestione di {pair}: {e}", flush=True)
-        
+    for pair in CONFIG_ASSETS.keys():
         try:
-            saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
-            traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb)
+            prezzo, cb_attivo = esegui_gestione_asset(pair)
+            prezzi_attuali[pair] = prezzo
+            stati_cb[pair] = cb_attivo
         except Exception as e:
-            print(f"⚠️ Errore tracciamento portafoglio: {e}", flush=True)
+            print(f"❌ Errore nella gestione di {pair}: {e}", flush=True)
+    
+    try:
+        saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
+        traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb)
+    except Exception as e:
+        print(f"⚠️ Errore tracciamento portafoglio: {e}", flush=True)
 
-        if ciclo < totale_cicli:
-            print(f"😴 In attesa di {minuti_attesa} minuti per il prossimo controllo...", flush=True)
-            time.sleep(minuti_attesa * 60)
-
-    print("✅ Sessione completata con successo!", flush=True)
+    print("✅ Esecuzione ciclo completata con successo!", flush=True)
 
 if __name__ == "__main__":
     main()
