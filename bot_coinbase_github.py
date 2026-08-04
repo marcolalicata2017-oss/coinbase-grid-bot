@@ -186,7 +186,7 @@ def ottieni_dati_mercato_avanzati(product_id):
             resp = requests.get(url, headers=headers, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
-                if len(data) >= 24:  # Soglia flessibile per altcoin nuove
+                if isinstance(data, list) and len(data) >= 12:  # Soglia ridotta a 12 candele
                     candele = list(reversed(data))
                     prezzi_chiusura = [float(c[4]) for c in candele]
                     volumi = [float(c[5]) for c in candele]
@@ -199,25 +199,40 @@ def ottieni_dati_mercato_avanzati(product_id):
                     ema50 = s_prezzi.ewm(span=span_ema, adjust=False).mean().iloc[-1]
 
                     delta = s_prezzi.diff()
-                    gain = (delta.where(delta > 0, 0)).rolling(window=min(14, len(s_prezzi))).mean()
-                    loss = (-delta.where(delta < 0, 0)).rolling(window=min(14, len(s_prezzi))).mean()
+                    window_rsi = min(14, len(s_prezzi) - 1)
+                    gain = (delta.where(delta > 0, 0)).rolling(window=max(1, window_rsi)).mean()
+                    loss = (-delta.where(delta < 0, 0)).rolling(window=max(1, window_rsi)).mean()
                     rs = gain / loss
                     rsi_series = 100 - (100 / (1 + rs))
                     rsi_attuale = rsi_series.iloc[-1] if not pd.isna(rsi_series.iloc[-1]) else 50.0
 
                     vol_ora_attuale = s_volumi.iloc[-1]
-                    vol_medio_24h = s_volumi.tail(24).mean()
-                    volume_ratio = (vol_ora_attuale / vol_medio_24h) if vol_medio_24h > 0 else 1.0
+                    vol_medio = s_volumi.tail(min(24, len(s_volumi))).mean()
+                    volume_ratio = (vol_ora_attuale / vol_medio) if vol_medio > 0 else 1.0
 
                     returns = s_prezzi.pct_change()
                     returns_ultimo = returns.iloc[-1] if not pd.isna(returns.iloc[-1]) else 0.0
-                    vol_24h = returns.tail(24).std() if len(returns) >= 24 else 0.0
+                    vol_24h = returns.tail(min(24, len(returns))).std()
                     vol_24h = 0.0 if pd.isna(vol_24h) else vol_24h
 
                     return prezzo_attuale, ema50, returns_ultimo, vol_24h, rsi_attuale, volume_ratio
         except Exception as e:
             print(f"⚠️ Errore API candele ({product_id}): {e}", flush=True)
         time.sleep(1)
+    
+    # Backup: se le candele falliscono, recupera almeno il prezzo ticker corrente
+    try:
+        url_ticker = f"https://api.exchange.coinbase.com/products/{product_id}/ticker"
+        resp_t = requests.get(url_ticker, headers=headers, timeout=5)
+        if resp_t.status_code == 200:
+            px = float(resp_t.json().get('price', 0.0))
+            if px > 0:
+                print(f"⚠️ [BACKUP TICKER] Dati candele insufficienti per {product_id}. Usato prezzo istantaneo: {px}", flush=True)
+                return px, px, 0.0, 0.0, 50.0, 1.0
+    except Exception as e:
+        print(f"❌ Fallito recupero ticker di emergenza per {product_id}: {e}", flush=True)
+
+    print(f"❌ [SKIP] Impossibile recuperare i dati di mercato per {product_id}", flush=True)
     return None, None, 0.0, 0.0, 50.0, 1.0
 
 def controlla_saldi_globali():
