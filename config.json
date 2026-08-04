@@ -1,24 +1,33 @@
 {
-  "CONFIG_ASSETS": {
-    "ETH-EUR": {
-      "grid_dist": 0.012,
-      "emoji": "🔷",
-      "min_order_eur": 5.0,
-      "decimals": 4
-    },
+  "global_settings": {
+    "circuit_breaker_volatility_pct": 5.0,
+    "allow_auto_rebalance": true,
+    "max_asset_weight_pct": 60.0
+  },
+  "assets": {
     "BTC-EUR": {
-      "grid_dist": 0.010,
-      "emoji": "🪙",
-      "min_order_eur": 5.0,
-      "decimals": 8
+      "budget_eur": 100,
+      "grid_dist_buy": 0.01,
+      "grid_dist_sell": 0.012,
+      "max_active_levels": 5,
+      "is_active": true,
+      "exit_strategy": "none"
+    },
+    "ETH-EUR": {
+      "budget_eur": 100,
+      "grid_dist_buy": 0.012,
+      "grid_dist_sell": 0.012,
+      "max_active_levels": 5,
+      "is_active": true,
+      "exit_strategy": "none"
     },
     "SOL-EUR": {
-      "grid_dist": 0.018,
-      "emoji": "🟣",
-      "min_order_eur": 5.0,
-      "decimals": 2
+      "budget_eur": 100,
+      "grid_dist_buy": 0.015,
+      "grid_dist_sell": 0.015,
+      "max_active_levels": 4,
+      "is_active": true,
+      "exit_strategy": "none"
     }
-  },
-  "PERCENTUALE_BUDGET_BASE": 0.10,
-  "SOGLIA_EMA_TOLLERANZA": 0.95
+  }
 }
