@@ -24,15 +24,16 @@ FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
 FILE_MODELLO_ML = "modello_volatilta.pkl"
 
 # Mappa visuale per le notifiche Telegram
+# Mappa visuale per le notifiche Telegram
 EMOJI_MAP = {
-    "BTC": "🪙", "ETH": "🔷", "SOL": "🟣", "AVAX": "🔴", 
-    "LINK": "🔗", "ADA": "🔵", "NEAR": "🟢", "SUI": "💧", "DOT": "🔴", "APT": "⚡"
+    "BTC": "🪙",
+    "ETH": "🔷",
+    "SOL": "🟣",
+    "DEFAULT_SATELLITE": "🛰️"  # Icona spaziale predefinita per il modulo Satellite (oppure 🚀)
 }
 
-CONFIG_ASSETS = {}
-
 def carica_e_sincronizza_config():
-    """Carica dinamicamente qualsiasi asset presente in config.json."""
+    """Carica dinamicamente qualsiasi asset presente in config.json assegnando l'emoji in base al modulo."""
     global CONFIG_ASSETS
     if os.path.exists(FILE_CONFIG):
         try:
@@ -44,15 +45,21 @@ def carica_e_sincronizza_config():
             
             for pair, data in assets_json.items():
                 sym = pair.split("-")[0]
-                emoji = EMOJI_MAP.get(sym, "🪙")
+                asset_type = data.get("type", "core")
                 
-                # Assegnazione automatica dei decimali corretti per ogni token
+                # Assegna l'icona spaziale 🛰️ se è un'altcoin Satellite, altrimenti usa l'icona Core
+                if asset_type == "satellite":
+                    emoji = EMOJI_MAP.get("DEFAULT_SATELLITE", "🛰️")
+                else:
+                    emoji = EMOJI_MAP.get(sym, "🪙")
+                
+                # Decimali automatici
                 if sym == "BTC":
                     decimals = 8
                 elif sym in ["ETH", "SOL", "LINK"]:
                     decimals = 4
                 else:
-                    decimals = 2  # Default per altcoin come SUI, AVAX, ADA
+                    decimals = 2
                 
                 nuovo_config[pair] = {
                     "grid_dist": data.get("grid_dist_buy", 0.015),
@@ -61,7 +68,7 @@ def carica_e_sincronizza_config():
                     "min_order_eur": 5.0,
                     "decimals": decimals,
                     "target_weight_pct": data.get("target_weight_pct", 0.0),
-                    "type": data.get("type", "core"),
+                    "type": asset_type,
                     "is_active": data.get("is_active", True),
                     "exit_strategy": data.get("exit_strategy", "none")
                 }
