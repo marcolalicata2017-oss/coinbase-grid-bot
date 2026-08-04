@@ -32,8 +32,26 @@ EMOJI_MAP = {
     "DEFAULT_SATELLITE": "🛰️"  # Icona spaziale predefinita per il modulo Satellite (oppure 🚀)
 }
 
+def ottieni_decimali_asset(pair):
+    """Interroga l'API pubblica di Coinbase e restituisce il numero esatto di decimali ammessi per la quantità."""
+    try:
+        url = f"https://api.exchange.coinbase.com/products/{pair}"
+        headers = {"User-Agent": "Python-Bot"}
+        resp = requests.get(url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            base_increment = data.get("base_increment", "0.01")
+            if "." in base_increment:
+                return len(base_increment.split(".")[1].rstrip("0"))
+    except Exception as e:
+        print(f"⚠️ Errore lettura decimali per {pair} da API Coinbase: {e}", flush=True)
+    
+    # Fallback di sicurezza in caso di API irraggiungibile
+    fallback_map = {"BTC-EUR": 8, "ETH-EUR": 4, "SOL-EUR": 2, "LINK-EUR": 2}
+    return fallback_map.get(pair, 2)
+    
 def carica_e_sincronizza_config():
-    """Carica dinamicamente qualsiasi asset presente in config.json assegnando l'emoji in base al modulo."""
+    """Carica dinamicamente qualsiasi asset presente in config.json recuperando la precisione dei decimali direttamente da Coinbase."""
     global CONFIG_ASSETS
     if os.path.exists(FILE_CONFIG):
         try:
@@ -47,19 +65,14 @@ def carica_e_sincronizza_config():
                 sym = pair.split("-")[0]
                 asset_type = data.get("type", "core")
                 
-                # Assegna l'icona spaziale 🛰️ se è un'altcoin Satellite, altrimenti usa l'icona Core
+                # 1. Assegna l'emoji (satellite vs core)
                 if asset_type == "satellite":
                     emoji = EMOJI_MAP.get("DEFAULT_SATELLITE", "🛰️")
                 else:
                     emoji = EMOJI_MAP.get(sym, "🪙")
                 
-                # Decimali automatici
-                if sym == "BTC":
-                    decimals = 8
-                elif sym in ["ETH", "SOL", "LINK"]:
-                    decimals = 4
-                else:
-                    decimals = 2
+                # 2. Estrazione dinamica e automatica dei decimali reali via API Coinbase
+                decimals = ottieni_decimali_asset(pair)
                 
                 nuovo_config[pair] = {
                     "grid_dist": data.get("grid_dist_buy", 0.015),
