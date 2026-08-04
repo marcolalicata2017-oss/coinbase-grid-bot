@@ -531,10 +531,15 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     id_buy, id_sell = recupera_ordini_pair(pair)
     ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
 
+    # STARTER BUY: Se è una nuova coin e il saldo è 0, autorizziamo l'acquisto
+    # per permettere all'AI di posizionarsi subito sul mercato
+    autorizza_buy_effettivo = trend_ok or (crypto_posseduta == 0)
+
     print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | RSI: {rsi:.1f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)}", flush=True)
 
+    # A. Inizializzazione Totale
     if id_buy is None and id_sell is None:
-        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Multi-Asset", 
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=autorizza_buy_effettivo, motivo_reset="Inizializzazione Nuova Coin Satellite (AI Auditor)", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
