@@ -604,14 +604,15 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                     pair=pair, prezzo_pivot=prezzo_attuale, ema50=ema50, saldo_eur=saldo_eur_totale,
                     crypto_posseduta=0.0, motivo="LIQUIDATO IN MARKET SELL DA AI (Capitale Liberato)", trend_ok=False
                 )
-                # Pulisce subito l'asset dal config dopo la vendita
                 rimuovi_asset_dismesso_da_config(pair)
             except Exception as e:
                 print(f"⚠️ Errore esecuzione Market Sell per {pair}: {e}", flush=True)
+                return prezzo_attuale, False
         else:
-            # Se la crypto è già a 0, rimuove la voce da config.json e fa il push
+            # Saldo a 0: rimuove l'asset, aggiorna GitHub e ricarica il config in memoria al volo
             print(f"ℹ️ [MARKET SELL COMPLETO] Saldo {pair} pari a 0. Rimuovo l'asset dal config...", flush=True)
             rimuovi_asset_dismesso_da_config(pair)
+            carica_e_sincronizza_config()  # <--- Ricarica subito la nuova coin Satellite nel ciclo corrente!
 
         return prezzo_attuale, False
 
@@ -667,16 +668,14 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
 def main():
     print("🚀 [DEBUG] Avvio Bot Multi-Asset (In corsa su saldi reali con Core-Satellite AI Integration)...", flush=True)
 
-    # Ricarica configurazione prima dell'esecuzione del ciclo
     carica_e_sincronizza_config()
 
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
     prezzi_attuali = {}
     stati_cb = {}
 
-    # Calcolo valore totale iniziale del portafoglio in EUR
     valore_crypto_stimato = 0.0
-    for pair in CONFIG_ASSETS.keys():
+    for pair in list(CONFIG_ASSETS.keys()):
         p, _, _, _, _, _ = ottieni_dati_mercato_avanzati(pair)
         if p:
             prezzi_attuali[pair] = p
@@ -686,6 +685,7 @@ def main():
     valore_totale_portafoglio = saldo_eur_totale + valore_crypto_stimato
     print(f"💰 Valore Totale Portafoglio Stimato: {valore_totale_portafoglio:.2f} EUR (EUR liquidi: {saldo_eur_totale:.2f} EUR)", flush=True)
 
+    # Usa list(CONFIG_ASSETS.keys()) dinamico per includere subito le nuove coin inserite durante il run
     for pair in list(CONFIG_ASSETS.keys()):
         try:
             prezzo, cb_attivo = esegui_gestione_asset(pair, valore_totale_portafoglio)
@@ -702,6 +702,3 @@ def main():
         print(f"⚠️ Errore tracciamento portafoglio: {e}", flush=True)
 
     print("✅ Ciclo completato in pochi secondi!", flush=True)
-
-if __name__ == "__main__":
-    main()
