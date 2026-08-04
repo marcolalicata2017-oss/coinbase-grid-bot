@@ -27,6 +27,39 @@ def invia_telegram(messaggio):
     except Exception as e:
         print(f"⚠️ Errore invio Telegram: {e}")
 
+def ottieni_altcoin_eur_disponibili_coinbase():
+    """Recupera dinamicamente via API l'elenco aggiornato di tutti i pair SPOT EUR reali su Coinbase."""
+    try:
+        url = "https://api.exchange.coinbase.com/products"
+        headers = {"User-Agent": "Python-Bot"}
+        resp = requests.get(url, headers=headers, timeout=10)
+        
+        if resp.status_code == 200:
+            prodotti = resp.json()
+            coppie_eur_valide = []
+            
+            # Stablecoin e pair Core da escludere dalla scelta Satellite
+            esclusi = ["USDC-EUR", "EURC-EUR", "USDT-EUR", "BTC-EUR", "ETH-EUR"]
+            
+            for p in prodotti:
+                id_pair = p.get("id", "")
+                quote = p.get("quote_currency", "")
+                status = p.get("status", "")
+                disabled = p.get("trading_disabled", False)
+                
+                if quote == "EUR" and status == "online" and not disabled:
+                    if id_pair not in esclusi:
+                        coppie_eur_valide.append(id_pair)
+            
+            coppie_eur_valide.sort()
+            print(f"📡 [COINBASE API] Trovati {len(coppie_eur_valide)} pair Spot EUR attivi.")
+            return coppie_eur_valide
+    except Exception as e:
+        print(f"⚠️ Errore recupero pair dinamici da Coinbase: {e}")
+    
+    # Fallback sicuro se l'API pubbliche di Coinbase sono momentaneamente irraggiungibili
+    return ["LINK-EUR", "ADA-EUR", "NEAR-EUR", "DOT-EUR", "AVAX-EUR", "XRP-EUR", "ATOM-EUR", "ALGO-EUR"]
+
 def carica_memoria_storica():
     """Carica lo storico delle decisioni e delle lezioni apprese."""
     if os.path.exists(FILE_MEMORIA):
@@ -93,6 +126,7 @@ def esegui_audit():
     df_diario = pd.read_csv(FILE_DIARIO) if os.path.exists(FILE_DIARIO) else pd.DataFrame()
     df_portafoglio = pd.read_csv(FILE_PORTAFOGLIO) if os.path.exists(FILE_PORTAFOGLIO) else pd.DataFrame()
     memoria_storica = carica_memoria_storica()
+    altcoin_disponibili = ottieni_altcoin_eur_disponibili_coinbase()
 
     config_attuale = {}
     if os.path.exists(FILE_CONFIG):
@@ -123,6 +157,9 @@ def esegui_audit():
     DATI DIARIO DI BORDO RECENTI (Saldi Reali EUR e Crypto in carico):
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata nel periodo."}
 
+    📡 ELENCO DINAMICO MERCATI SPOT EUR ATTUALMENTE DISPONIBILI E SCAMBIABILI SU COINBASE:
+    {json.dumps(altcoin_disponibili)}
+
     GUIDA ALLA LETTURA DEL DIARIO DI BORDO:
     - Messaggi come 'SELL Eseguito su Exchange', 'Riallineamento Ordine SELL Mancante' o 'Dynamic Profit' indicano VENDITE COMPLETATE CON SUCCESSO dall'exchange con incasso di profitto. NON rappresentano errori o malfunzionamenti.
 
@@ -130,14 +167,15 @@ def esegui_audit():
     1. Operatività sui Saldi Reali: Lavora sulla cassa EUR effettiva e sulle posizioni aperte. NON ipotizzare depositi o budget teorici.
     2. Proporzioni ("target_weight_pct"):
        - MODULO CORE (totale 90.0%): Destinato alla stabilità (tipicamente BTC, ETH e opzionalmente SOL).
-       - MODULO SATELLITE (totale 10.0%): Riservato a 1 singola altcoin ad alta volatilità opportunistica presente su Coinbase (es. AVAX-EUR, LINK-EUR, ADA-EUR, NEAR-EUR, SUI-EUR, DOT-EUR, APT-EUR).
+       - MODULO SATELLITE (totale 10.0%): Riservato a 1 singola altcoin ad alta volatilità opportunistica.
 
     LOGICA DI APPRENDIMENTO ED VALUTAZIONE SULLA COIN SATELLITE (OGNI GIORNO):
     - Confronta i risultati correnti con le tue decisioni passate memorizzate. Se una decisione recente si è rivelata sbagliata o sub-ottimale, estrai una 'Lezione Appresa' e non ripetere lo stesso errore.
     - Analizza la performance dell'altcoin attualmente marcata con "type": "satellite".
     - Se è in forte perdita, priva di volatilità utile o in trend fortemente ribassista, DISMETTILA:
       * Imposta "exit_strategy": "market_sell" (per liquidare subito in EUR) oppure "soft_exit".
-      * Seleziona LIBERAMENTE una nuova altcoin promettente su exchange e inseriscila come nuova coin "satellite" con "target_weight_pct": 10.0.
+      * Seleziona LIBERAMENTE una nuova altcoin promettente SCEGLIENDO TASSATIVAMENTE DALL'ELENCO DINAMICO SOPRA e inseriscila come nuova coin "satellite" con "target_weight_pct": 10.0.
+      * NON inventare ticker e NON selezionare coppie che non figurano nell'Elenco Dinamico dei mercati Spot EUR attivi.
     - Se la coin satellite attuale performa bene, MANTIENILA invariata.
     - NEI GIORNI FERIALI (Lunedì-Sabato): NON modificare i parametri della sezione CORE (type: "core").
 
