@@ -23,7 +23,6 @@ FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
 FILE_MODELLO_ML = "modello_volatilta.pkl"
 
-# Configurazione fallback di base
 CONFIG_ASSETS = {
     "ETH-EUR": {
         "grid_dist": 0.012,
@@ -95,14 +94,12 @@ def carica_e_sincronizza_config():
         except Exception as e:
             print(f"⚠️ [CONFIG] Errore caricamento config.json: {e}", flush=True)
 
-# Sincronizzazione iniziale
 carica_e_sincronizza_config()
 
 SOGLIA_EMA_TOLLERANZA = 0.95
 client = RESTClient(api_key=COINBASE_KEY_NAME, api_secret=COINBASE_KEY_SECRET, timeout=10)
 ULTIMO_STATO_CB = {}
 
-# Caricamento Modello ML al boot
 MODELLO_ML = None
 if os.path.exists(FILE_MODELLO_ML):
     try:
@@ -114,7 +111,7 @@ else:
     print("ℹ️ [ML INFERENCE] File modello non trovato. Operatività con parametri standard.", flush=True)
 
 # ==========================================
-# UTILITIES TELEGRAM & DIARIO DI BORDO AVANZATO
+# UTILITIES TELEGRAM & DIARIO DI BORDO
 # ==========================================
 def invia_telegram(messaggio):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: return
@@ -131,7 +128,6 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
     ora_corrente = time.strftime("%Y-%m-%d %H:%M:%S")
     file_esistente = os.path.exists(FILE_DIARIO)
     
-    # Normalizzazione diciture per non trarre in inganno Gemini
     if "Riallineamento" in motivo and "SELL" in motivo:
         motivo = "SELL Eseguito su Exchange (Saldo Riallineato)"
 
@@ -147,7 +143,7 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
         print(f"⚠️ Errore scrittura diario di bordo ({pair}): {e}", flush=True)
 
 # ==========================================
-# TRACCIAMENTO ED ELABORAZIONE REPORT SETTIMANALE VISIVO
+# TRACCIAMENTO PORTAFOGLIO
 # ==========================================
 def genera_barra_progresso(percentuale, lung=10):
     p = max(0.0, min(1.0, percentuale))
@@ -209,7 +205,6 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
 
     if is_domenica and is_sera and not gia_inviato_domenica:
         print("📊 [TELEGRAM] Generazione Report Visivo Settimanale della Domenica...", flush=True)
-        
         valore_7_gg_fa = valore_totale
         valore_iniziale_esperimento = valore_totale
         
@@ -267,7 +262,7 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except: pass
 
 # ==========================================
-# CHIAMATE API COINBASE & FEATURE ENGINEERING
+# CHIAMATE API COINBASE
 # ==========================================
 def ottieni_dati_mercato_avanzati(product_id):
     url = f"https://api.exchange.coinbase.com/products/{product_id}/candles?granularity=3600"
@@ -350,7 +345,7 @@ def controlla_saldi_globali():
             print(f"⚠️ Errore lettura saldi (tentativo {tentativo+1}): {e}", flush=True)
             time.sleep(2)
             
-    return 0.0, cripto_dict_totale
+    return saldo_eur_totale, cripto_dict_totale
 
 def recupera_ordini_pair(product_id):
     id_buy, id_sell = None, None
@@ -398,7 +393,7 @@ def cancella_ordini_pair(product_id, cancella_solo_buy=False):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA & GESTIONE IN CORSA
+# LOGICA DI PIAZZAMENTO GRIGLIA
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", 
                          ema50=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0,
@@ -413,7 +408,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     emoji = cfg["emoji"]
     target_weight_pct = cfg.get("target_weight_pct", 10.0)
 
-    # 1. DISCESA / BUY: ML Volatility Grid Spacing
     grid_dist_buy = grid_dist_base
     if MODELLO_ML is not None and ema50 > 0:
         try:
@@ -427,7 +421,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         except Exception as e:
             print(f"⚠️ Errore inferenza ML su {pair}: {e}", flush=True)
 
-    # 2. SALITA / SELL: DYNAMIC PROFIT TAKING
     if rsi >= 65 and volume_ratio >= 1.5:
         grid_dist_sell = max(grid_dist_sell_base * 2.0, 0.025)
         label_profit = f" 🚀[Dynamic Profit HIGH: +{grid_dist_sell*100:.1f}%]"
@@ -449,12 +442,10 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
 
-    # 3. BUDGET DINAMICO IN CORSA SUI SALDI REALI
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
     scarto_ema = (prezzo_rif - ema50) / ema50 if ema50 > 0 else 0.0
     
-    # Frazione per singolo ordine della griglia
-    pct_frazione_order = 0.20  # 20% del budget destinato all'asset per singolo ordine
+    pct_frazione_order = 0.20
     pct_budget_sell = pct_frazione_order
 
     if scarto_ema > 0.04:
@@ -530,7 +521,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 invia_telegram(msg_telegram)
                 ULTIMO_STATO_CB[pair] = stato_cb_attuale
 
-            # Registrazione completa sul Diario di Bordo per AI Auditor
             registra_su_diario_di_bordo(
                 pair=pair, prezzo_pivot=prezzo_rif, ema50=ema50, saldo_eur=saldo_eur_totale, 
                 crypto_posseduta=crypto_posseduta, motivo=motivo_reset, trend_ok=autorizza_buy,
@@ -542,6 +532,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             print(f"⚠️ Errore piazzamento griglia ({pair}): {e}", flush=True)
             time.sleep(2)
     return False
+
 def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
     """Rimuove l'asset dismesso dal config.json ed esegue il commit automatico su GitHub."""
     try:
@@ -555,7 +546,6 @@ def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
                 with open(FILE_CONFIG, "w", encoding="utf-8") as f:
                     json.dump(cfg, f, indent=2)
                 
-                # Commit e push automatico delle modifiche su GitHub
                 subprocess.run(["git", "config", "user.name", "Trading-Bot-AutoClean"], check=True)
                 subprocess.run(["git", "config", "user.email", "bot@local.cleaner"], check=True)
                 subprocess.run(["git", "add", FILE_CONFIG], check=True)
@@ -567,8 +557,9 @@ def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
                     print(f"✅ [AUTO-CLEAN] {pair_da_rimuovere} rimosso da config.json su GitHub!", flush=True)
     except Exception as e:
         print(f"⚠️ Errore durante la pulizia automatica di config.json: {e}", flush=True)
+
 # ==========================================
-# ESECUZIONE DEL CICLO SINGLE/MULTI-ASSET
+# ESECUZIONE DEL CICLO
 # ==========================================
 def esegui_gestione_asset(pair, valore_totale_portafoglio):
     cfg = CONFIG_ASSETS[pair]
@@ -583,12 +574,10 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
     min_order_eur = cfg["min_order_eur"]
 
-    # 1. GESTIONE MARKET SELL (Liquidazione Immediata Disposta da AI Auditor)
     if exit_strategy == "market_sell":
         print(f"🚨 [MARKET SELL] AI Auditor ha ordinato la vendita immediata per {pair}!", flush=True)
         cancella_ordini_pair(pair)
         
-        # Se possediamo ancora crypto sopra il minimo d'ordine, vendiamo a mercato
         if (crypto_posseduta * prezzo_attuale) >= min_order_eur:
             try:
                 dec = cfg["decimals"]
@@ -609,20 +598,17 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                 print(f"⚠️ Errore esecuzione Market Sell per {pair}: {e}", flush=True)
                 return prezzo_attuale, False
         else:
-            # Saldo a 0: rimuove l'asset, aggiorna GitHub e ricarica il config in memoria al volo
             print(f"ℹ️ [MARKET SELL COMPLETO] Saldo {pair} pari a 0. Rimuovo l'asset dal config...", flush=True)
             rimuovi_asset_dismesso_da_config(pair)
-            carica_e_sincronizza_config()  # <--- Ricarica subito la nuova coin Satellite nel ciclo corrente!
+            carica_e_sincronizza_config()
 
         return prezzo_attuale, False
 
-    # 2. GESTIONE SOFT EXIT O ASSET INATTIVO (Annulla ordini BUY, mantieni SELL)
     if exit_strategy == "soft_exit" or not is_active:
         print(f"⏸️ [SOFT EXIT] Asset {pair} in modalità dismissione. Cancello ordini d'acquisto.", flush=True)
         cancella_ordini_pair(pair, cancella_solo_buy=True)
         return prezzo_attuale, False
 
-    # OPERATIVITÀ STANDARD A GRIGLIA
     soglia_protezione = ema50 * SOGLIA_EMA_TOLLERANZA
     trend_ok = (prezzo_attuale >= soglia_protezione)
     
@@ -631,21 +617,18 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
 
     print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | RSI: {rsi:.1f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)}", flush=True)
 
-    # A. Inizializzazione Totale
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Multi-Asset", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # B. Circuit Breaker Trigger
     if not trend_ok and id_buy is not None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Sotto 95% EMA50)", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, True
 
-    # C. Ripristino Griglia dopo esecuzione BUY
     if id_buy is None and id_sell is not None:
         print(f"⚠️ [DEBUG {pair}] Manca ordine BUY. Ordine precedente eseguito, riallineamento griglia...", flush=True)
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Griglia per BUY Eseguito", 
@@ -653,7 +636,6 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # D. Riallineamento Ordine SELL
     if id_buy is not None and id_sell is None:
         if ha_crypto_per_sell:
             print(f"⚠️ [DEBUG {pair}] Manca ordine SELL ma possediamo crypto. Riallineamento...", flush=True)
@@ -685,7 +667,6 @@ def main():
     valore_totale_portafoglio = saldo_eur_totale + valore_crypto_stimato
     print(f"💰 Valore Totale Portafoglio Stimato: {valore_totale_portafoglio:.2f} EUR (EUR liquidi: {saldo_eur_totale:.2f} EUR)", flush=True)
 
-    # Usa list(CONFIG_ASSETS.keys()) dinamico per includere subito le nuove coin inserite durante il run
     for pair in list(CONFIG_ASSETS.keys()):
         try:
             prezzo, cb_attivo = esegui_gestione_asset(pair, valore_totale_portafoglio)
@@ -702,3 +683,6 @@ def main():
         print(f"⚠️ Errore tracciamento portafoglio: {e}", flush=True)
 
     print("✅ Ciclo completato in pochi secondi!", flush=True)
+
+if __name__ == "__main__":
+    main()
