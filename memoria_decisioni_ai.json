@@ -1,1 +1,9 @@
-
+[
+  {
+    "data": "2026-08-04",
+    "tipo_audit": "giornaliero",
+    "decisione": "Dismissione AVAX-EUR (exit_strategy: market_sell) e allocazione del 10% budget del modulo Satellite su SUI-EUR. Modulo Core invariato.",
+    "motivazione": "Il Core market mostra trend fortemente rialzista. AVAX-EUR risultava stagnante e privo di eseguiti recenti nel diario di bordo. L'inserimento di SUI-EUR con griglia larga (2.5% buy / 3% sell) permette di sfruttare l'alto beta dell'asset per catturare oscillazioni rapide.",
+    "lezione_appresa": "Nelle fasi in cui BTC ed ETH spingono al rialzo, il capitale del modulo satellite non deve restare bloccato in asset statici. Bisogna ruotare tempestivamente la liquidità su altcoin ad alta volatilità per alimentare costantemente il cash flow in EUR."
+  }
+]
