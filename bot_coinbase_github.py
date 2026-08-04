@@ -417,28 +417,35 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         except Exception as e:
             print(f"⚠️ Errore ordine BUY limite ({pair}): {e}", flush=True)
 
-    # B. PIAZZAMENTO ORDINE SELL (LIMIT - Adattivo per superare la soglia di 5.00 EUR)
-    if valore_crypto_eur >= (min_order_eur * 0.90):  # Se il controvalore sfiora o supera i 5€
+    # B. PIAZZAMENTO ORDINE SELL (LIMIT - Vendita 100% del posseduto se vicini al minimo)
+    if valore_crypto_eur >= (min_order_eur * 0.90):
         quantita_sell_teorica = (budget_totale_asset * 0.20) / prezzo_sell
         valore_sell_teorico = quantita_sell_teorica * prezzo_sell
 
-        # Se il 20% teorico vale meno di 5 EUR (es. posizione piccola sotto i 10€), 
-        # mettiamo in vendita il 100% dei token posseduti per superare il minimo d'ordine di Coinbase
+        # Se la frazione è sotto i 5€ (o per piccoli saldi), vendiamo l'INTERO SALDO REALE
         if valore_sell_teorico < min_order_eur:
-            quantita_sell = crypto_posseduta
+            # Tronca esattamente ai decimali ammessi ma prendendo tutto il saldo
+            quantita_sell_fmtd = f"{crypto_posseduta:.{dec}f}"
         else:
-            quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
+            quantita_sell_raw = min(quantita_sell_teorica, crypto_posseduta)
+            quantita_sell_fmtd = f"{quantita_sell_raw:.{dec}f}"
 
-        valore_sell_effettivo = quantita_sell * prezzo_sell
+        valore_sell_effettivo = float(quantita_sell_fmtd) * prezzo_sell
 
         if valore_sell_effettivo >= min_order_eur:
             try:
                 id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
                 client.create_order(
                     client_order_id=id_sell, product_id=pair, side="SELL",
-                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+                    order_configuration={
+                        "limit_limit_gtc": {
+                            "base_size": quantita_sell_fmtd, # Invia l'intero saldo disponibile (es. 0.78)
+                            "limit_price": f"{prezzo_sell:.2f}", 
+                            "post_only": False
+                        }
+                    }
                 )
-                print(f"✅ Ordine SELL limite piazzato per {pair}: {quantita_sell:.{dec}f} {symbol_crypto} a {prezzo_sell:.2f} EUR", flush=True)
+                print(f"✅ Ordine SELL piazzato per IL TOTALE di {pair}: {quantita_sell_fmtd} {symbol_crypto} a {prezzo_sell:.2f} EUR", flush=True)
                 ordine_inviato_con_successo = True
             except Exception as e:
                 print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
