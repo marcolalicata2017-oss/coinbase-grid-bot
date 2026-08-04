@@ -172,7 +172,7 @@ def esegui_audit():
     }}
     """
 
-    modelli_disponibili = ['gemini-2.5-flash', 'gemini-1.5-flash']
+    modelli_disponibili = ['gemini-3.5-flash', 'gemini-3.6-flash']
     testo_risposta = None
 
     for modello in modelli_disponibili:
