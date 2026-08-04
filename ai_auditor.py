@@ -32,7 +32,9 @@ def carica_memoria_storica():
     if os.path.exists(FILE_MEMORIA):
         try:
             with open(FILE_MEMORIA, "r", encoding="utf-8") as f:
-                return json.load(f)
+                contenuto = f.read().strip()
+                if contenuto:
+                    return json.loads(contenuto)
         except Exception as e:
             print(f"⚠️ Errore lettura memoria storica: {e}")
     return []
