@@ -541,7 +541,31 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             print(f"⚠️ Errore piazzamento griglia ({pair}): {e}", flush=True)
             time.sleep(2)
     return False
-
+def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
+    """Rimuove l'asset dismesso dal config.json ed esegue il commit automatico su GitHub."""
+    try:
+        if os.path.exists(FILE_CONFIG):
+            with open(FILE_CONFIG, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            
+            if pair_da_rimuovere in cfg.get("assets", {}):
+                del cfg["assets"][pair_da_rimuovere]
+                
+                with open(FILE_CONFIG, "w", encoding="utf-8") as f:
+                    json.dump(cfg, f, indent=2)
+                
+                # Commit e push automatico delle modifiche su GitHub
+                subprocess.run(["git", "config", "user.name", "Trading-Bot-AutoClean"], check=True)
+                subprocess.run(["git", "config", "user.email", "bot@local.cleaner"], check=True)
+                subprocess.run(["git", "add", FILE_CONFIG], check=True)
+                
+                result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+                if result.stdout.strip():
+                    subprocess.run(["git", "commit", "-m", f"🧹 [AUTO-CLEAN] Rimosso {pair_da_rimuovere} a saldo zero"], check=True)
+                    subprocess.run(["git", "push"], check=True)
+                    print(f"✅ [AUTO-CLEAN] {pair_da_rimuovere} rimosso da config.json su GitHub!", flush=True)
+    except Exception as e:
+        print(f"⚠️ Errore durante la pulizia automatica di config.json: {e}", flush=True)
 # ==========================================
 # ESECUZIONE DEL CICLO SINGLE/MULTI-ASSET
 # ==========================================
@@ -562,6 +586,8 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     if exit_strategy == "market_sell":
         print(f"🚨 [MARKET SELL] AI Auditor ha ordinato la vendita immediata per {pair}!", flush=True)
         cancella_ordini_pair(pair)
+        
+        # Se possediamo ancora crypto sopra il minimo d'ordine, vendiamo a mercato
         if (crypto_posseduta * prezzo_attuale) >= min_order_eur:
             try:
                 dec = cfg["decimals"]
@@ -571,14 +597,21 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                     side="SELL",
                     order_configuration={"market_market_ioc": {"base_size": f"{crypto_posseduta:.{dec}f}"}}
                 )
-                msg = f"🚨 *COINBASE: MARKET SELL ESEGUITO PER {pair}*\nPositione liquidata su indicazione AI Auditor."
+                msg = f"🚨 *COINBASE: MARKET SELL ESEGUITO PER {pair}*\nPosizione liquidata su indicazione AI Auditor."
                 invia_telegram(msg)
                 registra_su_diario_di_bordo(
                     pair=pair, prezzo_pivot=prezzo_attuale, ema50=ema50, saldo_eur=saldo_eur_totale,
                     crypto_posseduta=0.0, motivo="LIQUIDATO IN MARKET SELL DA AI (Capitale Liberato)", trend_ok=False
                 )
+                # Pulisce subito l'asset dal config dopo la vendita
+                rimuovi_asset_dismesso_da_config(pair)
             except Exception as e:
                 print(f"⚠️ Errore esecuzione Market Sell per {pair}: {e}", flush=True)
+        else:
+            # Se la crypto è già a 0, rimuove la voce da config.json e fa il push
+            print(f"ℹ️ [MARKET SELL COMPLETO] Saldo {pair} pari a 0. Rimuovo l'asset dal config...", flush=True)
+            rimuovi_asset_dismesso_da_config(pair)
+
         return prezzo_attuale, False
 
     # 2. GESTIONE SOFT EXIT O ASSET INATTIVO (Annulla ordini BUY, mantieni SELL)
