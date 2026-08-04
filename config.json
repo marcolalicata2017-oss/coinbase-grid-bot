@@ -1,12 +1,14 @@
 {
   "global_settings": {
-    "circuit_breaker_volatility_pct": 5.0,
-    "allow_auto_rebalance": true,
-    "max_asset_weight_pct": 60.0
+    "total_portfolio_budget_eur": 300,
+    "core_budget_pct": 90.0,
+    "satellite_budget_pct": 10.0,
+    "allow_auto_rebalance": true
   },
   "assets": {
     "BTC-EUR": {
-      "budget_eur": 100,
+      "type": "core",
+      "budget_eur": 135,
       "grid_dist_buy": 0.01,
       "grid_dist_sell": 0.012,
       "max_active_levels": 5,
@@ -14,18 +16,20 @@
       "exit_strategy": "none"
     },
     "ETH-EUR": {
-      "budget_eur": 100,
+      "type": "core",
+      "budget_eur": 135,
       "grid_dist_buy": 0.012,
       "grid_dist_sell": 0.012,
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
     },
-    "SOL-EUR": {
-      "budget_eur": 100,
-      "grid_dist_buy": 0.015,
-      "grid_dist_sell": 0.015,
-      "max_active_levels": 4,
+    "AVAX-EUR": {
+      "type": "satellite",
+      "budget_eur": 30,
+      "grid_dist_buy": 0.02,
+      "grid_dist_sell": 0.025,
+      "max_active_levels": 3,
       "is_active": true,
       "exit_strategy": "none"
     }
