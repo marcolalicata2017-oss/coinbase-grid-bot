@@ -40,7 +40,7 @@ def applica_commit_github(nuovo_config):
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 Auto-tuning configurazione da AI Auditor"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 Auto-tuning Core-Satellite sui saldi reali da AI Auditor"], check=True)
             subprocess.run(["git", "push"], check=True)
             print("✅ config.json aggiornato e committato su GitHub con successo!")
             return True
@@ -79,40 +79,49 @@ def esegui_audit():
     Sei un Quant Trader & Risk Manager specializzato in Grid Trading Crypto.
     
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
-    Tipo Audit: {"SETTIMANALE STRATEGICO & AUTO-TUNING" if is_domenica else "GIORNALIERO INFORMATIVO"}
+    Tipo Audit: {"SETTIMANALE STRATEGICO & AUTO-TUNING (CORE + SATELLITE)" if is_domenica else "GIORNALIERO TATTICO (SOLO MODULO SATELLITE)"}
 
     CONFIGURAZIONE ATTUALE BOT (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
 
-    DATI DIARIO DI BORDO RECENTI:
+    DATI DIARIO DI BORDO RECENTI (Saldi Reali EUR e Crypto in carico):
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata nel periodo."}
 
     GUIDA ALLA LETTURA DEL DIARIO DI BORDO:
     - Messaggi come 'SELL Eseguito su Exchange', 'Riallineamento Ordine SELL Mancante' o 'Dynamic Profit' indicano VENDITE COMPLETATE CON SUCCESSO dall'exchange con incasso di profitto. NON rappresentano errori o malfunzionamenti.
+
+    ARCHITETTURA DI PORTAFOGLIO IN CORSA (CORE-SATELLITE 90/10):
+    1. Operatività sui Saldi Reali: Lavora sulla cassa EUR effettiva e sulle posizioni aperte. NON ipotizzare depositi o budget teorici.
+    2. Proporzioni ("target_weight_pct"):
+       - MODULO CORE (totale 90.0%): Destinato alla stabilità (tipicamente BTC, ETH e opzionalmente SOL).
+       - MODULO SATELLITE (totale 10.0%): Riservato a 1 singola altcoin ad alta volatilità opportunistica presente su Coinbase (es. AVAX-EUR, LINK-EUR, ADA-EUR, NEAR-EUR, SUI-EUR, DOT-EUR, APT-EUR).
+
+    LOGICA DI VALUTAZIONE SULLA COIN SATELLITE (OGNI GIORNO):
+    - Analizza la performance dell'altcoin attualmente marcata con "type": "satellite".
+    - Se è in forte perdita, priva di volatilità utile o in trend fortemente ribassista, DISMETTILA:
+      * Imposta "exit_strategy": "market_sell" (per liquidare subito in EUR) oppure "soft_exit".
+      * Seleziona LIBERAMENTE una nuova altcoin promettente su exchange e inseriscila come nuova coin "satellite" con "target_weight_pct": 10.0.
+    - Se la coin satellite attuale performa bene, MANTIENILA invariata.
+    - NEI GIORNI FERIALI (Lunedì-Sabato): NON modificare i parametri della sezione CORE (type: "core").
+
+    VALUTAZIONE DINAMICA SU SOLANA (SOL-EUR):
+    Spetta a te decidere come gestirla sulla base dei dati di rendimento reali nel diario di bordo:
+    1. MANTENERLA nel Core (type: "core") con una quota percentuale adeguata se sta producendo profitti costanti.
+    2. SPOSTARLA nello slot Satellite (type: "satellite") con "target_weight_pct": 10.0 se la ritieni più adatta ad uscite rapide.
+    3. DISMETTERLA portando "target_weight_pct": 0.0 ed impostando "exit_strategy": "soft_exit" (o "market_sell" se c'è rischio crollo) per liberare cassa EUR a favore di BTC, ETH o altre altcoin.
+
+    LA DOMENICA (AUDIT SETTIMANALE):
+    Puoi ricalibrare sia i parametri del CORE (grid_dist_buy, grid_dist_sell, target_weight_pct) sia la coin del SATELLITE.
+
+    GUARDRAILS OBBLIGATORI DA RISPETTARE NEL JSON:
+    - La somma di tutti i "target_weight_pct" degli asset attivi deve fare SEMPRE 100.0.
+    - Nessuna distanza griglia (buy/sell) può scendere sotto 0.005 o salire sopra 0.05.
 
     STRUTTURA DI RISPOSTA RICHIESTA:
     Fornisci la tua risposta strutturata esattamente in due parti separate dal delimitatore '---JSON_CONFIG---':
     Parte 1: Il report narrativo in italiano formattato in Markdown per Telegram.
     Parte 2: La nuova struttura del file config.json valida (oppure scrivi 'NO_CHANGE' se non servono modifiche).
     """
-
-    if is_domenica:
-        prompt += """
-        ISTRUZIONI AUDIT SETTIMANALE & AUTO-TUNING:
-        1. Analizza le performance del diario di bordo e valuta se ottimizzare i parametri (grid_dist_buy, grid_dist_sell, budget_eur, max_active_levels, exit_strategy).
-        2. Per disinvestire o ridurre l'esposizione su un asset a favore di un altro, imposta 'exit_strategy':
-           - 'market_sell': se la convenienza di riallocazione immediata o la protezione da crolli supera le perdite.
-           - 'soft_exit': se è preferibile bloccare i nuovi acquisti e attendere il recupero degli ordini di vendita esistenti.
-        3. GUARDRAILS OBBLIGATORI DA RISPETTARE:
-           - Nessuna distanza griglia (buy/sell) può scendere sotto 0.005 o salire sopra 0.05.
-           - Nessun singolo asset può superare il 60% del budget totale.
-           - Il budget complessivo distribuito deve rimanere pari al totale attuale.
-        """
-    else:
-        prompt += """
-        ISTRUZIONI AUDIT GIORNALIERO:
-        Sintesi delle operazioni ultime 24h. NON modificare i parametri. Nella Parte 2 restituisci 'NO_CHANGE'.
-        """
 
     modelli_disponibili = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
     testo_risposta = None
@@ -150,7 +159,7 @@ def esegui_audit():
 
     # Gestione Auto-Tuning del config.json
     modificato = False
-    if is_domenica and json_str != "NO_CHANGE":
+    if json_str != "NO_CHANGE":
         try:
             # Pulisce eventuali formattazioni markdown tipo ```json ... ```
             if json_str.startswith("```"):
@@ -162,9 +171,9 @@ def esegui_audit():
             print(f"⚠️ Errore durante il parsing del nuovo config JSON: {e}")
 
     # Invio notifica su Telegram
-    intestazione = "🧠 *[AI AUDITOR - REPORT SETTIMANALE & AUTO-TUNING]*\n\n" if is_domenica else "🌙 *[AI AUDITOR - DAILY SUMMARY]*\n\n"
+    intestazione = "🧠 *[AI AUDITOR - AUDIT SETTIMANALE & AUTO-TUNING]*\n\n" if is_domenica else "🛰️ *[AI AUDITOR - DAILY SATELLITE CHECK]*\n\n"
     if modificato:
-        report_telegram += "\n\n🚀 *[AUTO-TUNING APPLICATO]*: Il file `config.json` è stato aggiornato in autonomia ed è già operativo."
+        report_telegram += "\n\n🚀 *[AUTO-TUNING IN CORSA APPLICATO]*: Il file `config.json` è stato aggiornato ed è già operativo."
 
     invia_telegram(intestazione + report_telegram)
     print("✅ Audit completato con successo e notifica Telegram inviata!")
