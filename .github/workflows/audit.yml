@@ -1,17 +1,27 @@
-name: AI Post-Trade Audit
+name: Audit e Auto-Tuning AI
 
 on:
-  workflow_dispatch:
+  schedule:
+    # Esecuzione automatica ogni giorno alle 21:00 UTC
+    - cron: '0 21 * * *'
+  workflow_dispatch: # Permette l'esecuzione manuale da GitHub
 
 jobs:
   audit:
     runs-on: ubuntu-latest
+
+    # PERMESSI FONDAMENTALI PER IL COMMIT AUTOMATICO
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout Codice
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configura Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -21,7 +31,8 @@ jobs:
 
       - name: Esegui AI Auditor
         env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python ai_auditor.py
+        run: |
+          python ai_auditor.py
