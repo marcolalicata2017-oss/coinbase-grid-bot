@@ -57,7 +57,7 @@ def ottieni_altcoin_eur_disponibili_coinbase():
     except Exception as e:
         print(f"⚠️ Errore recupero pair dinamici da Coinbase: {e}")
     
-    # Fallback sicuro se l'API pubbliche di Coinbase sono momentaneamente irraggiungibili
+    # Fallback sicuro se l'API pubblica di Coinbase è momentaneamente irraggiungibile
     return ["LINK-EUR", "ADA-EUR", "NEAR-EUR", "DOT-EUR", "AVAX-EUR", "XRP-EUR", "ATOM-EUR", "ALGO-EUR"]
 
 def carica_memoria_storica():
@@ -169,14 +169,25 @@ def esegui_audit():
        - MODULO CORE (totale 90.0%): Destinato alla stabilità (tipicamente BTC, ETH e opzionalmente SOL).
        - MODULO SATELLITE (totale 10.0%): Riservato a 1 singola altcoin ad alta volatilità opportunistica.
 
-    LOGICA DI APPRENDIMENTO ED VALUTAZIONE SULLA COIN SATELLITE (OGNI GIORNO):
+    🎯 STELLA POLARE: MASSIMIZZAZIONE DELLA PROFITTABILITÀ (QUANT GRID SCORING)
+    Per la selezione o la conferma della Coin SATELLITE (10% del portafoglio), applica una valutazione rigorosamente quantitativa basata sulle seguenti metriche sui mercati SPOT EUR di Coinbase:
+
+    1. VOLATILITÀ SATELLITE (Peso 35%): Privilegia asset con ATR/volatilità intra-day elevata (es. escursioni orarie > 1.5%). La volatilità è il motore fondamentale per generare profitti continuativi con i riallineamenti della griglia.
+    2. LIQUIDITÀ & VOLUME (Peso 25%): Seleziona unicamente coppie con volumi di scambio solidi su Coinbase nelle 24h per garantire esecuzioni istantanee ed azzerare lo slippage.
+    3. STRUTTURA DI TREND (Peso 25%): Il prezzo non deve essere in caduta libera strutturale (RSI > 40 e Prezzo > 92% della EMA50). Cerca fasi di accumulo/laterale-rialzista dove l'oscillazione tra BUY e DYNAMIC PROFIT SELL è massima.
+    4. EFFICIENZA REGISTRATA NEL DIARIO (Peso 15%): Analizza i rendimenti recenti registrati sul Diario di Bordo. Se la coin attuale genera esecuzioni frequenti ("Dynamic Profit" / "SELL Eseguito"), MANTIENILA.
+
+    LOGICA DI APPRENDIMENTO ED REGOLA DI ROTAZIONE SULLA COIN SATELLITE (OGNI GIORNO):
     - Confronta i risultati correnti con le tue decisioni passate memorizzate. Se una decisione recente si è rivelata sbagliata o sub-ottimale, estrai una 'Lezione Appresa' e non ripetere lo stesso errore.
     - Analizza la performance dell'altcoin attualmente marcata con "type": "satellite".
-    - Se è in forte perdita, priva di volatilità utile o in trend fortemente ribassista, DISMETTILA:
-      * Imposta "exit_strategy": "market_sell" (per liquidare subito in EUR) oppure "soft_exit".
-      * Seleziona LIBERAMENTE una nuova altcoin promettente SCEGLIENDO TASSATIVAMENTE DALL'ELENCO DINAMICO SOPRA e inseriscila come nuova coin "satellite" con "target_weight_pct": 10.0.
+    - Se l'altcoin Satellite in carico (es. LINK-EUR) sta generando esecuzioni e profitti costanti, MANTIENILA invariata senza fare modifiche inutili.
+    - Cambia la coin Satellite SOLO SE:
+      a) La coin in carico entra in un trend fortemente ribassista (Circuit Breaker attivo, priva di volatilità o in perdita persistente).
+      b) Un'altra altcoin nell'Elenco Dinamico presenta uno score di profittabilità nettamente superiore (almeno +20%) per volatilità e struttura di mercato.
+    - In caso di dismissione/rotazione:
+      * Imposta "exit_strategy": "market_sell" (per liquidare subito in EUR) oppure "soft_exit" sulla vecchia coin.
+      * Seleziona LIBERAMENTE la nuova altcoin promettente SCEGLIENDO TASSATIVAMENTE DALL'ELENCO DINAMICO SOPRA e inseriscila come nuova coin "satellite" con "target_weight_pct": 10.0.
       * NON inventare ticker e NON selezionare coppie che non figurano nell'Elenco Dinamico dei mercati Spot EUR attivi.
-    - Se la coin satellite attuale performa bene, MANTIENILA invariata.
     - NEI GIORNI FERIALI (Lunedì-Sabato): NON modificare i parametri della sezione CORE (type: "core").
 
     VALUTAZIONE DINAMICA SU SOLANA (SOL-EUR):
