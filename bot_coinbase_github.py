@@ -327,6 +327,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     emoji = cfg["emoji"]
     target_weight_pct = cfg.get("target_weight_pct", 10.0)
 
+    # 1. Spaziatura Dinamica ML / Dynamic Profit
     grid_dist_buy = grid_dist_base
     if MODELLO_ML is not None and ema50 > 0:
         try:
@@ -357,96 +358,81 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
     crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
 
-    prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
-    prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
-
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
-    scarto_ema = (prezzo_rif - ema50) / ema50 if ema50 > 0 else 0.0
-    
-    pct_frazione_order = 0.20
-    pct_budget_sell = pct_frazione_order
-
-    if scarto_ema > 0.04:
-        pct_budget_sell = pct_frazione_order * 1.6
-        label_martingala = " (SELL Martingala Salita +60%)"
-    elif scarto_ema > 0.02:
-        pct_budget_sell = pct_frazione_order * 1.3
-        label_martingala = " (SELL Martingala Salita +30%)"
-    else:
-        label_martingala = ""
-
-    budget_buy_teorico = max(budget_totale_asset * pct_frazione_order, min_order_eur)
-    motivo_reset += label_martingala
+    budget_buy_teorico = max(budget_totale_asset * 0.20, min_order_eur)
 
     cancella_ordini_pair(pair)
 
     valore_crypto_eur = crypto_posseduta * prezzo_rif
     ha_crypto_sufficiente = valore_crypto_eur >= (min_order_eur * 1.05)
-    is_starter_buy = False
-    piazza_buy = autorizza_buy
+    
+    ordine_inviato_con_successo = False
 
-    if not autorizza_buy and not ha_crypto_sufficiente:
-        print(f"💡 [{pair} STARTER BUY] Prezzo < 95% EMA50 e 0 {symbol_crypto}: Acquisto immediato!", flush=True)
-        piazza_buy = True
-        is_starter_buy = True
-        prezzo_compra_effettivo = prezzo_rif
-        motivo_reset += " (Acquisto Starter Immediato)"
-    else:
-        prezzo_compra_effettivo = prezzo_buy_grid
-
-    quantita_token_buy = budget_buy_teorico / prezzo_compra_effettivo
-
-    if saldo_eur_totale < min_order_eur:
-        piazza_buy = False
-
-    for tentativo in range(3):
+    # 2. STARTER BUY A MERCATO SE SALDO = 0
+    if crypto_posseduta == 0 and saldo_eur_totale >= min_order_eur:
+        print(f"🛒 [{pair} STARTER BUY A MERCATO] Saldo a 0. Acquisto immediato di {budget_buy_teorico:.2f} EUR...", flush=True)
         try:
-            if piazza_buy:
-                id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
-                client.create_order(
-                    client_order_id=id_buy, product_id=pair, side="BUY",
-                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_buy:.{dec}f}", "limit_price": f"{prezzo_compra_effettivo:.2f}", "post_only": False}}
-                )
-
-            if ha_crypto_sufficiente:
-                id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
-                quantita_sell_teorica = (budget_totale_asset * pct_budget_sell) / prezzo_sell
-                quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
-                
-                if (quantita_sell * prezzo_sell) >= min_order_eur:
-                    client.create_order(
-                        client_order_id=id_sell, product_id=pair, side="SELL",
-                        order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
-                    )
-
-            stato_cb_attuale = "ATTIVO" if not autorizza_buy else "DISATTIVATO"
-            stato_precedente = ULTIMO_STATO_CB.get(pair)
-
-            if stato_precedente != stato_cb_attuale or "Esecuzione" in motivo_reset or is_starter_buy or "Dynamic" in motivo_reset:
-                msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA {pair}* {emoji}\n" \
-                               f"Evento: _{motivo_reset}_\n" \
-                               f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
-                               f"Target SELL (+{grid_dist_sell*100:.1f}%): *{prezzo_sell:.2f} EUR*\n" \
-                               f"Target BUY (-{grid_dist_buy*100:.1f}%): *{prezzo_buy_grid:.2f} EUR*\n" \
-                               f"RSI: *{rsi:.1f}* | Volume Ratio: *{volume_ratio:.2f}x*\n" \
-                               f"Pool EUR Totale: *{saldo_eur_totale:.2f} EUR*"
-
-                if not autorizza_buy:
-                    msg_telegram += f"\n🛡️ *CIRCUIT BREAKER ATTIVO* (Prezzo < 95% EMA50: {ema50*0.95:.2f} EUR)."
-
-                invia_telegram(msg_telegram)
-                ULTIMO_STATO_CB[pair] = stato_cb_attuale
-
-            registra_su_diario_di_bordo(
-                pair=pair, prezzo_pivot=prezzo_rif, ema50=ema50, saldo_eur=saldo_eur_totale, 
-                crypto_posseduta=crypto_posseduta, motivo=motivo_reset, trend_ok=autorizza_buy,
-                rsi=rsi, vol_ratio=volume_ratio, target_buy=prezzo_buy_grid, target_sell=prezzo_sell,
-                grid_buy_pct=grid_dist_buy, grid_sell_pct=grid_dist_sell
+            id_buy = f"mbuy_{uuid.uuid4().hex[:8]}"
+            client.create_order(
+                client_order_id=id_buy,
+                product_id=pair,
+                side="BUY",
+                order_configuration={"market_market_ioc": {"quote_size": f"{budget_buy_teorico:.2f}"}}
             )
-            return True
+            motivo_reset += " (Acquisto Starter a Mercato Eseguito)"
+            ordine_inviato_con_successo = True
+            time.sleep(1) # Attende che Coinbase aggiorni i saldi
+            saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
+            crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
         except Exception as e:
-            print(f"⚠️ Errore griglia ({pair}): {e}", flush=True)
-            time.sleep(2)
+            print(f"❌ Errore Starter Buy a Mercato su {pair}: {e}", flush=True)
+
+    # 3. PIAZZAMENTO ORDINI A GRIGLIA STANDARD (LIMIT)
+    prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
+    prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
+    quantita_token_buy = budget_buy_teorico / prezzo_buy_grid
+
+    if autorizza_buy and saldo_eur_totale >= min_order_eur and not ordine_inviato_con_successo:
+        try:
+            id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
+            client.create_order(
+                client_order_id=id_buy, product_id=pair, side="BUY",
+                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_buy:.{dec}f}", "limit_price": f"{prezzo_buy_grid:.2f}", "post_only": False}}
+            )
+            ordine_inviato_con_successo = True
+        except Exception as e:
+            print(f"⚠️ Errore ordine BUY limite ({pair}): {e}", flush=True)
+
+    if (crypto_posseduta * prezzo_sell) >= min_order_eur:
+        try:
+            id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
+            quantita_sell = min((budget_totale_asset * 0.20) / prezzo_sell, crypto_posseduta)
+            client.create_order(
+                client_order_id=id_sell, product_id=pair, side="SELL",
+                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+            )
+            ordine_inviato_con_successo = True
+        except Exception as e:
+            print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
+
+    # 4. REGISTRA SUL DIARIO SOLO SE L'ORDINE È STATO DAVVERO INVIATO
+    if ordine_inviato_con_successo:
+        msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA {pair}* {emoji}\n" \
+                       f"Evento: _{motivo_reset}_\n" \
+                       f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
+                       f"Target SELL (+{grid_dist_sell*100:.1f}%): *{prezzo_sell:.2f} EUR*\n" \
+                       f"Target BUY (-{grid_dist_buy*100:.1f}%): *{prezzo_buy_grid:.2f} EUR*\n" \
+                       f"Pool EUR Totale: *{saldo_eur_totale:.2f} EUR*"
+        invia_telegram(msg_telegram)
+
+        registra_su_diario_di_bordo(
+            pair=pair, prezzo_pivot=prezzo_rif, ema50=ema50, saldo_eur=saldo_eur_totale, 
+            crypto_posseduta=crypto_posseduta, motivo=motivo_reset, trend_ok=autorizza_buy,
+            rsi=rsi, vol_ratio=volume_ratio, target_buy=prezzo_buy_grid, target_sell=prezzo_sell,
+            grid_buy_pct=grid_dist_buy, grid_sell_pct=grid_dist_sell
+        )
+        return True
+
     return False
 
 def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
