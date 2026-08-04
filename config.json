@@ -1,6 +1,5 @@
 {
   "global_settings": {
-    "total_portfolio_budget_eur": 300,
     "core_budget_pct": 90.0,
     "satellite_budget_pct": 10.0,
     "allow_auto_rebalance": true
@@ -8,7 +7,7 @@
   "assets": {
     "BTC-EUR": {
       "type": "core",
-      "budget_eur": 135,
+      "target_weight_pct": 30.0,
       "grid_dist_buy": 0.01,
       "grid_dist_sell": 0.012,
       "max_active_levels": 5,
@@ -17,16 +16,25 @@
     },
     "ETH-EUR": {
       "type": "core",
-      "budget_eur": 135,
+      "target_weight_pct": 30.0,
       "grid_dist_buy": 0.012,
       "grid_dist_sell": 0.012,
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
     },
+    "SOL-EUR": {
+      "type": "core",
+      "target_weight_pct": 30.0,
+      "grid_dist_buy": 0.015,
+      "grid_dist_sell": 0.015,
+      "max_active_levels": 4,
+      "is_active": true,
+      "exit_strategy": "none"
+    },
     "AVAX-EUR": {
       "type": "satellite",
-      "budget_eur": 30,
+      "target_weight_pct": 10.0,
       "grid_dist_buy": 0.02,
       "grid_dist_sell": 0.025,
       "max_active_levels": 3,
