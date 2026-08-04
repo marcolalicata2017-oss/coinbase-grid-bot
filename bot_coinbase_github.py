@@ -364,13 +364,12 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     cancella_ordini_pair(pair)
 
     valore_crypto_eur = crypto_posseduta * prezzo_rif
-    ha_crypto_sufficiente = valore_crypto_eur >= (min_order_eur * 1.05)
-    
     ordine_inviato_con_successo = False
 
-    # 2. STARTER BUY A MERCATO SE SALDO = 0
-    if crypto_posseduta == 0 and saldo_eur_totale >= min_order_eur:
-        print(f"🛒 [{pair} STARTER BUY A MERCATO] Saldo a 0. Acquisto immediato di {budget_buy_teorico:.2f} EUR...", flush=True)
+    # 2. STARTER BUY A MERCATO (Solo ed esclusivamente alla primissima inizializzazione a saldo 0)
+    is_primo_ingresso = (crypto_posseduta == 0 and "Nuova Coin" in motivo_reset)
+    if is_primo_ingresso and saldo_eur_totale >= min_order_eur:
+        print(f"🛒 [{pair} STARTER BUY A MERCATO] Primo ingresso. Acquisto immediato di {budget_buy_teorico:.2f} EUR...", flush=True)
         try:
             id_buy = f"mbuy_{uuid.uuid4().hex[:8]}"
             client.create_order(
@@ -379,19 +378,21 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 side="BUY",
                 order_configuration={"market_market_ioc": {"quote_size": f"{budget_buy_teorico:.2f}"}}
             )
-            motivo_reset += " (Acquisto Starter a Mercato Eseguito)"
+            motivo_reset += " (Starter Buy Eseguito)"
             ordine_inviato_con_successo = True
-            time.sleep(1) # Attende che Coinbase aggiorni i saldi
+            time.sleep(1.5)  # Attesa allineamento saldi API Coinbase
             saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
             crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
+            valore_crypto_eur = crypto_posseduta * prezzo_rif
         except Exception as e:
             print(f"❌ Errore Starter Buy a Mercato su {pair}: {e}", flush=True)
 
-    # 3. PIAZZAMENTO ORDINI A GRIGLIA STANDARD (LIMIT)
+    # 3. CALCOLO LIVELLI GRIGLIA
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
     quantita_token_buy = budget_buy_teorico / prezzo_buy_grid
 
+    # A. PIAZZAMENTO ORDINE BUY (LIMIT)
     if autorizza_buy and saldo_eur_totale >= min_order_eur and not ordine_inviato_con_successo:
         try:
             id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
@@ -403,19 +404,33 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         except Exception as e:
             print(f"⚠️ Errore ordine BUY limite ({pair}): {e}", flush=True)
 
-    if (crypto_posseduta * prezzo_sell) >= min_order_eur:
-        try:
-            id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
-            quantita_sell = min((budget_totale_asset * 0.20) / prezzo_sell, crypto_posseduta)
-            client.create_order(
-                client_order_id=id_sell, product_id=pair, side="SELL",
-                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
-            )
-            ordine_inviato_con_successo = True
-        except Exception as e:
-            print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
+    # B. PIAZZAMENTO ORDINE SELL (LIMIT - Adattivo per superare la soglia di 5.00 EUR)
+    if valore_crypto_eur >= (min_order_eur * 0.90):  # Se il controvalore sfiora o supera i 5€
+        quantita_sell_teorica = (budget_totale_asset * 0.20) / prezzo_sell
+        valore_sell_teorico = quantita_sell_teorica * prezzo_sell
 
-    # 4. REGISTRA SUL DIARIO SOLO SE L'ORDINE È STATO DAVVERO INVIATO
+        # Se il 20% teorico vale meno di 5 EUR (es. posizione piccola sotto i 10€), 
+        # mettiamo in vendita il 100% dei token posseduti per superare il minimo d'ordine di Coinbase
+        if valore_sell_teorico < min_order_eur:
+            quantita_sell = crypto_posseduta
+        else:
+            quantita_sell = min(quantita_sell_teorica, crypto_posseduta)
+
+        valore_sell_effettivo = quantita_sell * prezzo_sell
+
+        if valore_sell_effettivo >= min_order_eur:
+            try:
+                id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
+                client.create_order(
+                    client_order_id=id_sell, product_id=pair, side="SELL",
+                    order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_sell:.{dec}f}", "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+                )
+                print(f"✅ Ordine SELL limite piazzato per {pair}: {quantita_sell:.{dec}f} {symbol_crypto} a {prezzo_sell:.2f} EUR", flush=True)
+                ordine_inviato_con_successo = True
+            except Exception as e:
+                print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
+
+    # 4. REGISTRAZIONE DIARIO & TELEGRAM (Solo a conferma dell'invio API reale)
     if ordine_inviato_con_successo:
         msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA {pair}* {emoji}\n" \
                        f"Evento: _{motivo_reset}_\n" \
