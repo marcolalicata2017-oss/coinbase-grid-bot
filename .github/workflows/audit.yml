@@ -2,13 +2,13 @@ name: Audit e Auto-Tuning AI
 
 on:
   repository_dispatch:
-    types: [run_audit] # Risponde solo alle chiamate API dalla tua piattaforma esterna
+    types: [run_audit] # Risponde alle chiamate da cron-job.org
+  workflow_dispatch: # Ti permette di avviarlo a mano da GitHub se ti serve
 
 jobs:
   audit:
     runs-on: ubuntu-latest
 
-    # PERMESSI FONDAMENTALI PER IL COMMIT AUTOMATICO
     permissions:
       contents: write
 
