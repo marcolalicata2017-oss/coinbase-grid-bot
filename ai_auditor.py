@@ -17,15 +17,43 @@ FILE_CONFIG = "config.json"
 FILE_MEMORIA = "memoria_decisioni_ai.json"
 
 def invia_telegram(messaggio):
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: 
-        print("⚠️ Token o Chat ID Telegram non configurati!")
+    """Invia un messaggio a Telegram gestendo automaticamente i fallimenti di parsing Markdown."""
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Token o Chat ID Telegram non configurati.", flush=True)
         return
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    
+    # 1. Tentativo primario con Markdown
+    payload_markdown = {
+        "chat_id": TELEGRAM_CHAT_ID, 
+        "text": messaggio, 
+        "parse_mode": "Markdown"
+    }
+    
     try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        data = {"chat_id": TELEGRAM_CHAT_ID, "text": messaggio, "parse_mode": "Markdown"}
-        requests.post(url, data=data, timeout=10)
+        resp = requests.post(url, json=payload_markdown, timeout=10)
+        
+        # 2. Se Telegram rifiuta la formattazione (Error 400 Bad Request), riprova in testo semplice
+        if resp.status_code != 200:
+            print(f"⚠️ Errore Telegram API ({resp.status_code}): {resp.text}", flush=True)
+            print("🔄 Riprovo l'invio in formato TESTO SEMPLICE (senza Markdown)...", flush=True)
+            
+            payload_plain = {
+                "chat_id": TELEGRAM_CHAT_ID, 
+                "text": messaggio
+            }
+            resp_retry = requests.post(url, json=payload_plain, timeout=10)
+            
+            if resp_retry.status_code == 200:
+                print("✅ Notifica inviata con successo in testo semplice!", flush=True)
+            else:
+                print(f"❌ Fallimento definitivo invio Telegram: {resp_retry.text}", flush=True)
+        else:
+            print("✅ Notifica Telegram inviata con successo!", flush=True)
+            
     except Exception as e:
-        print(f"⚠️ Errore invio Telegram: {e}")
+        print(f"❌ Errore di rete durante l'invio a Telegram: {e}", flush=True)
 
 def ottieni_altcoin_eur_disponibili_coinbase():
     """Recupera dinamicamente via API l'elenco aggiornato di tutti i pair SPOT EUR reali su Coinbase."""
