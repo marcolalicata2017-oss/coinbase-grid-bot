@@ -3,3 +3,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-08-03 14:42:02,BTC-EUR,55373.23,54728.22,70.31,0.00076,True,50.0,1.00,0.00,0.00,1.50,1.30,"Riallineamento Ordine SELL Mancante [Dynamic Profit MED: +1.3%]"
 2026-08-04 14:27:41,LINK-EUR,7.10,7.13,70.31,0.00000,True,57.1,0.55,6.96,7.33,2.00,3.25,"Inizializzazione Nuova Coin Satellite (AI Auditor) [Dynamic Profit MED: +3.2%] (Acquisto Starter a Mercato Eseguito)"
 2026-08-05 13:40:57,LINK-EUR,7.03,7.10,59.10,1.58000,True,46.7,5.11,6.89,7.21,2.00,2.50,"Ripristino Griglia per BUY Eseguito"
+2026-08-05 16:31:01,ETH-EUR,1635.51,1620.82,66.13,0.06070,True,59.4,1.42,1615.88,1661.02,1.20,1.56,"SELL Eseguito su Exchange (Saldo Riallineato) 📈[Dynamic Profit MED: +1.6%]"
