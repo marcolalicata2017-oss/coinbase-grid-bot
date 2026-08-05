@@ -123,7 +123,8 @@ def esegui_audit():
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    df_diario = pd.read_csv(FILE_DIARIO) if os.path.exists(FILE_DIARIO) else pd.DataFrame()
+    # Legge il diario tollerando righe corrotte (on_bad_lines='skip')
+    df_diario = pd.read_csv(FILE_DIARIO, on_bad_lines='skip') if os.path.exists(FILE_DIARIO) else pd.DataFrame()
     df_portafoglio = pd.read_csv(FILE_PORTAFOGLIO) if os.path.exists(FILE_PORTAFOGLIO) else pd.DataFrame()
     memoria_storica = carica_memoria_storica()
     altcoin_disponibili = ottieni_altcoin_eur_disponibili_coinbase()
