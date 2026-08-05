@@ -5,6 +5,7 @@ import json
 import requests
 import joblib
 import subprocess
+import math
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -23,13 +24,11 @@ FILE_DIARIO = "diario_di_bordo.csv"
 FILE_PORTAFOGLIO_GIORNALIERO = "storico_portafoglio_giornaliero.csv"
 FILE_MODELLO_ML = "modello_volatilta.pkl"
 
-# Mappa visuale per le notifiche Telegram
-# Mappa visuale per le notifiche Telegram
 EMOJI_MAP = {
     "BTC": "🪙",
     "ETH": "🔷",
     "SOL": "🟣",
-    "DEFAULT_SATELLITE": "🛰️"  # Icona spaziale predefinita per il modulo Satellite (oppure 🚀)
+    "DEFAULT_SATELLITE": "🛰️"
 }
 
 def ottieni_decimali_asset(pair):
@@ -46,7 +45,6 @@ def ottieni_decimali_asset(pair):
     except Exception as e:
         print(f"⚠️ Errore lettura decimali per {pair} da API Coinbase: {e}", flush=True)
     
-    # Fallback di sicurezza in caso di API irraggiungibile
     fallback_map = {"BTC-EUR": 8, "ETH-EUR": 4, "SOL-EUR": 2, "LINK-EUR": 2}
     return fallback_map.get(pair, 2)
     
@@ -65,13 +63,11 @@ def carica_e_sincronizza_config():
                 sym = pair.split("-")[0]
                 asset_type = data.get("type", "core")
                 
-                # 1. Assegna l'emoji (satellite vs core)
                 if asset_type == "satellite":
                     emoji = EMOJI_MAP.get("DEFAULT_SATELLITE", "🛰️")
                 else:
                     emoji = EMOJI_MAP.get(sym, "🪙")
                 
-                # 2. Estrazione dinamica e automatica dei decimali reali via API Coinbase
                 decimals = ottieni_decimali_asset(pair)
                 
                 nuovo_config[pair] = {
@@ -92,7 +88,6 @@ def carica_e_sincronizza_config():
         except Exception as e:
             print(f"⚠️ [CONFIG] Errore caricamento config.json: {e}", flush=True)
 
-# Caricamento iniziale
 carica_e_sincronizza_config()
 
 SOGLIA_EMA_TOLLERANZA = 0.95
@@ -115,7 +110,11 @@ def invia_telegram(messaggio):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": messaggio, "parse_mode": "Markdown"}
-        requests.post(url, data=data, timeout=5)
+        resp = requests.post(url, data=data, timeout=5)
+        # Fallback senza Markdown se Telegram fallisce il parsing dei caratteri speciali
+        if resp.status_code != 200:
+            data_plain = {"chat_id": TELEGRAM_CHAT_ID, "text": messaggio}
+            requests.post(url, data=data_plain, timeout=5)
     except Exception as e:
         print(f"⚠️ Errore invio Telegram: {e}", flush=True)
 
@@ -129,8 +128,6 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
         motivo = "SELL Eseguito su Exchange (Saldo Riallineato)"
 
     HEADER_CSV = "Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vol_Ratio,Target_BUY,Target_SELL,Grid_BUY_Pct,Grid_SELL_Pct,Motivo\n"
-
-    # Correzione: rimossi i simboli '%' e racchiuso {motivo} tra doppi apici
     riga = f'{ora_corrente},{pair},{prezzo_pivot:.2f},{ema50:.2f},{saldo_eur:.2f},{crypto_posseduta:.5f},{trend_ok},{rsi:.1f},{vol_ratio:.2f},{target_buy:.2f},{target_sell:.2f},{grid_buy_pct*100:.2f},{grid_sell_pct*100:.2f},"{motivo}"\n'
 
     try:
@@ -201,7 +198,7 @@ def ottieni_dati_mercato_avanzati(product_id):
             resp = requests.get(url, headers=headers, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
-                if isinstance(data, list) and len(data) >= 12:  # Soglia ridotta a 12 candele
+                if isinstance(data, list) and len(data) >= 12:
                     candele = list(reversed(data))
                     prezzi_chiusura = [float(c[4]) for c in candele]
                     volumi = [float(c[5]) for c in candele]
@@ -235,7 +232,6 @@ def ottieni_dati_mercato_avanzati(product_id):
             print(f"⚠️ Errore API candele ({product_id}): {e}", flush=True)
         time.sleep(1)
     
-    # Backup: se le candele falliscono, recupera almeno il prezzo ticker corrente
     try:
         url_ticker = f"https://api.exchange.coinbase.com/products/{product_id}/ticker"
         resp_t = requests.get(url_ticker, headers=headers, timeout=5)
@@ -373,6 +369,10 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
     crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
 
+    # 🧹 FILTRO DUST: Resetta a ZERO se il saldo residuo vale meno di 0.50 EUR
+    if (crypto_posseduta * prezzo_rif) < 0.50:
+        crypto_posseduta = 0.0
+
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
     budget_buy_teorico = max(budget_totale_asset * 0.20, min_order_eur)
 
@@ -395,7 +395,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             )
             motivo_reset += " (Starter Buy Eseguito)"
             ordine_inviato_con_successo = True
-            time.sleep(1.5)  # Attesa allineamento saldi API Coinbase
+            time.sleep(1.5)
             saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
             crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
             valore_crypto_eur = crypto_posseduta * prezzo_rif
@@ -407,8 +407,8 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
     quantita_token_buy = budget_buy_teorico / prezzo_buy_grid
 
-    # A. PIAZZAMENTO ORDINE BUY (LIMIT)
-    if autorizza_buy and saldo_eur_totale >= min_order_eur and not ordine_inviato_con_successo:
+    # A. PIAZZAMENTO ORDINE BUY (LIMIT - Solo se si possiedono già token o per ingresso esplicito)
+    if autorizza_buy and crypto_posseduta > 0 and saldo_eur_totale >= min_order_eur and not ordine_inviato_con_successo:
         try:
             id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
             client.create_order(
@@ -424,14 +424,14 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         quantita_sell_teorica = (budget_totale_asset * 0.20) / prezzo_sell
         valore_sell_teorico = quantita_sell_teorica * prezzo_sell
 
-        # Se la frazione è sotto i 5€ (o per piccoli saldi), vendiamo l'INTERO SALDO REALE
         if valore_sell_teorico < min_order_eur:
-            # Tronca esattamente ai decimali ammessi ma prendendo tutto il saldo
-            quantita_sell_fmtd = f"{crypto_posseduta:.{dec}f}"
+            # Troncamento per difetto dell'intero saldo per prevenire errori API "Insufficient Funds"
+            molt = 10 ** dec
+            quantita_sell_raw = math.floor(crypto_posseduta * molt) / molt
         else:
             quantita_sell_raw = min(quantita_sell_teorica, crypto_posseduta)
-            quantita_sell_fmtd = f"{quantita_sell_raw:.{dec}f}"
 
+        quantita_sell_fmtd = f"{quantita_sell_raw:.{dec}f}"
         valore_sell_effettivo = float(quantita_sell_fmtd) * prezzo_sell
 
         if valore_sell_effettivo >= min_order_eur:
@@ -441,7 +441,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                     client_order_id=id_sell, product_id=pair, side="SELL",
                     order_configuration={
                         "limit_limit_gtc": {
-                            "base_size": quantita_sell_fmtd, # Invia l'intero saldo disponibile (es. 0.78)
+                            "base_size": quantita_sell_fmtd,
                             "limit_price": f"{prezzo_sell:.2f}", 
                             "post_only": False
                         }
@@ -452,7 +452,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             except Exception as e:
                 print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
 
-    # 4. REGISTRAZIONE DIARIO & TELEGRAM (Solo a conferma dell'invio API reale)
+    # 4. REGISTRAZIONE DIARIO & TELEGRAM
     if ordine_inviato_con_successo:
         msg_telegram = f"🔄 *COINBASE: UPDATE GRIGLIA {pair}* {emoji}\n" \
                        f"Evento: _{motivo_reset}_\n" \
@@ -511,6 +511,11 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
 
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
     crypto_posseduta = dict_cripto_totale.get(symbol_crypto, 0.0)
+
+    # 🧹 FILTRO DUST
+    if (crypto_posseduta * prezzo_attuale) < 0.50:
+        crypto_posseduta = 0.0
+
     min_order_eur = cfg["min_order_eur"]
 
     if exit_strategy == "market_sell":
@@ -520,11 +525,13 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
         if (crypto_posseduta * prezzo_attuale) >= min_order_eur:
             try:
                 dec = cfg["decimals"]
+                molt = 10 ** dec
+                qta_raw = math.floor(crypto_posseduta * molt) / molt
                 client.create_order(
                     client_order_id=f"msell_{uuid.uuid4().hex[:8]}",
                     product_id=pair,
                     side="SELL",
-                    order_configuration={"market_market_ioc": {"base_size": f"{crypto_posseduta:.{dec}f}"}}
+                    order_configuration={"market_market_ioc": {"base_size": f"{qta_raw:.{dec}f}"}}
                 )
                 msg = f"🚨 *COINBASE: MARKET SELL ESEGUITO PER {pair}*\nPosizione liquidata su indicazione AI Auditor."
                 invia_telegram(msg)
@@ -554,13 +561,10 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     id_buy, id_sell = recupera_ordini_pair(pair)
     ha_crypto_per_sell = (crypto_posseduta * prezzo_attuale) >= min_order_eur
 
-    # STARTER BUY: Se è una nuova coin e il saldo è 0, autorizziamo l'acquisto
-    # per permettere all'AI di posizionarsi subito sul mercato
     autorizza_buy_effettivo = trend_ok or (crypto_posseduta == 0)
 
     print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | RSI: {rsi:.1f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)}", flush=True)
 
-    # A. Inizializzazione Totale
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=autorizza_buy_effettivo, motivo_reset="Inizializzazione Nuova Coin Satellite (AI Auditor)", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
@@ -594,7 +598,6 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
 def main():
     print("🚀 [DEBUG] Avvio Bot Multi-Asset...", flush=True)
 
-    # Legge dinamicamente dal file config.json
     carica_e_sincronizza_config()
 
     saldo_eur_totale, dict_cripto_totale = controlla_saldi_globali()
@@ -612,7 +615,6 @@ def main():
     valore_totale_portafoglio = saldo_eur_totale + valore_crypto_stimato
     print(f"💰 Valore Totale Portafoglio Stimato: {valore_totale_portafoglio:.2f} EUR (EUR liquidi: {saldo_eur_totale:.2f} EUR)", flush=True)
 
-    # Itera su tutti i pair attivi compresi quelli inseriti al volo dall'AI Auditor
     for pair in list(CONFIG_ASSETS.keys()):
         try:
             prezzo, cb_attivo = esegui_gestione_asset(pair, valore_totale_portafoglio)
