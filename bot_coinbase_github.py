@@ -136,7 +136,7 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
     try:
         with open(FILE_DIARIO, "a", encoding="utf-8") as f:
             if not file_esistente:
-                f.write(intestazione)
+                f.write(HEADER_CSV)
             f.write(riga)
     except Exception as e:
         print(f"⚠️ Errore scrittura diario ({pair}): {e}", flush=True)
