@@ -66,7 +66,6 @@ def ottieni_altcoin_eur_disponibili_coinbase():
             prodotti = resp.json()
             coppie_eur_valide = []
             
-            # Stablecoin e pair Core da escludere dalla scelta Satellite
             esclusi = ["USDC-EUR", "EURC-EUR", "USDT-EUR", "BTC-EUR", "ETH-EUR"]
             
             for p in prodotti:
@@ -80,12 +79,11 @@ def ottieni_altcoin_eur_disponibili_coinbase():
                         coppie_eur_valide.append(id_pair)
             
             coppie_eur_valide.sort()
-            print(f"📡 [COINBASE API] Trovati {len(coppie_eur_valide)} pair Spot EUR attivi.")
+            print(f"📡 [COINBASE API] Trovati {len(coppie_eur_valide)} pair Spot EUR attivi.", flush=True)
             return coppie_eur_valide
     except Exception as e:
-        print(f"⚠️ Errore recupero pair dinamici da Coinbase: {e}")
+        print(f"⚠️ Errore recupero pair dinamici da Coinbase: {e}", flush=True)
     
-    # Fallback sicuro se l'API pubblica di Coinbase è momentaneamente irraggiungibile
     return ["LINK-EUR", "ADA-EUR", "NEAR-EUR", "DOT-EUR", "AVAX-EUR", "XRP-EUR", "ATOM-EUR", "ALGO-EUR"]
 
 def carica_memoria_storica():
@@ -97,7 +95,7 @@ def carica_memoria_storica():
                 if contenuto:
                     return json.loads(contenuto)
         except Exception as e:
-            print(f"⚠️ Errore lettura memoria storica: {e}")
+            print(f"⚠️ Errore lettura memoria storica: {e}", flush=True)
     return []
 
 def salva_memoria_storica(memoria):
@@ -105,27 +103,23 @@ def salva_memoria_storica(memoria):
     try:
         with open(FILE_MEMORIA, "w", encoding="utf-8") as f:
             json.dump(memoria, f, indent=2, ensure_ascii=False)
-        print("🧠 Memoria decisionale salvata su file.")
+        print("🧠 Memoria decisionale salvata su file.", flush=True)
     except Exception as e:
-        print(f"⚠️ Errore salvataggio memoria storica: {e}")
+        print(f"⚠️ Errore salvataggio memoria storica: {e}", flush=True)
 
 def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
     try:
-        # 1. Scrittura nuovo config.json
         with open(FILE_CONFIG, "w", encoding="utf-8") as f:
             json.dump(nuovo_config, f, indent=2)
         
-        # 2. Scrittura memoria se presente
         if nuova_scheda_memoria:
             memoria = carica_memoria_storica()
             memoria.append(nuova_scheda_memoria)
             salva_memoria_storica(memoria)
 
-        # 3. Configurazione Git
         subprocess.run(["git", "config", "user.name", "AI-Auditor-Bot"], check=True)
         subprocess.run(["git", "config", "user.email", "ai-auditor@bot.local"], check=True)
         
-        # 4. Git Add per config.json e memoria
         subprocess.run(["git", "add", FILE_CONFIG], check=True)
         if os.path.exists(FILE_MEMORIA):
             subprocess.run(["git", "add", FILE_MEMORIA], check=True)
@@ -135,18 +129,18 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
         if result.stdout.strip():
             subprocess.run(["git", "commit", "-m", "🤖 Auto-tuning e aggiornamento memoria da AI Auditor"], check=True)
             subprocess.run(["git", "push"], check=True)
-            print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!")
+            print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
             return True
         else:
-            print("ℹ️ Nessuna modifica sostanziale da committare.")
+            print("ℹ️ Nessuna modifica sostanziale da committare.", flush=True)
             return False
     except Exception as e:
-        print(f"❌ Errore durante l'auto-commit su GitHub: {e}")
+        print(f"❌ Errore durante l'auto-commit su GitHub: {e}", flush=True)
         return False
 
 def esegui_audit():
     if not GEMINI_API_KEY:
-        print("❌ API Key di Gemini non configurata!")
+        print("❌ API Key di Gemini non configurata!", flush=True)
         return
 
     client = genai.Client(api_key=GEMINI_API_KEY)
@@ -163,7 +157,7 @@ def esegui_audit():
             with open(FILE_CONFIG, "r", encoding="utf-8") as f:
                 config_attuale = json.load(f)
         except Exception as e:
-            print(f"⚠️ Errore lettura config.json: {e}")
+            print(f"⚠️ Errore lettura config.json: {e}", flush=True)
 
     ora_dt = datetime.now()
     is_domenica = (ora_dt.weekday() == 6)
@@ -172,10 +166,19 @@ def esegui_audit():
     diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty and 'Data_Ora' in df_diario.columns else pd.DataFrame()
 
     prompt = f"""
-    Sei un Quant Trader & Risk Manager specializzato in Grid Trading Crypto. Operi con capacità di auto-apprendimento ed esperienza decisionale.
-    
+    Sei un Portfolio Manager & Risk Manager Quantitativo spietato, focalizzato unicamente sulla PROFITTABILITÀ NETTA (Net Spread Efficiency). Operi in ambiente di Grid Trading Crypto su Coinbase.
+
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
     Tipo Audit: {"SETTIMANALE STRATEGICO & AUTO-TUNING (CORE + SATELLITE)" if is_domenica else "GIORNALIERO TATTICO (SOLO MODULO SATELLITE)"}
+
+    ⚡ STRUTTURA COMMISSIONI COINBASE ADVANCED (PROFILO INTRO 2):
+    - Maker Fee: 0.35% (Ordini limite immessi sul book)
+    - Taker Fee: 0.75% (Ordini a mercato o esecuzioni immediate)
+    - Soglia Minima d'Ordine: 5.00 EUR
+
+    🎯 VINCOLO TASSATIVO SUL MARGINE NETTO (NET PROFIT RULE):
+    1. NON impostare MAI una 'grid_dist_sell' inferiore a 0.02 (2.0%). Con fee Maker totali dello 0.70% (0.35% buy + 0.35% sell), impostare spread inferiori distrugge la profittabilità netta.
+    2. Se l'asset ha alta volatilità, imposta 'grid_dist_sell' a 0.025 (2.5%) o 0.03 (3.0%) per catturare un margine reale pulito > 1.5%.
 
     CONFIGURAZIONE ATTUALE BOT (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
@@ -196,46 +199,38 @@ def esegui_audit():
     1. Operatività sui Saldi Reali: Lavora sulla cassa EUR effettiva e sulle posizioni aperte. NON ipotizzare depositi o budget teorici.
     2. Proporzioni ("target_weight_pct"):
        - MODULO CORE (totale 90.0%): Destinato alla stabilità (tipicamente BTC, ETH e opzionalmente SOL).
-       - MODULO SATELLITE (totale 10.0%): Riservato a 1 singola altcoin ad alta volatilità opportunistica.
+       - MODULO SATELLITE (totale 10.0%): Riservato a 1 singola altcoin ad alta volatilità opportunistica. Se la cassa EUR è ridotta, NON frazionare il Satellite su più monete: mantieni UN SOLO asset per superare sempre il minimo d'ordine di 5.00 EUR.
 
-    🎯 STELLA POLARE: MASSIMIZZAZIONE DELLA PROFITTABILITÀ (QUANT GRID SCORING)
-    Per la selezione o la conferma della Coin SATELLITE (10% del portafoglio), applica una valutazione rigorosamente quantitativa basata sulle seguenti metriche sui mercati SPOT EUR di Coinbase:
-
-    1. VOLATILITÀ SATELLITE (Peso 35%): Privilegia asset con ATR/volatilità intra-day elevata (es. escursioni orarie > 1.5%). La volatilità è il motore fondamentale per generare profitti continuativi con i riallineamenti della griglia.
-    2. LIQUIDITÀ & VOLUME (Peso 25%): Seleziona unicamente coppie con volumi di scambio solidi su Coinbase nelle 24h per garantire esecuzioni istantanee ed azzerare lo slippage.
-    3. STRUTTURA DI TREND (Peso 25%): Il prezzo non deve essere in caduta libera strutturale (RSI > 40 e Prezzo > 92% della EMA50). Cerca fasi di accumulo/laterale-rialzista dove l'oscillazione tra BUY e DYNAMIC PROFIT SELL è massima.
-    4. EFFICIENZA REGISTRATA NEL DIARIO (Peso 15%): Analizza i rendimenti recenti registrati sul Diario di Bordo. Se la coin attuale genera esecuzioni frequenti ("Dynamic Profit" / "SELL Eseguito"), MANTIENILA.
-
-    LOGICA DI APPRENDIMENTO ED REGOLA DI ROTAZIONE SULLA COIN SATELLITE (OGNI GIORNO):
-    - Confronta i risultati correnti con le tue decisioni passate memorizzate. Se una decisione recente si è rivelata sbagliata o sub-ottimale, estrai una 'Lezione Appresa' e non ripetere lo stesso errore.
-    - Analizza la performance dell'altcoin attualmente marcata con "type": "satellite".
-    - Se l'altcoin Satellite in carico (es. LINK-EUR) sta generando esecuzioni e profitti costanti, MANTIENILA invariata senza fare modifiche inutili.
+    🎯 EFFICIENZA E ROTAZIONE COIN SATELLITE (OGNI GIORNO):
+    - Confronta i risultati correnti con le tue decisioni passate memorizzate. Se una decisione recente si è rivelata sub-ottimale, estrai una 'Lezione Appresa'.
+    - Analizza la performance dell'altcoin marcata con "type": "satellite".
+    - Se l'altcoin Satellite in carico (es. LINK-EUR) sta generando esecuzioni e profitti costanti, MANTIENILA invariata.
     - Cambia la coin Satellite SOLO SE:
       a) La coin in carico entra in un trend fortemente ribassista (Circuit Breaker attivo, priva di volatilità o in perdita persistente).
       b) Un'altra altcoin nell'Elenco Dinamico presenta uno score di profittabilità nettamente superiore (almeno +20%) per volatilità e struttura di mercato.
     - In caso di dismissione/rotazione:
       * Imposta "exit_strategy": "market_sell" (per liquidare subito in EUR) oppure "soft_exit" sulla vecchia coin.
-      * Seleziona LIBERAMENTE la nuova altcoin promettente SCEGLIENDO TASSATIVAMENTE DALL'ELENCO DINAMICO SOPRA e inseriscila come nuova coin "satellite" con "target_weight_pct": 10.0.
-      * NON inventare ticker e NON selezionare coppie che non figurano nell'Elenco Dinamico dei mercati Spot EUR attivi.
+      * Seleziona la nuova altcoin SCEGLIENDO TASSATIVAMENTE DALL'ELENCO DINAMICO SOPRA e inseriscila con "target_weight_pct": 10.0.
+      * NON inventare ticker e NON selezionare coppie non presenti nell'Elenco Dinamico.
     - NEI GIORNI FERIALI (Lunedì-Sabato): NON modificare i parametri della sezione CORE (type: "core").
 
     VALUTAZIONE DINAMICA SU SOLANA (SOL-EUR):
-    Spetta a te decidere come gestirla sulla base dei dati di rendimento reali nel diario di bordo:
-    1. MANTENERLA nel Core (type: "core") con una quota percentuale adeguata se sta producendo profitti costanti.
+    1. MANTENERLA nel Core (type: "core") con quota percentuale adeguata se produce profitti costanti.
     2. SPOSTARLA nello slot Satellite (type: "satellite") con "target_weight_pct": 10.0 se la ritieni più adatta ad uscite rapide.
-    3. DISMETTERLA portando "target_weight_pct": 0.0 ed impostando "exit_strategy": "soft_exit" (o "market_sell" se c'è rischio crollo) per liberare cassa EUR a favore di BTC, ETH o altre altcoin.
+    3. DISMETTERLA portando "target_weight_pct": 0.0 ed impostando "exit_strategy": "soft_exit" (o "market_sell" se c'è rischio crollo).
 
     LA DOMENICA (AUDIT SETTIMANALE):
-    Puoi ricalibrare sia i parametri del CORE (grid_dist_buy, grid_dist_sell, target_weight_pct) sia la coin del SATELLITE, motivando le scelte in base all'esperienza accumulata.
+    Puoi ricalibrare sia i parametri del CORE (grid_dist_buy, grid_dist_sell >= 0.02, target_weight_pct) sia la coin del SATELLITE.
 
     GUARDRAILS OBBLIGATORI DA RISPETTARE NEL JSON:
     - La somma di tutti i "target_weight_pct" degli asset attivi deve fare SEMPRE 100.0.
-    - Nessuna distanza griglia (buy/sell) può scendere sotto 0.005 o salire sopra 0.05.
+    - Nessuna distanza griglia buy (grid_dist_buy) può scendere sotto 0.008 o salire sopra 0.05.
+    - Nessuna distanza griglia sell (grid_dist_sell) può scendere sotto 0.020 (2.0%).
 
     STRUTTURA DI RISPOSTA RICHIESTA:
     Fornisci la tua risposta strutturata in TRE parti separate esattamente dai delimitatori '---JSON_CONFIG---' e '---JSON_MEMORIA---':
     
-    Parte 1: Report narrativo in italiano formattato in Markdown per Telegram (Includi una sezione '🧠 LEZIONI DALL'ESPERIENZA & DECISIONI PASSATE').
+    Parte 1: Report narrativo in italiano formattato in Markdown per Telegram (Includi una sezione '🧠 LEZIONI DALL'ESPERIENZA & DECISIONI PASSATE' e '💰 ANALISI MARGINALITÀ NETTA').
     ---JSON_CONFIG---
     Parte 2: La nuova struttura del file config.json valida (oppure scrivi 'NO_CHANGE' se non servono modifiche).
     ---JSON_MEMORIA---
@@ -245,7 +240,7 @@ def esegui_audit():
       "data": "{ora_dt.strftime('%Y-%m-%d')}",
       "tipo_audit": "{'settimanale' if is_domenica else 'giornaliero'}",
       "decisione": "Descrizione sintetica delle modifiche apportate",
-      "motivazione": "Spiegazione quantitativa della scelta",
+      "motivazione": "Spiegazione quantitativa della scelta e calcolo fee",
       "lezione_appresa": "Cosa si impara dai dati recenti rispetto alle decisioni passate"
     }}
     """
@@ -256,7 +251,7 @@ def esegui_audit():
     for modello in modelli_disponibili:
         for tentativo in range(3):
             try:
-                print(f"🔄 Tentativo di chiamata con modello: {modello} (tentativo {tentativo + 1})...")
+                print(f"🔄 Tentativo di chiamata con modello: {modello} (tentativo {tentativo + 1})...", flush=True)
                 response = client.models.generate_content(
                     model=modello,
                     contents=prompt
@@ -267,19 +262,18 @@ def esegui_audit():
                 err_str = str(e)
                 if "503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str:
                     attesa = 4 * (tentativo + 1)
-                    print(f"⚠️ Attesa {attesa}s per saturazione su {modello}...")
+                    print(f"⚠️ Attesa {attesa}s per saturazione su {modello}...", flush=True)
                     time.sleep(attesa)
                 else:
-                    print(f"⚠️ Errore con {modello}: {e}")
+                    print(f"⚠️ Errore con {modello}: {e}", flush=True)
                     break
         if testo_risposta:
             break
 
     if not testo_risposta:
-        print("❌ Impossibile completare l'audit su tutti i modelli.")
+        print("❌ Impossibile completare l'audit su tutti i modelli.", flush=True)
         return
 
-    # Parsing delle tre sezioni
     parti_config = testo_risposta.split("---JSON_CONFIG---")
     report_telegram = parti_config[0].strip()
     
@@ -305,14 +299,14 @@ def esegui_audit():
 
             modificato = applica_commit_github(nuovo_config, nuova_scheda)
         except Exception as e:
-            print(f"⚠️ Errore durante il parsing del JSON da Gemini: {e}")
+            print(f"⚠️ Errore durante il parsing del JSON da Gemini: {e}", flush=True)
 
     intestazione = "🧠 *[AI AUDITOR - AUDIT SETTIMANALE & AUTO-TUNING]*\n\n" if is_domenica else "🛰️ *[AI AUDITOR - DAILY SATELLITE CHECK]*\n\n"
     if modificato:
         report_telegram += "\n\n🚀 *[AUTO-TUNING & MEMORIA APPLICATI]*: `config.json` e `memoria_decisioni_ai.json` aggiornati su GitHub."
 
     invia_telegram(intestazione + report_telegram)
-    print("✅ Audit completato con successo e notifica Telegram inviata!")
+    print("✅ Audit completato con successo e notifica Telegram inviata!", flush=True)
 
 if __name__ == "__main__":
     esegui_audit()
