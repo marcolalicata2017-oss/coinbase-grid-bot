@@ -1,10 +1,8 @@
 name: Audit e Auto-Tuning AI
 
 on:
-  schedule:
-    # Esecuzione automatica ogni giorno alle 21:00 UTC
-    - cron: '0 21 * * *'
-  workflow_dispatch: # Permette l'esecuzione manuale da GitHub
+  repository_dispatch:
+    types: [run_audit] # Risponde solo alle chiamate API dalla tua piattaforma esterna
 
 jobs:
   audit:
