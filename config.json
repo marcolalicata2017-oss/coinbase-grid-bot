@@ -9,7 +9,7 @@
       "type": "core",
       "target_weight_pct": 30.0,
       "grid_dist_buy": 0.01,
-      "grid_dist_sell": 0.012,
+      "grid_dist_sell": 0.02,
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
@@ -18,7 +18,7 @@
       "type": "core",
       "target_weight_pct": 30.0,
       "grid_dist_buy": 0.012,
-      "grid_dist_sell": 0.012,
+      "grid_dist_sell": 0.02,
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
@@ -27,7 +27,7 @@
       "type": "core",
       "target_weight_pct": 30.0,
       "grid_dist_buy": 0.015,
-      "grid_dist_sell": 0.015,
+      "grid_dist_sell": 0.02,
       "max_active_levels": 4,
       "is_active": true,
       "exit_strategy": "none"
