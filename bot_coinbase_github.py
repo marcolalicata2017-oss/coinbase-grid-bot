@@ -128,8 +128,10 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
     if "Riallineamento" in motivo and "SELL" in motivo:
         motivo = "SELL Eseguito su Exchange (Saldo Riallineato)"
 
-    intestazione = "Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vol_Ratio,Target_BUY,Target_SELL,Grid_BUY_Pct,Grid_SELL_Pct,Motivo\n"
-    riga = f"{ora_corrente},{pair},{prezzo_pivot:.2f},{ema50:.2f},{saldo_eur:.2f},{crypto_posseduta:.5f},{trend_ok},{rsi:.1f},{vol_ratio:.2f},{target_buy:.2f},{target_sell:.2f},{grid_buy_pct*100:.2f}%,{grid_sell_pct*100:.2f}%,{motivo}\n"
+    HEADER_CSV = "Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vol_Ratio,Target_BUY,Target_SELL,Grid_BUY_Pct,Grid_SELL_Pct,Motivo\n"
+
+    # Correzione: rimossi i simboli '%' e racchiuso {motivo} tra doppi apici
+    riga = f'{ora_corrente},{pair},{prezzo_pivot:.2f},{ema50:.2f},{saldo_eur:.2f},{crypto_posseduta:.5f},{trend_ok},{rsi:.1f},{vol_ratio:.2f},{target_buy:.2f},{target_sell:.2f},{grid_buy_pct*100:.2f},{grid_sell_pct*100:.2f},"{motivo}"\n'
 
     try:
         with open(FILE_DIARIO, "a", encoding="utf-8") as f:
