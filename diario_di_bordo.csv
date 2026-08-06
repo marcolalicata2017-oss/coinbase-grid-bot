@@ -7,3 +7,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-08-05 17:50:59,SOL-EUR,64.47,63.97,73.21,0.87000,True,63.9,1.10,63.02,65.73,2.25,1.95,"SELL Eseguito su Exchange (Saldo Riallineato) ⚡[ML: High Vol Grid] 📈[Dynamic Profit MED: +1.9%]"
 2026-08-05 18:20:51,ETH-EUR,1662.28,1623.98,90.09,0.05050,True,79.5,0.87,1642.33,1688.21,1.20,1.56,"SELL Eseguito su Exchange (Saldo Riallineato) 📈[Dynamic Profit MED: +1.6%]"
 2026-08-05 19:10:45,BTC-EUR,56107.95,55529.99,97.10,0.00064,True,65.7,0.10,55546.87,57566.76,1.00,2.60,"SELL Eseguito su Exchange (Saldo Riallineato) 📈[Dynamic Profit MED: +2.6%]"
+2026-08-06 02:20:45,ETH-EUR,1640.04,1631.03,79.98,0.06089,True,61.6,0.53,1610.52,1682.68,1.80,2.60,"Ripristino Griglia per BUY Eseguito ⚡[ML: High Vol Grid] 📈[Dynamic Profit MED: +2.6%]"
