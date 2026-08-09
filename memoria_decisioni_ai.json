@@ -19,5 +19,12 @@
     "decisione": "Mantenimento di LINK-EUR come satellite (10% budget). Ricalibrazione d'emergenza delle griglie di vendita (grid_dist_sell) di BTC-EUR, ETH-EUR e SOL-EUR dal valore ereditato (1.2%-1.5%) a 2.0% per conformarsi rigorosamente alla Net Profit Rule.",
     "motivazione": "L'analisi dei log ha evidenziato vendite eseguite su ETH e SOL con spread troppo stretti (1.56% e 1.95%), che in regime di commissioni Maker dello 0.70% complessivo deprimevano il rendimento netto. LINK-EUR sta performando in modo ottimale (Vol_Ratio 5.11, buy eseguito a 7.03), quindi non richiede rotazioni. L'adeguamento delle griglie Core a 2.0% garantisce un margine netto minimo dell'1.30% su ogni singolo eseguito di portafoglio.",
     "lezione_appresa": "La massimizzazione della profittabilità netta (Net Spread Efficiency) ha la precedenza assoluta su qualsiasi regola di routine feriale. Consentire a griglie con margini risicati (< 2.0% lordo) di operare significa distruggere valore a favore dell'exchange sotto forma di commissioni."
+  },
+  {
+    "data": "2026-08-09",
+    "tipo_audit": "settimanale",
+    "decisione": "Mantenimento asset allocation (Core: BTC, ETH, SOL; Satellite: LINK) con incremento aggressivo dei grid_dist_sell su tutto il portafoglio (BTC a 2.2%, ETH a 2.5%, SOL a 2.8%, LINK a 3.0%).",
+    "motivazione": "Sfruttamento dell'alta volatilita' registrata nel diario di bordo (SOL e LINK hanno registrato molteplici vendite con spread reali superiori al 2.6% e 3.2%). Con fee Maker dello 0.70% complessivo, allargare i target di vendita incrementa drasticamente il rendimento netto reale (fino a +2.30% netto per trade su LINK) proteggendo il capitale dall'erosione commissionale dell'exchange.",
+    "lezione_appresa": "La rigidita' dello spread minimo a 2.0% e' un limite di salvaguardia, non un target fisso. Nelle fasi di forte espansione del mercato (RSI > 80), impostare griglie di vendita dinamiche e piu' larghe (fino al 3.0% sui satelliti) massimizza la Net Spread Efficiency senza compromettere il flusso di cassa generato dal bot."
   }
 ]

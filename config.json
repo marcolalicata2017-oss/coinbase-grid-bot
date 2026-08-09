@@ -8,8 +8,8 @@
     "BTC-EUR": {
       "type": "core",
       "target_weight_pct": 30.0,
-      "grid_dist_buy": 0.01,
-      "grid_dist_sell": 0.02,
+      "grid_dist_buy": 0.012,
+      "grid_dist_sell": 0.022,
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
@@ -17,8 +17,8 @@
     "ETH-EUR": {
       "type": "core",
       "target_weight_pct": 30.0,
-      "grid_dist_buy": 0.012,
-      "grid_dist_sell": 0.02,
+      "grid_dist_buy": 0.015,
+      "grid_dist_sell": 0.025,
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
@@ -26,8 +26,8 @@
     "SOL-EUR": {
       "type": "core",
       "target_weight_pct": 30.0,
-      "grid_dist_buy": 0.015,
-      "grid_dist_sell": 0.02,
+      "grid_dist_buy": 0.018,
+      "grid_dist_sell": 0.028,
       "max_active_levels": 4,
       "is_active": true,
       "exit_strategy": "none"
@@ -36,7 +36,7 @@
       "type": "satellite",
       "target_weight_pct": 10.0,
       "grid_dist_buy": 0.02,
-      "grid_dist_sell": 0.025,
+      "grid_dist_sell": 0.03,
       "max_active_levels": 3,
       "is_active": true,
       "exit_strategy": "none"
