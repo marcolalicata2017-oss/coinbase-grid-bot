@@ -838,3 +838,6 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-08-14 00:30:59,BTC-EUR,54929.65,55151.29,21.71,0.00157,True,43.1,0.10,54270.49,56138.10,1.20,2.20,"Ripristino Griglia per BUY Eseguito"
 2026-08-14 00:31:00,ETH-EUR,1635.32,1635.40,21.71,0.07172,True,55.0,0.22,1610.79,1676.20,1.50,2.50,"Ripristino Griglia per BUY Eseguito"
 2026-08-14 00:31:01,SOL-EUR,65.89,65.90,21.71,0.88500,True,56.7,0.12,64.11,68.29,2.70,3.64,"Ripristino Griglia per BUY Eseguito ⚡[ML: High Vol Grid] 📈[Dynamic Profit MED: +3.6%]"
+2026-08-14 00:40:44,BTC-EUR,54947.33,55151.98,21.71,0.00157,True,43.6,0.17,54287.96,56156.17,1.20,2.20,"Ripristino Griglia per BUY Eseguito"
+2026-08-14 00:40:46,ETH-EUR,1633.94,1635.35,21.71,0.07172,True,53.4,0.32,1609.43,1674.79,1.50,2.50,"Ripristino Griglia per BUY Eseguito"
+2026-08-14 00:40:48,SOL-EUR,65.87,65.90,21.71,0.88500,True,56.2,0.24,64.09,68.27,2.70,3.64,"Ripristino Griglia per BUY Eseguito ⚡[ML: High Vol Grid] 📈[Dynamic Profit MED: +3.6%]"
