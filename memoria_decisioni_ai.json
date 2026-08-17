@@ -26,5 +26,12 @@
     "decisione": "Mantenimento asset allocation (Core: BTC, ETH, SOL; Satellite: LINK) con incremento aggressivo dei grid_dist_sell su tutto il portafoglio (BTC a 2.2%, ETH a 2.5%, SOL a 2.8%, LINK a 3.0%).",
     "motivazione": "Sfruttamento dell'alta volatilita' registrata nel diario di bordo (SOL e LINK hanno registrato molteplici vendite con spread reali superiori al 2.6% e 3.2%). Con fee Maker dello 0.70% complessivo, allargare i target di vendita incrementa drasticamente il rendimento netto reale (fino a +2.30% netto per trade su LINK) proteggendo il capitale dall'erosione commissionale dell'exchange.",
     "lezione_appresa": "La rigidita' dello spread minimo a 2.0% e' un limite di salvaguardia, non un target fisso. Nelle fasi di forte espansione del mercato (RSI > 80), impostare griglie di vendita dinamiche e piu' larghe (fino al 3.0% sui satelliti) massimizza la Net Spread Efficiency senza compromettere il flusso di cassa generato dal bot."
+  },
+  {
+    "data": "2026-08-17",
+    "tipo_audit": "giornaliero",
+    "decisione": "Dismissione LINK-EUR (is_active: false, exit_strategy: market_sell) e allocazione del 10% budget del modulo Satellite su XRP-EUR con griglia 2.0% buy / 3.0% sell. Modulo Core invariato.",
+    "motivazione": "LINK-EUR presentava zero esecuzioni nel diario di bordo recente, congelando il capitale. XRP-EUR, presente nell'elenco ufficiale, offre un'eccellente frequenza di trading intraday. Con una griglia sell a 3.0% e fee Maker totali dello 0.70%, assicuriamo un rendimento netto del 2.30% a eseguito, mantenendo la dimensione minima dell'ordine sopra i 9 EUR (superiore al limite di 5 EUR di Coinbase).",
+    "lezione_appresa": "Nel modulo satellite, la stasi operativa equivale a una perdita di rendimento. Se un asset non produce trade entro 48 ore di mercato rialzista, va ruotato immediatamente su un'altcoin liquida ad alto beta per massimizzare la Net Spread Efficiency."
   }
 ]
