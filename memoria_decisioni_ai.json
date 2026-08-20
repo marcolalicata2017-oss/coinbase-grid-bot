@@ -33,5 +33,12 @@
     "decisione": "Dismissione LINK-EUR (is_active: false, exit_strategy: market_sell) e allocazione del 10% budget del modulo Satellite su XRP-EUR con griglia 2.0% buy / 3.0% sell. Modulo Core invariato.",
     "motivazione": "LINK-EUR presentava zero esecuzioni nel diario di bordo recente, congelando il capitale. XRP-EUR, presente nell'elenco ufficiale, offre un'eccellente frequenza di trading intraday. Con una griglia sell a 3.0% e fee Maker totali dello 0.70%, assicuriamo un rendimento netto del 2.30% a eseguito, mantenendo la dimensione minima dell'ordine sopra i 9 EUR (superiore al limite di 5 EUR di Coinbase).",
     "lezione_appresa": "Nel modulo satellite, la stasi operativa equivale a una perdita di rendimento. Se un asset non produce trade entro 48 ore di mercato rialzista, va ruotato immediatamente su un'altcoin liquida ad alto beta per massimizzare la Net Spread Efficiency."
+  },
+  {
+    "data": "2026-08-20",
+    "tipo_audit": "giornaliero",
+    "decisione": "Dismissione XRP-EUR (is_active: false, exit_strategy: market_sell) e rotazione del budget Satellite (10%) su DOGE-EUR con griglia 2.0% buy / 3.0% sell. Modulo Core strutturalmente invariato.",
+    "motivazione": "Il mercato mostra forti spinte rialziste su BTC ed ETH. XRP-EUR ha registrato zero esecuzioni nel diario di bordo, bloccando liquidita' preziosa. DOGE-EUR offre elevata volatilita' e spread sfruttabili, garantendo un rendimento netto del 2.30% per trade (sell 3.0% - 0.70% Maker fee round-trip). L'ordine medio a livello supera i 10 EUR, ampiamente sopra il minimo di Coinbase di 5 EUR.",
+    "lezione_appresa": "Nel modulo satellite, la mobilita' del capitale e' tutto. Se un asset non cattura trade durante una fase di elevata volatilita' generale, deve essere immediatamente liquidato e ruotato su meme-coin o altcoin ad alto beta per massimizzare la Net Spread Efficiency."
   }
 ]

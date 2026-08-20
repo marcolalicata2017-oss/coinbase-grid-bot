@@ -34,6 +34,15 @@
     },
     "XRP-EUR": {
       "type": "satellite",
+      "target_weight_pct": 0.0,
+      "grid_dist_buy": 0.02,
+      "grid_dist_sell": 0.03,
+      "max_active_levels": 3,
+      "is_active": false,
+      "exit_strategy": "market_sell"
+    },
+    "DOGE-EUR": {
+      "type": "satellite",
       "target_weight_pct": 10.0,
       "grid_dist_buy": 0.02,
       "grid_dist_sell": 0.03,
