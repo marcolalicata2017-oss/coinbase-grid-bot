@@ -7,13 +7,24 @@ if os.path.exists(FILE_DIARIO):
     df = pd.read_csv(FILE_DIARIO)
     righe_prima = len(df)
     
-    # Rimuove le righe duplicate basate su Asset, Prezzo e Motivo
-    df_pulito = df.drop_duplicates(subset=["Pair", "Prezzo_Pivot", "Motivo"], keep="first")
+    # Colonne chiave che identificano uno stato identico di portafoglio/operazione
+    colonne_stato = ["Pair", "Prezzo_Pivot", "Saldo_EUR_Pool", "Crypto_Posseduta", "Motivo"]
     
-    # Rimuove eventuali log fantasma con ordini a vuoto
-    df_pulito = df_pulito[~df_pulito["Motivo"].str.contains("BUY Eseguito.*Falso", na=False)]
+    # Verifica che le colonne esistano nel CSV prima di filtrare
+    colonne_presenti = [c for c in colonne_stato if c in df.columns]
     
-    df_pulito.to_csv(FILE_DIARIO, index=False)
-    print(f"✅ Pulizia completata: rimosse {righe_prima - len(df_pulito)} righe spazzatura. Righe residue: {len(df_pulito)}")
+    if colonne_presenti:
+        # Identifica e rimuove solo i duplicati consecutivi con lo stesso saldo e prezzo
+        maschera_duplicati_consecutivi = (
+            df[colonne_presenti] == df[colonne_presenti].shift(1)
+        ).all(axis=1)
+        
+        df_pulito = df[~maschera_duplicati_consecutivi]
+        
+        df_pulito.to_csv(FILE_DIARIO, index=False)
+        rimosse = righe_prima - len(df_pulito)
+        print(f"✅ Pulizia completata: rimosse {rimosse} righe duplicate a saldo invariato. Righe salvate: {len(df_pulito)}")
+    else:
+        print("⚠️ Colonne di controllo non trovate nel file CSV.")
 else:
-    print("⚠️ File diario_di_bordo.csv non trovato.")
+    print(f"⚠️ File {FILE_DIARIO} non trovato.")
