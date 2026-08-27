@@ -103,7 +103,7 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Auto-tuning pesi, conviction e sell strategy"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Calibrazione dinamica Core & Satellite (Dual-Speed)"], check=True)
             subprocess.run(["git", "push"], check=True)
             print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
             return True
@@ -140,51 +140,54 @@ def esegui_audit():
     diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty and 'Data_Ora' in df_diario.columns else pd.DataFrame()
 
     prompt = f"""
-    Sei un Quantitative Crypto Portfolio Manager e Risk Officer che opera su Coinbase Advanced (Grid Trading & Dynamic Rebalancing).
+    Sei un Quantitative Crypto Portfolio Manager e Risk Officer di massimo livello che opera su Coinbase Advanced (Grid Trading & Dynamic Position Sizing).
 
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
-    Tipo Audit: {"SETTIMANALE STRATEGICO & AUTO-TUNING (CORE + SATELLITE)" if is_domenica else "GIORNALIERO TATTICO (GESTIONE SATELLITE & TUNING DINAMICO)"}
+    Modalità Audit: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi + Tuning Completo)" if is_domenica else "GIORNALIERO TATTICO DUAL-SPEED (Tuning Completo Core & Satellite)"}
 
     ⚡ FEE COINBASE ADVANCED (INTRO 2): Maker 0.35%, Taker 0.75%, Ordine Minimo 5.00 EUR.
-    🎯 NET SPREAD RULE: 'grid_dist_sell' NON deve mai essere inferiore a 0.020 (2.0%).
+    🎯 NET SPREAD RULE: 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%). Con 0.70% di fee totali, spread inferiori distruggono la marginalità.
 
-    CONFIGURAZIONE ATTUALE (config.json):
+    CONFIGURAZIONE ATTUALE BOT (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
 
-    MEMORIA STORICA ULTIME DECISIONI:
+    MEMORIA STORICA ULTIME DECISIONI & LEZIONI APPRESE:
     {json.dumps(memoria_storica[-5:], indent=2) if memoria_storica else "Nessuna memoria registrata."}
 
     DATI RECENTI DIARIO DI BORDO (Saldi Reali EUR e Crypto in pancia):
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata."}
 
-    ALTCOIN SPOT EUR DISPONIBILI SU COINBASE:
+    ALTCOIN SPOT EUR DISPONIBILI SU COINBASE (Per eventuale Satellite):
     {json.dumps(altcoin_disponibili)}
 
-    🚀 POTERI DECISIONALI DINAMICI DELL'AI SUL POSITION SIZING:
-    Per ciascun asset in "assets", devi decidere attivamente:
-    1. "target_weight_pct": Quota di allocazione del portafoglio totale (la somma degli asset attivi deve fare 100.0).
-    2. "buy_conviction": Moltiplicatore di size per gli acquisti (tra 0.5 e 2.0).
-       - 0.5x -> Convinzione bassa / Mercato incerto (compra solo tranche minime).
-       - 1.0x -> Convinzione neutra (tranche standard).
-       - 1.5x - 2.0x -> Convinzione alta / Forte ipervenduto o supporto (compra tranche maggiorate).
-    3. "sell_action": Strategia di presa di profitto per il ciclo corrente:
-       - "tranche" -> Modo B standard (vende l'esatta quota di token corrispondente all'ultimo acquisto).
-       - "scale_out" -> Vende il 50% di tutta la crypto accumulata in portafoglio.
-       - "liquidate_all" -> Vende il 100% della crypto posseduta (da usare su pump verticali, ipercomprato o rotazione asset).
+    🚀 POTERI DECISIONALI DINAMICI (ARCHITETTURA DUAL-SPEED):
+    
+    1. PARAMETRI TATTICI REATTIVI (AGGIORNABILI TUTTI I GIORNI SIA SU CORE CHE SU SATELLITE):
+       - "buy_conviction": Moltiplicatore di size per gli acquisti (tra 0.5 e 2.0).
+         * 0.5x -> Convinzione bassa / Mercato incerto o debolezza strutturale.
+         * 1.0x -> Convinzione neutra (tranche standard).
+         * 1.5x - 2.0x -> Convinzione alta / Ipervenduto marcato, supporto EMA o accumulo chiave.
+       - "sell_action": Strategia di realizzo per il ciclo:
+         * "tranche" -> Modo B standard (vende l'esatta quota di token comprata).
+         * "scale_out" -> Vende il 50% di tutta la crypto accumulata in portafoglio.
+         * "liquidate_all" -> Vende il 100% della crypto in pancia (su pump verticali, ipercomprato o rotazioni).
+       - "grid_dist_buy" (tra 0.008 e 0.050) e "grid_dist_sell" (>= 0.020).
 
-    REGOLE TASSATIVE:
-    - Nei giorni feriali (Lun-Sab): puoi aggiornare 'buy_conviction' e 'sell_action' per tutti gli asset, ma cambia le monete e i 'target_weight_pct' solo per la sezione SATELLITE.
-    - La Domenica: puoi riallocare interamente i pesi target di tutto il portafoglio.
-    - Mantieni grid_dist_buy tra 0.008 e 0.050, e grid_dist_sell >= 0.020.
+    2. PARAMETRI STRATEGICI STRUTTURALI ("target_weight_pct"):
+       - NEI GIORNI FERIALI (Lun-Sab): MANTIENI INVARIATI i pesi percentuali del CORE. Puoi ruotare o modificare l'allocazione solo per il modulo SATELLITE (max 10.0%).
+       - LA DOMENICA: Puoi ricalibrare liberamente tutti i "target_weight_pct" del portafoglio (la cui somma totale degli asset attivi deve fare 100.0).
 
-    STRUTTURA DI RISPOSTA:
-    Separa rigorosamente le 3 parti con '---JSON_CONFIG---' e '---JSON_MEMORIA---':
+    STRUTTURA DI RISPOSTA OBBLIGATORIA:
+    Separa rigorosamente le 3 parti con i delimitatori '---JSON_CONFIG---' e '---JSON_MEMORIA---':
 
-    Parte 1: Report narrativo per Telegram (Markdown) con sezioni '🧠 LEZIONI DALL'ESPERIENZA', '🎯 DECISIONI DI SIZING & CONVICTION', '💰 MARGINALITÀ NETTA'.
+    Parte 1: Report sintetico per Telegram (Markdown) con:
+    - 📊 Diagnosi Mercato & Volatilità
+    - 🎯 Decisioni Tattiche (Conviction, Sell Action e Spaziature per Core e Satellite)
+    - 🧠 Lezioni dall'Esperienza & Marginalità Netta
     ---JSON_CONFIG---
-    Parte 2: Il JSON completo aggiornato per config.json (o 'NO_CHANGE').
+    Parte 2: Il JSON completo valido per config.json (o 'NO_CHANGE').
     ---JSON_MEMORIA---
-    Parte 3: Scheda di memoria JSON (data, tipo_audit, decisione, motivazione, lezione_appresa) o 'NO_CHANGE'.
+    Parte 3: Oggetto JSON per la scheda di memoria (data, tipo_audit, decisione, motivazione, lezione_appresa) o 'NO_CHANGE'.
     """
 
     modelli = ['gemini-2.5-flash', 'gemini-1.5-flash']
@@ -233,12 +236,12 @@ def esegui_audit():
         except Exception as e:
             print(f"⚠️ Errore parsing JSON da Gemini: {e}", flush=True)
 
-    intestazione = "🧠 *[AI AUDITOR - AUDIT SETTIMANALE & AUTO-TUNING]*\n\n" if is_domenica else "🛰️ *[AI AUDITOR - DAILY REBALANCING & SIZING]*\n\n"
+    intestazione = "🧠 *[AI AUDITOR - MACRO AUDIT SETTIMANALE]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - DAILY TACTICAL RUN]*\n\n"
     if modificato:
-        report_telegram += "\n\n🚀 *[AUTO-TUNING & MEMORIA APPLICATI]*: Nuovi parametri operativi attivi su GitHub."
+        report_telegram += "\n\n🚀 *[AUTO-TUNING & MEMORIA APPLICATI]*: Parametri tattici aggiornati su GitHub."
 
     invia_telegram(intestazione + report_telegram)
-    print("✅ Audit completato con successo!", flush=True)
+    print("✅ Audit Dual-Speed completato con successo!", flush=True)
 
 if __name__ == "__main__":
     esegui_audit()
