@@ -1,0 +1,34 @@
+name: Pulisci Diario di Bordo
+
+on:
+  workflow_dispatch: # Permette l'avvio manuale tramite pulsante
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installa Pandas
+        run: pip install pandas
+
+      - name: Esegui Pulizia
+        run: python pulisci_diario.py
+
+      - name: Salva e Pusha il Diario Pulito
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add diario_di_bordo.csv
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🧹 Pulizia automatica diario di bordo" && git push)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
