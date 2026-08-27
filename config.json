@@ -9,7 +9,9 @@
       "type": "core",
       "target_weight_pct": 30.0,
       "grid_dist_buy": 0.012,
-      "grid_dist_sell": 0.022,
+      "grid_dist_sell": 0.028,
+      "buy_conviction": 1.0,
+      "sell_action": "tranche",
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
@@ -18,7 +20,9 @@
       "type": "core",
       "target_weight_pct": 30.0,
       "grid_dist_buy": 0.015,
-      "grid_dist_sell": 0.025,
+      "grid_dist_sell": 0.03,
+      "buy_conviction": 1.0,
+      "sell_action": "tranche",
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
@@ -26,8 +30,10 @@
     "SOL-EUR": {
       "type": "core",
       "target_weight_pct": 30.0,
-      "grid_dist_buy": 0.018,
-      "grid_dist_sell": 0.028,
+      "grid_dist_buy": 0.02,
+      "grid_dist_sell": 0.035,
+      "buy_conviction": 1.0,
+      "sell_action": "tranche",
       "max_active_levels": 4,
       "is_active": true,
       "exit_strategy": "none"
@@ -36,7 +42,9 @@
       "type": "satellite",
       "target_weight_pct": 10.0,
       "grid_dist_buy": 0.02,
-      "grid_dist_sell": 0.03,
+      "grid_dist_sell": 0.035,
+      "buy_conviction": 1.2,
+      "sell_action": "tranche",
       "max_active_levels": 3,
       "is_active": true,
       "exit_strategy": "none"
