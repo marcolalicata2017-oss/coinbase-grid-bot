@@ -190,7 +190,7 @@ def esegui_audit():
     Parte 3: Oggetto JSON per la scheda di memoria (data, tipo_audit, decisione, motivazione, lezione_appresa) o 'NO_CHANGE'.
     """
 
-    modelli = ['gemini-2.5-flash', 'gemini-1.5-flash']
+    modelli = ['gemini-3.5-flash', 'gemini-3.6-flash']
     testo_risposta = None
 
     for modello in modelli:
