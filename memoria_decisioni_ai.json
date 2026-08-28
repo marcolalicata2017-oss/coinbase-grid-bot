@@ -47,5 +47,12 @@
     "decisione": "Calibrazione tattica feriale delle griglie base e integrazione dei parametri dinamici (buy_conviction, sell_action) su BTC, ETH, SOL e DOGE. Allocazione e pesi strutturali immutati.",
     "motivazione": "Tutti gli asset mostrano un solido trend rialzista sopra la EMA50 e ritorni reali registrati tra +2.9% e +3.6%. Elevare il grid_dist_sell tra 2.8% e 3.5% allinea la configurazione base con le reali performance dinamiche di mercato, garantendo un margine netto minimo del +2.10% per trade al netto dello 0.70% di fee Maker.",
     "lezione_appresa": "Nelle fasi di espansione della volatilità e forte spinta rialzista (RSI > 67), allineare tempestivamente il config.json ai target di profitto dinamici reali previene la creazione di ordini con spread risicati e massimizza la Net Spread Efficiency del portafoglio."
+  },
+  {
+    "data": "2026-08-28",
+    "tipo_audit": "giornaliero",
+    "decisione": "Mantenimento dei pesi Core/Satellite per vincolo feriale. Calibrazione difensiva-attiva su SOL-EUR (RSI 78.4) con riduzione conviction a 0.8, allargamento griglia buy a 2.5%, sell a 4.0% e impostazione sell_action a 'scale_out'. Calibrazione simmetrica ad ampia volatilità per DOGE-EUR (buy 2.5%, sell 4.0%).",
+    "motivazione": "SOL-EUR mostra una forte spinta rialzista ma è entrato in territorio di ipercomprato estremo (RSI 78.4, Vol_Ratio 0.97). Per proteggere il capitale da pullback violenti mantenendo il grid trading attivo, abbiamo ridotto la buy_conviction a 0.8, allargato la griglia di buy a 2.5%, esteso il target sell al 4.0% e impostato la sell_action a 'scale_out' (liquidazione parziale protettiva del 50%). BTC ed ETH rimangono solidi e conservano i parametri reattivi precedenti per capitalizzare la spinta regolare. DOGE-EUR viene regolato con griglie ampie (buy 2.5%, sell 4.0%) per assecondare eventuali picchi improvvisi delle meme-coin.",
+    "lezione_appresa": "Nelle fasi di ipercomprato parabolico (RSI > 75) di un asset Core fondamentale come SOL, l'integrazione di 'scale_out' e la riduzione simmetrica della buy_conviction (0.8x) rappresentano la migliore difesa algoritmica, garantendo la cattura della volatilità superiore senza rischiare sovraesposizione a prezzi di picco."
   }
 ]

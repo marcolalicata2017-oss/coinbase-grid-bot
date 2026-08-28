@@ -30,10 +30,10 @@
     "SOL-EUR": {
       "type": "core",
       "target_weight_pct": 30.0,
-      "grid_dist_buy": 0.02,
-      "grid_dist_sell": 0.035,
-      "buy_conviction": 1.0,
-      "sell_action": "tranche",
+      "grid_dist_buy": 0.025,
+      "grid_dist_sell": 0.04,
+      "buy_conviction": 0.8,
+      "sell_action": "scale_out",
       "max_active_levels": 4,
       "is_active": true,
       "exit_strategy": "none"
@@ -41,9 +41,9 @@
     "DOGE-EUR": {
       "type": "satellite",
       "target_weight_pct": 10.0,
-      "grid_dist_buy": 0.02,
-      "grid_dist_sell": 0.035,
-      "buy_conviction": 1.2,
+      "grid_dist_buy": 0.025,
+      "grid_dist_sell": 0.04,
+      "buy_conviction": 1.0,
       "sell_action": "tranche",
       "max_active_levels": 3,
       "is_active": true,
