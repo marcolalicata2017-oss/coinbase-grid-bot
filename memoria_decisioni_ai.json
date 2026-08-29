@@ -54,5 +54,12 @@
     "decisione": "Mantenimento dei pesi Core/Satellite per vincolo feriale. Calibrazione difensiva-attiva su SOL-EUR (RSI 78.4) con riduzione conviction a 0.8, allargamento griglia buy a 2.5%, sell a 4.0% e impostazione sell_action a 'scale_out'. Calibrazione simmetrica ad ampia volatilità per DOGE-EUR (buy 2.5%, sell 4.0%).",
     "motivazione": "SOL-EUR mostra una forte spinta rialzista ma è entrato in territorio di ipercomprato estremo (RSI 78.4, Vol_Ratio 0.97). Per proteggere il capitale da pullback violenti mantenendo il grid trading attivo, abbiamo ridotto la buy_conviction a 0.8, allargato la griglia di buy a 2.5%, esteso il target sell al 4.0% e impostato la sell_action a 'scale_out' (liquidazione parziale protettiva del 50%). BTC ed ETH rimangono solidi e conservano i parametri reattivi precedenti per capitalizzare la spinta regolare. DOGE-EUR viene regolato con griglie ampie (buy 2.5%, sell 4.0%) per assecondare eventuali picchi improvvisi delle meme-coin.",
     "lezione_appresa": "Nelle fasi di ipercomprato parabolico (RSI > 75) di un asset Core fondamentale come SOL, l'integrazione di 'scale_out' e la riduzione simmetrica della buy_conviction (0.8x) rappresentano la migliore difesa algoritmica, garantendo la cattura della volatilità superiore senza rischiare sovraesposizione a prezzi di picco."
+  },
+  {
+    "data": "2026-08-29",
+    "tipo_audit": "giornaliero",
+    "decisione": "Compressione tattica delle griglie su tutto il portafoglio (BTC sell a 2.2%, ETH a 2.4%, SOL a 3.0%, DOGE a 3.0%), ripristino di sell_action 'tranche' e conviction 1.0 su SOL.",
+    "motivazione": "La totale assenza di eseguiti nelle ultime 24 ore evidenzia una transizione verso volumi ridotti e volatilità di tipo mean-reverting tipica del weekend. Per evitare la stasi operativa, le griglie sono state ridotte per intercettare movimenti più stretti, mantenendo lo spread di vendita rigorosamente sopra la soglia limite del 2.0% per neutralizzare il peso delle commissioni di Coinbase Advanced (0.70% complessivo round-trip).",
+    "lezione_appresa": "Nel grid trading quantitativo, l'overfitting su periodi ad alta volatilità genera inattività nei giorni di compressione. Il market maker algoritmico deve attuare un tuning dual-speed riducendo simmetricamente le distanze di griglia durante i fine settimana, proteggendo rigorosamente la barriera matematica del Net Spread minimo."
   }
 ]
