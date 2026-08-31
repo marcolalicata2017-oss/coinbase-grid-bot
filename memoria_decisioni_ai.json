@@ -68,5 +68,12 @@
     "decisione": "Ribilanciamento Macro Pesi Core (BTC-EUR +5%, ETH-EUR +5%, SOL-EUR -10%) e impostazione difensiva-attiva su SOL (sell_action: scale_out, conviction: 0.8). Ottimizzazione delle spaziature delle griglie in vista del ripristino della volatilita' feriale.",
     "motivazione": "Sfruttando la finestra domenicale per modifiche strutturali ai pesi macro, riduciamo il peso di SOL-EUR dal 30% al 20% per consolidare i profitti generati dal recente rally parabolico (RSI 78.4). Riassegniamo equamente il 10% a BTC ed ETH per stabilizzare il portafoglio su asset a minor beta. Per SOL-EUR si mantiene una condotta difensiva con 'scale_out' e conviction a 0.8, mentre le griglie generali vengono ampliate sopra i livelli del weekend per intercettare i flussi operativi del lunedi' mantenendo la marginalita' netta sopra il target richiesto.",
     "lezione_appresa": "Nel grid trading quantitativo, mitigare il rischio di asset ad alto beta in condizioni di ipercomprato estremo richiede un'azione combinata: micro-tattica (allargamento griglia e riduzione conviction a 0.8x) e macro-strutturale (riduzione del peso percentuale in portafoglio), allocando la liquidita' estratta sui benchmark primari durante le finestre di rebalancing strategico."
+  },
+  {
+    "data": "2026-08-31",
+    "tipo_audit": "giornaliero",
+    "decisione": "Ripristino dei parametri standard su SOL-EUR (sell_action: tranche, conviction: 1.0, grid_dist_sell: 3.0%) e adeguamento preventivo di BTC-EUR (grid_dist_sell: 2.4%) per la sessione feriale.",
+    "motivazione": "L'RSI di SOL-EUR si e' raffreddato fino a quota 42.3, annullando il rischio di ipercomprato estremo registrato nei giorni scorsi. Questo permette di disattivare la configurazione difensiva 'scale_out' e tornare a massimizzare il rendimento per singola tranche. BTC-EUR viene posizionato per catturare il rimbalzo sopra la EMA50.",
+    "lezione_appresa": "L'allentamento tempestivo delle protezioni algoritmiche (scale_out/conviction ridotta) quando i parametri tecnici (RSI, Vol_Ratio) rientrano nei range di normalita' previene il costo opportunità, consentendo al market maker di riprendere l'accumulo e la monetizzazione standard ad alta efficienza feriale."
   }
 ]
