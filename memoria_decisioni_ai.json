@@ -75,5 +75,12 @@
     "decisione": "Ripristino dei parametri standard su SOL-EUR (sell_action: tranche, conviction: 1.0, grid_dist_sell: 3.0%) e adeguamento preventivo di BTC-EUR (grid_dist_sell: 2.4%) per la sessione feriale.",
     "motivazione": "L'RSI di SOL-EUR si e' raffreddato fino a quota 42.3, annullando il rischio di ipercomprato estremo registrato nei giorni scorsi. Questo permette di disattivare la configurazione difensiva 'scale_out' e tornare a massimizzare il rendimento per singola tranche. BTC-EUR viene posizionato per catturare il rimbalzo sopra la EMA50.",
     "lezione_appresa": "L'allentamento tempestivo delle protezioni algoritmiche (scale_out/conviction ridotta) quando i parametri tecnici (RSI, Vol_Ratio) rientrano nei range di normalita' previene il costo opportunità, consentendo al market maker di riprendere l'accumulo e la monetizzazione standard ad alta efficienza feriale."
+  },
+  {
+    "data": "2026-09-02",
+    "tipo_audit": "giornaliero",
+    "decisione": "Attivazione buy_conviction asimmetrica (BTC/ETH a 1.5x, SOL a 2.0x) ed espansione prudenziale delle spaziature di griglia per far fronte al forte scarico di mercato.",
+    "motivazione": "Il mercato mostra una correzione repentina con prezzi sotto la EMA50 e RSI in territorio di ipervenduto estremo (SOL 16.9, BTC 21.9, ETH 27.0) associati a un forte aumento della volatilita' (Vol_Ratio > 1.35). Data la natura feriale del giorno, i pesi rimangono invariati, ma sfruttiamo la leva tattica aumentando la conviction di acquisto per accumulare pesantemente sui supporti critici. Le griglie di vendita sono mantenute tra il 2.5% e il 3.5%, preservando un margine netto ben superiore al limite del 2.0%.",
+    "lezione_appresa": "Nelle fasi di flash crash o scarico verticale con RSI < 30, il dual-speed trading deve massimizzare la buy_conviction sugli asset core a maggior sconto relativo (es. SOL al 2.0x con RSI a 16.9), allargando contemporaneamente i buy target per evitare di esaurire la liquidita' troppo presto su micro-oscillazioni."
   }
 ]
