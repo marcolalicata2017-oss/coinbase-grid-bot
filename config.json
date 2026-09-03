@@ -1,12 +1,10 @@
 {
   "global_settings": {
-    "core_budget_pct": 90.0,
-    "satellite_budget_pct": 10.0,
-    "allow_auto_rebalance": true
+    "allow_auto_rebalance": true,
+    "model": "flexible_bands"
   },
   "assets": {
     "BTC-EUR": {
-      "type": "core",
       "target_weight_pct": 35.0,
       "grid_dist_buy": 0.02,
       "grid_dist_sell": 0.025,
@@ -17,18 +15,16 @@
       "exit_strategy": "none"
     },
     "ETH-EUR": {
-      "type": "core",
       "target_weight_pct": 35.0,
       "grid_dist_buy": 0.025,
       "grid_dist_sell": 0.022,
       "buy_conviction": 0.0,
-      "sell_action": "tranche",
+      "sell_action": "scale_out",
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
     },
     "SOL-EUR": {
-      "type": "core",
       "target_weight_pct": 20.0,
       "grid_dist_buy": 0.025,
       "grid_dist_sell": 0.03,
@@ -39,7 +35,6 @@
       "exit_strategy": "none"
     },
     "DOGE-EUR": {
-      "type": "satellite",
       "target_weight_pct": 10.0,
       "grid_dist_buy": 0.03,
       "grid_dist_sell": 0.035,
