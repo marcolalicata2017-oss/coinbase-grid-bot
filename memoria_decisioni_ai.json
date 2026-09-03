@@ -82,5 +82,12 @@
     "decisione": "Attivazione buy_conviction asimmetrica (BTC/ETH a 1.5x, SOL a 2.0x) ed espansione prudenziale delle spaziature di griglia per far fronte al forte scarico di mercato.",
     "motivazione": "Il mercato mostra una correzione repentina con prezzi sotto la EMA50 e RSI in territorio di ipervenduto estremo (SOL 16.9, BTC 21.9, ETH 27.0) associati a un forte aumento della volatilita' (Vol_Ratio > 1.35). Data la natura feriale del giorno, i pesi rimangono invariati, ma sfruttiamo la leva tattica aumentando la conviction di acquisto per accumulare pesantemente sui supporti critici. Le griglie di vendita sono mantenute tra il 2.5% e il 3.5%, preservando un margine netto ben superiore al limite del 2.0%.",
     "lezione_appresa": "Nelle fasi di flash crash o scarico verticale con RSI < 30, il dual-speed trading deve massimizzare la buy_conviction sugli asset core a maggior sconto relativo (es. SOL al 2.0x con RSI a 16.9), allargando contemporaneamente i buy target per evitare di esaurire la liquidita' troppo presto su micro-oscillazioni."
+  },
+  {
+    "data": "2026-09-03",
+    "tipo_audit": "giornaliero",
+    "decisione": "Attivazione Protocollo Liquidity Crunch No-Loss: impostazione 'scale_out' e buy_conviction 0.0 su ETH-EUR (sovraesposto al 61.5% ma in profitto +3.2%), riduzione della conviction su BTC/SOL a 0.5 e azzeramento su DOGE.",
+    "motivazione": "La riserva di cassa EUR e' scesa al livello critico del 2.7% (9.30 EUR), rischiando il blocco degli ordini d'acquisto. ETH-EUR e' fortemente sovraesposto rispetto al suo target (35%) ma si trova in utile. Applicando rigorosamente il Protocollo No-Loss, impostiamo ETH su 'scale_out' con grid_dist_sell al 2.2% e conviction 0.0 per monetizzare parzialmente l'accumulo al prossimo leg-up ed estrarre liquidita' EUR senza registrare alcuna perdita, congelando contemporaneamente i deflussi sul resto del portafoglio.",
+    "lezione_appresa": "Nelle fasi di emergenza liquidita' (<5% cassa), il protocollo No-Loss impone di non svendere mai in drawdown, ma di convertire temporaneamente la gestione dell'asset sovraesposto in utile in una macchina da estrazione liquidita' ('scale_out' a griglia stretta e conviction zero), preservando l'integrita' del capitale e rigenerando la cassa operativo-tattica."
   }
 ]
