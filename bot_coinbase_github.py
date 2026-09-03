@@ -134,6 +134,34 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
         print(f"⚠️ Errore scrittura diario ({pair}): {e}", flush=True)
 
 # ==========================================
+# GESTIONE AUTO-RESET ONE-SHOT AZIONI SPECIALI
+# ==========================================
+def resetta_sell_action_in_config(pair):
+    """Resetta sell_action a 'tranche' in config.json ed esegue il commit su GitHub per evitare vendite a cascata."""
+    try:
+        if os.path.exists(FILE_CONFIG):
+            with open(FILE_CONFIG, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            
+            if pair in cfg.get("assets", {}):
+                cfg["assets"][pair]["sell_action"] = "tranche"
+                
+                with open(FILE_CONFIG, "w", encoding="utf-8") as f:
+                    json.dump(cfg, f, indent=2)
+                
+                subprocess.run(["git", "config", "user.name", "Trading-Bot-AutoReset"], check=True)
+                subprocess.run(["git", "config", "user.email", "bot@local.autoreset"], check=True)
+                subprocess.run(["git", "add", FILE_CONFIG], check=True)
+                
+                result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+                if result.stdout.strip():
+                    subprocess.run(["git", "commit", "-m", f"⚡ [ONE-SHOT] Azione speciale completata per {pair}: ripristinato a 'tranche'"], check=True)
+                    subprocess.run(["git", "push"], check=True)
+                    print(f"✅ [ONE-SHOT RESET] {pair} ripristinato a 'tranche' su GitHub!", flush=True)
+    except Exception as e:
+        print(f"⚠️ Errore durante il reset di sell_action per {pair}: {e}", flush=True)
+
+# ==========================================
 # TRACCIAMENTO PORTAFOGLIO
 # ==========================================
 def genera_barra_progresso(percentuale, lung=10):
@@ -376,7 +404,7 @@ def cancella_ordini_pair(product_id, cancella_solo_buy=False):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA CON AI SIZING
+# LOGICA DI PIAZZAMENTO GRIGLIA CON AI SIZING & ONE-SHOT RESET
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", 
                          ema50=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0,
@@ -414,7 +442,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         grid_dist_sell = grid_dist_sell_base * 1.3
         label_profit = f" 📈[Dynamic Profit MED: +{grid_dist_sell*100:.1f}%]"
     elif rsi <= 40:
-        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020)  # Mai sotto 2.0%
+        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020)  # Mai sotto il 2.0%
         label_profit = f" 🎯[Dynamic Profit FAST: +{grid_dist_sell*100:.1f}%]"
     else:
         grid_dist_sell = max(grid_dist_sell_base, 0.020)
@@ -427,12 +455,12 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
     crypto_posseduta_disp = dict_cripto_disp.get(symbol_crypto, 0.0)
 
-    # Filtro Residui Dust (< 0.50 EUR)
+    # Filtro Dust (< 0.50 EUR)
     if (crypto_posseduta_disp * prezzo_rif) < 0.50:
         crypto_posseduta_disp = 0.0
 
     # -------------------------------------------------------------
-    # CALCOLO SIZING DINAMICO GEN AI (LIVEL 1 & 2)
+    # SIZING DINAMICO GEN AI (LIVELLO 1 & 2)
     # -------------------------------------------------------------
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
     budget_buy_raw = budget_totale_asset * 0.20 * buy_conviction
@@ -478,7 +506,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             quantita_sell = math.floor((crypto_posseduta_disp * 0.50) * molt) / molt
             motivo_reset += " [AI: Scale-Out 50%]"
         else:
-            # Modo B: vendiamo la tranche calcolata
+            # Modo B standard: vendiamo la tranche calcolata
             quantita_sell = min(quantita_token_tranche, crypto_posseduta_disp)
 
         # Clausola Anti-Dust Deterministica
@@ -495,6 +523,12 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                     order_configuration={"limit_limit_gtc": {"base_size": quantita_sell_str, "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
                 )
                 sell_eseguito_ok = True
+                
+                # Consumazione immediata del comando speciale (One-Shot Reset)
+                if sell_action in ["scale_out", "liquidate_all"]:
+                    resetta_sell_action_in_config(pair)
+                    CONFIG_ASSETS[pair]["sell_action"] = "tranche"
+
             except Exception as e:
                 print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
 
