@@ -103,7 +103,7 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Calibrazione dinamica Core & Satellite (Dual-Speed)"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Calibrazione dinamica liquidità, Core & Satellite"], check=True)
             subprocess.run(["git", "push"], check=True)
             print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
             return True
@@ -139,51 +139,83 @@ def esegui_audit():
     data_limite = (ora_dt - timedelta(days=7 if is_domenica else 1)).strftime("%Y-%m-%d")
     diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty and 'Data_Ora' in df_diario.columns else pd.DataFrame()
 
+    # =========================================================
+    # DIAGNOSI LIQUIDITÀ & STATO REALE DEL PORTAFOGLIO
+    # =========================================================
+    saldo_eur_effettivo = 0.0
+    valore_crypto_totale = 0.0
+    valore_totale_portafoglio = 1.0
+    pct_cassa_eur = 100.0
+
+    if not df_portafoglio.empty:
+        ultima_riga = df_portafoglio.iloc[-1]
+        saldo_eur_effettivo = float(ultima_riga.get("Saldo_EUR", 0.0))
+        valore_crypto_totale = float(ultima_riga.get("Valore_Crypto_EUR", 0.0))
+        valore_totale_portafoglio = float(ultima_riga.get("Valore_Totale_EUR", saldo_eur_effettivo + valore_crypto_totale))
+        if valore_totale_portafoglio > 0:
+            pct_cassa_eur = (saldo_eur_effettivo / valore_totale_portafoglio) * 100.0
+
+    stato_liquidita_alert = "NORMALE"
+    if pct_cassa_eur < 15.0 or saldo_eur_effettivo < 35.0:
+        stato_liquidita_alert = "ALLERTA CRITICA LIQUIDITÀ (RISCHIO BLOCCO ORDINI BUY)"
+
     prompt = f"""
-    Sei un Quantitative Crypto Portfolio Manager e Risk Officer di massimo livello che opera su Coinbase Advanced (Grid Trading & Dynamic Position Sizing).
+    Sei un Quantitative Crypto Portfolio Manager e Risk Officer di massimo livello su Coinbase Advanced.
 
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
     Modalità Audit: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi + Tuning Completo)" if is_domenica else "GIORNALIERO TATTICO DUAL-SPEED (Tuning Completo Core & Satellite)"}
 
     ⚡ FEE COINBASE ADVANCED (INTRO 2): Maker 0.35%, Taker 0.75%, Ordine Minimo 5.00 EUR.
-    🎯 NET SPREAD RULE: 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%). Con 0.70% di fee totali, spread inferiori distruggono la marginalità.
+    🎯 NET SPREAD RULE: 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%).
+
+    💰 STATO ATTUALE LIQUIDITÀ & ASSET ALLOCATION:
+    - Valore Portafoglio Totale: {valore_totale_portafoglio:.2f} EUR
+    - Cassa EUR Libera/Disponibile: {saldo_eur_effettivo:.2f} EUR ({pct_cassa_eur:.1f}% del portafoglio)
+    - Valore Totale Crypto in carico: {valore_crypto_totale:.2f} EUR
+    - Stato Riserva di Cassa: {stato_liquidita_alert}
+
+    🚨 PROTOCOLLO LIQUIDITY CRUNCH & REBALANCING CON VINCOLO DI NON-PERDITA (NO-LOSS RULE):
+    Se la Cassa EUR scende sotto il 15-20% (o sotto 40 EUR), c'è rischio di esaurire la liquidità per piazzare i BUY sulle altre monete.
+    Devi intervenire seguendo TASSATIVAMENTE questa gerarchia di regole:
+    1. Identifica l'asset maggiormente sovraesposto rispetto al suo 'target_weight_pct' (es. ETH con peso reale > 50% a fronte di un target del 35%).
+    2. VALUTAZIONE PROFITTO / CARICO (REGOLA D'ORO: NON REALIZZARE MAI PERDITE):
+       - Esamina i prezzi dal diario di bordo o dal mercato recente:
+         * SE L'ASSET SOVRAESPOSTO È IN PROFITTO (prezzo attuale superiore ai prezzi medi di carico):
+           -> Riduci 'buy_conviction' a 0.5 (o 0.0) per congelare le uscite di cassa.
+           -> Imposta 'sell_action': 'scale_out' (per vendere il 50% dell'accumulo al target di profitto) oppure 'liquidate_all' se siamo su spike/ipercomprato, così da monetizzare il guadagno e ricostituire la liquidità EUR.
+         * SE L'ASSET SOVRAESPOSTO È IN DRAWDOWN / IN PERDITA RISPETTO AL CARICO:
+           -> NON DEVI MAI VENDERE IN PERDITA! Non impostare 'scale_out' né 'liquidate_all' svendendo in perdita.
+           -> Mantieni 'sell_action': 'tranche' e azzera/riduci drasticamente 'buy_conviction' a 0.5 (o 0.0) per bloccare ulteriori compere sull'asset in perdita, attendendo che risalga sopra la parità prima di alleggerire.
+    3. Quando la cassa EUR torna capiente (>25%) e l'asset torna vicino al peso target, ripristina la normale operatività ('sell_action': 'tranche' e 'buy_conviction': 1.0).
 
     CONFIGURAZIONE ATTUALE BOT (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
 
-    MEMORIA STORICA ULTIME DECISIONI & LEZIONI APPRESE:
+    MEMORIA STORICA ULTIME DECISIONI:
     {json.dumps(memoria_storica[-5:], indent=2) if memoria_storica else "Nessuna memoria registrata."}
 
     DATI RECENTI DIARIO DI BORDO (Saldi Reali EUR e Crypto in pancia):
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata."}
 
-    ALTCOIN SPOT EUR DISPONIBILI SU COINBASE (Per eventuale Satellite):
+    ALTCOIN SPOT EUR DISPONIBILI SU COINBASE (Per Satellite):
     {json.dumps(altcoin_disponibili)}
 
-    🚀 POTERI DECISIONALI DINAMICI (ARCHITETTURA DUAL-SPEED):
-    
-    1. PARAMETRI TATTICI REATTIVI (AGGIORNABILI TUTTI I GIORNI SIA SU CORE CHE SU SATELLITE):
-       - "buy_conviction": Moltiplicatore di size per gli acquisti (tra 0.5 e 2.0).
-         * 0.5x -> Convinzione bassa / Mercato incerto o debolezza strutturale.
-         * 1.0x -> Convinzione neutra (tranche standard).
-         * 1.5x - 2.0x -> Convinzione alta / Ipervenduto marcato, supporto EMA o accumulo chiave.
-       - "sell_action": Strategia di realizzo per il ciclo:
-         * "tranche" -> Modo B standard (vende l'esatta quota di token comprata).
-         * "scale_out" -> Vende il 50% di tutta la crypto accumulata in portafoglio.
-         * "liquidate_all" -> Vende il 100% della crypto in pancia (su pump verticali, ipercomprato o rotazioni).
+    🚀 POTERI DECISIONALI DINAMICI DUAL-SPEED:
+    1. PARAMETRI TATTICI (AGGIORNABILI OGNI GIORNO SU CORE E SATELLITE):
+       - "buy_conviction": 0.5x (bassa/difensiva), 1.0x (neutra), 1.5x-2.0x (alta convinzione su supporti).
+       - "sell_action": "tranche" (Modo B standard), "scale_out" (monetizza il 50% solo se in utile), "liquidate_all" (monetizza il 100% solo se in utile).
        - "grid_dist_buy" (tra 0.008 e 0.050) e "grid_dist_sell" (>= 0.020).
-
-    2. PARAMETRI STRATEGICI STRUTTURALI ("target_weight_pct"):
-       - NEI GIORNI FERIALI (Lun-Sab): MANTIENI INVARIATI i pesi percentuali del CORE. Puoi ruotare o modificare l'allocazione solo per il modulo SATELLITE (max 10.0%).
-       - LA DOMENICA: Puoi ricalibrare liberamente tutti i "target_weight_pct" del portafoglio (la cui somma totale degli asset attivi deve fare 100.0).
+    2. PARAMETRI STRATEGICI ("target_weight_pct"):
+       - Giorni feriali: Pesi Core congelati; ruota solo il Satellite (max 10%).
+       - Domenica: Ribilanciamento libero di tutti i target weight (somma attiva = 100.0).
 
     STRUTTURA DI RISPOSTA OBBLIGATORIA:
     Separa rigorosamente le 3 parti con i delimitatori '---JSON_CONFIG---' e '---JSON_MEMORIA---':
 
-    Parte 1: Report sintetico per Telegram (Markdown) con:
-    - 📊 Diagnosi Mercato & Volatilità
-    - 🎯 Decisioni Tattiche (Conviction, Sell Action e Spaziature per Core e Satellite)
-    - 🧠 Lezioni dall'Esperienza & Marginalità Netta
+    Parte 1: Report sintetico per Telegram (Markdown) contenente:
+    - 💧 Analisi Liquidità e Riserva EUR ({pct_cassa_eur:.1f}% cassa)
+    - ⚖️ Bilanciamento Portafoglio & Valutazione P&L dell'asset sovraesposto (Conferma di NON vendita in perdita)
+    - 🎯 Decisioni Tattiche (Conviction, Sell Action per ogni pair)
     ---JSON_CONFIG---
     Parte 2: Il JSON completo valido per config.json (o 'NO_CHANGE').
     ---JSON_MEMORIA---
@@ -238,7 +270,7 @@ def esegui_audit():
 
     intestazione = "🧠 *[AI AUDITOR - MACRO AUDIT SETTIMANALE]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - DAILY TACTICAL RUN]*\n\n"
     if modificato:
-        report_telegram += "\n\n🚀 *[AUTO-TUNING & MEMORIA APPLICATI]*: Parametri tattici aggiornati su GitHub."
+        report_telegram += "\n\n🚀 *[AUTO-TUNING & GESTIONE LIQUIDITÀ APPLICATI]*: Parametri aggiornati su GitHub."
 
     invia_telegram(intestazione + report_telegram)
     print("✅ Audit Dual-Speed completato con successo!", flush=True)
