@@ -28,7 +28,11 @@ EMOJI_MAP = {
     "BTC": "🪙",
     "ETH": "🔷",
     "SOL": "🟣",
-    "DEFAULT_SATELLITE": "🛰️"
+    "LINK": "🔗",
+    "ADA": "🔵",
+    "AVAX": "🔺",
+    "NEAR": "🟢",
+    "DEFAULT": "📊"
 }
 
 CONFIG_ASSETS = {}
@@ -60,8 +64,7 @@ def carica_e_sincronizza_config():
             
             for pair, data in assets_json.items():
                 sym = pair.split("-")[0]
-                asset_type = data.get("type", "core")
-                emoji = EMOJI_MAP.get("DEFAULT_SATELLITE", "🛰️") if asset_type == "satellite" else EMOJI_MAP.get(sym, "🪙")
+                emoji = EMOJI_MAP.get(sym, EMOJI_MAP["DEFAULT"])
                 decimals = ottieni_decimali_asset(pair)
                 
                 nuovo_config[pair] = {
@@ -70,10 +73,9 @@ def carica_e_sincronizza_config():
                     "emoji": emoji,
                     "min_order_eur": 5.0,
                     "decimals": decimals,
-                    "target_weight_pct": float(data.get("target_weight_pct", 10.0)),
+                    "target_weight_pct": float(data.get("target_weight_pct", 25.0)),
                     "buy_conviction": float(data.get("buy_conviction", 1.0)),
                     "sell_action": str(data.get("sell_action", "tranche")),
-                    "type": asset_type,
                     "is_active": data.get("is_active", True),
                     "exit_strategy": data.get("exit_strategy", "none")
                 }
@@ -134,7 +136,7 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
         print(f"⚠️ Errore scrittura diario ({pair}): {e}", flush=True)
 
 # ==========================================
-# GESTIONE AUTO-RESET ONE-SHOT AZIONI SPECIALI
+# ONE-SHOT AUTO-RESET DI SELL_ACTION
 # ==========================================
 def resetta_sell_action_in_config(pair):
     """Resetta sell_action a 'tranche' in config.json ed esegue il commit su GitHub per evitare vendite a cascata."""
@@ -404,7 +406,7 @@ def cancella_ordini_pair(product_id, cancella_solo_buy=False):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA CON AI SIZING & ONE-SHOT RESET
+# LOGICA DI PIAZZAMENTO GRIGLIA CON BANDE FLESSIBILI
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", 
                          ema50=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0,
@@ -419,7 +421,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     emoji = cfg["emoji"]
     
     # Parametri Dinamici AI
-    target_weight_pct = cfg.get("target_weight_pct", 10.0)
+    target_weight_pct = cfg.get("target_weight_pct", 25.0)
     buy_conviction = max(0.5, min(2.0, cfg.get("buy_conviction", 1.0)))
     sell_action = cfg.get("sell_action", "tranche")
 
@@ -442,7 +444,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         grid_dist_sell = grid_dist_sell_base * 1.3
         label_profit = f" 📈[Dynamic Profit MED: +{grid_dist_sell*100:.1f}%]"
     elif rsi <= 40:
-        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020)  # Mai sotto il 2.0%
+        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020)
         label_profit = f" 🎯[Dynamic Profit FAST: +{grid_dist_sell*100:.1f}%]"
     else:
         grid_dist_sell = max(grid_dist_sell_base, 0.020)
@@ -455,12 +457,12 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
     crypto_posseduta_disp = dict_cripto_disp.get(symbol_crypto, 0.0)
 
-    # Filtro Dust (< 0.50 EUR)
+    # Filtro Residui Dust (< 0.50 EUR)
     if (crypto_posseduta_disp * prezzo_rif) < 0.50:
         crypto_posseduta_disp = 0.0
 
     # -------------------------------------------------------------
-    # SIZING DINAMICO GEN AI (LIVELLO 1 & 2)
+    # SIZING DINAMICO GEN AI A BANDE FLESSIBILI
     # -------------------------------------------------------------
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
     budget_buy_raw = budget_totale_asset * 0.20 * buy_conviction
@@ -468,7 +470,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     # Guardrail di sicurezza deterministici
     budget_buy_protetto = max(budget_buy_raw, min_order_eur)
     if saldo_eur_disp > 0:
-        # Massimo il 25% del cash libero per singola tranche
+        # Massimo il 25% della cassa libera per singola operazione
         budget_buy_protetto = min(budget_buy_protetto, max(min_order_eur, saldo_eur_disp * 0.25))
 
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
@@ -493,7 +495,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             print(f"⚠️ Errore ordine BUY limite ({pair}): {e}", flush=True)
 
     # -------------------------------------------------------------
-    # B. PIAZZAMENTO ORDINE SELL DINAMICO GEN AI (LIVELLO 3)
+    # B. PIAZZAMENTO ORDINE SELL DINAMICO GEN AI (CON ONE-SHOT RESET)
     # -------------------------------------------------------------
     valore_crypto_disp = crypto_posseduta_disp * prezzo_sell
     if valore_crypto_disp >= min_order_eur:
@@ -506,7 +508,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             quantita_sell = math.floor((crypto_posseduta_disp * 0.50) * molt) / molt
             motivo_reset += " [AI: Scale-Out 50%]"
         else:
-            # Modo B standard: vendiamo la tranche calcolata
             quantita_sell = min(quantita_token_tranche, crypto_posseduta_disp)
 
         # Clausola Anti-Dust Deterministica
@@ -660,7 +661,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     return prezzo_attuale, not trend_ok
 
 def main():
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset...", flush=True)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Bande Flessibili)...", flush=True)
     carica_e_sincronizza_config()
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
