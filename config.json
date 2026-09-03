@@ -22,7 +22,7 @@
       "grid_dist_buy": 0.025,
       "grid_dist_sell": 0.022,
       "buy_conviction": 0.0,
-      "sell_action": "scale_out",
+      "sell_action": "tranche",
       "max_active_levels": 5,
       "is_active": true,
       "exit_strategy": "none"
