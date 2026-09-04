@@ -89,5 +89,49 @@
     "decisione": "Attivazione Protocollo Liquidity Crunch No-Loss: impostazione 'scale_out' e buy_conviction 0.0 su ETH-EUR (sovraesposto al 61.5% ma in profitto +3.2%), riduzione della conviction su BTC/SOL a 0.5 e azzeramento su DOGE.",
     "motivazione": "La riserva di cassa EUR e' scesa al livello critico del 2.7% (9.30 EUR), rischiando il blocco degli ordini d'acquisto. ETH-EUR e' fortemente sovraesposto rispetto al suo target (35%) ma si trova in utile. Applicando rigorosamente il Protocollo No-Loss, impostiamo ETH su 'scale_out' con grid_dist_sell al 2.2% e conviction 0.0 per monetizzare parzialmente l'accumulo al prossimo leg-up ed estrarre liquidita' EUR senza registrare alcuna perdita, congelando contemporaneamente i deflussi sul resto del portafoglio.",
     "lezione_appresa": "Nelle fasi di emergenza liquidita' (<5% cassa), il protocollo No-Loss impone di non svendere mai in drawdown, ma di convertire temporaneamente la gestione dell'asset sovraesposto in utile in una macchina da estrazione liquidita' ('scale_out' a griglia stretta e conviction zero), preservando l'integrita' del capitale e rigenerando la cassa operativo-tattica."
-  }
+  },
+  [
+    {
+      "data": "2026-08-29",
+      "tipo_audit": "giornaliero",
+      "decisione": "Compressione tattica delle griglie su tutto il portafoglio (BTC sell a 2.2%, ETH a 2.4%, SOL a 3.0%, DOGE a 3.0%), ripristino di sell_action 'tranche' e conviction 1.0 su SOL.",
+      "motivazione": "La totale assenza di eseguiti nelle ultime 24 ore evidenzia una transizione verso volumi ridotti e volatilità di tipo mean-reverting tipica del weekend. Per evitare la stasi operative, le griglie sono state ridotte per intercettare movimenti più stretti, mantenendo lo spread di vendita rigorosamente sopra la soglia limite del 2.0% per neutralizzare il peso delle commissioni di Coinbase Advanced.",
+      "lezione_appresa": "Nel grid trading quantitativo, l'overfitting su periodi ad alta volatilità genera inattività nei giorni di compressione. Il market maker algoritmico deve attuare un tuning dual-speed riducendo simmetricamente le distanze di griglia durante i fine settimana, proteggendo rigorosamente la barriera matematica del Net Spread minimo."
+    },
+    {
+      "data": "2026-08-30",
+      "tipo_audit": "settimanale",
+      "decisione": "Ribilanciamento Macro Pesi Core (BTC-EUR +5%, ETH-EUR +5%, SOL-EUR -10%) e impostazione difensiva-attiva su SOL (sell_action: scale_out, conviction: 0.8). Ottimizzazione delle spaziature delle griglie in vista del ripristino della volatilita' feriale.",
+      "motivazione": "Sfruttando la finestra domenicale per modifiche strutturali ai pesi macro, riduciamo il peso di SOL-EUR dal 30% al 20% per consolidare i profitti generati dal recente rally parabolico (RSI 78.4). Riassegniamo equamente il 10% a BTC ed ETH per stabilizzare il portafoglio su asset a minor beta.",
+      "lezione_appresa": "Nel grid trading quantitativo, mitigare il rischio di asset ad alto beta in condizioni di ipercomprato estremo richiede un'azione combinata: micro-tattica (allargamento griglia e riduzione conviction a 0.8x) e macro-strutturale (riduzione del peso percentuale in portafoglio), allocando la liquidita' estratta sui benchmark primari."
+    },
+    {
+      "data": "2026-08-31",
+      "tipo_audit": "giornaliero",
+      "decisione": "Ripristino dei parametri standard su SOL-EUR (sell_action: tranche, conviction: 1.0, grid_dist_sell: 3.0%) e adeguamento preventivo di BTC-EUR (grid_dist_sell: 2.4%) per la sessione feriale.",
+      "motivazione": "L'RSI di SOL-EUR si e' raffreddato fino a quota 42.3, annullando il rischio di ipercomprato estremo registrato nei giorni scorsi. Questo permette di disattivare la configurazione difensiva 'scale_out' e tornare a massimizzare il rendimento per singola tranche.",
+      "lezione_appresa": "L'allentamento tempestivo delle protezioni algoritmiche quando i parametri tecnici rientrano nei range di normalità previene il costo opportunità, consentendo al market maker di riprendere l'accumulo e la monetizzazione standard."
+    },
+    {
+      "data": "2026-09-02",
+      "tipo_audit": "giornaliero",
+      "decisione": "Attivazione buy_conviction asimmetrica (BTC/ETH a 1.5x, SOL a 2.0x) ed espansione prudenziale delle spaziature di griglia per far fronte al forte scarico di mercato.",
+      "motivazione": "Il mercato mostra una correzione repentina con prezzi sotto la EMA50 e RSI in territorio di ipervenduto estremo (SOL 16.9, BTC 21.9, ETH 27.0) associati a un forte aumento della volatilita'. Sfruttiamo la leva tattica aumentando la conviction di acquisto per accumulare pesantemente sui supporti critici.",
+      "lezione_appresa": "Nelle fasi di flash crash o scarico verticale con RSI < 30, il dual-speed trading deve massimizzare la buy_conviction sugli asset core a maggior sconto relativo, allargando contemporaneamente i buy target per evitare di esaurire la liquidita' troppo presto."
+    },
+    {
+      "data": "2026-09-03",
+      "tipo_audit": "giornaliero",
+      "decisione": "Attivazione Protocollo Liquidity Crunch No-Loss: impostazione 'scale_out' e buy_conviction 0.0 su ETH-EUR, riduzione della conviction su BTC/SOL a 0.5 e azzeramento su DOGE.",
+      "motivazione": "La riserva di cassa EUR e' scesa al livello critico del 2.7% (9.30 EUR), rischiando il blocco degli ordini d'acquisto. ETH-EUR e' fortemente sovraesposto rispetto al suo target (35%) ma si trova in utile. Applicando il Protocollo No-Loss, impostiamo ETH su 'scale_out' con conviction 0.0 per monetizzare parzialmente l'accumulo al prossimo leg-up.",
+      "lezione_appresa": "Nelle fasi di emergenza liquidita' (<5% cassa), il protocollo No-Loss impone di non svendere mai in drawdown, ma di convertire temporaneamente la gestione dell'asset sovraesposto in utile in una macchina da estrazione liquidita' ('scale_out' a griglia stretta e conviction zero), preservando l'integrita' del capitale."
+    },
+    {
+      "data": "2026-09-04",
+      "tipo_audit": "giornaliero",
+      "decisione": "Revoca del Protocollo Liquidity Crunch, ripristino di 'sell_action' su 'tranche' su tutto il portafoglio e incremento della 'buy_conviction' (1.5x su BTC-EUR e SOL-EUR) per sfruttare le condizioni di ipervenduto (RSI < 25).",
+      "motivazione": "La cassa EUR è tornata a livelli di sicurezza ottimali (22.6% del portafoglio, pari a 80.12 EUR) grazie ai sell parziali eseguiti ieri in profitto su ETH e SOL. Contemporaneamente, BTC e SOL si trovano in forte ipervenduto tecnico orario (RSI risp. 25.0 e 23.0) sotto la EMA50. Questo scenario consente di disattivare la configurazione di emergenza 'scale_out' su ETH-EUR e di riattivare l'accumulo asimmetrico e sistematico dei principali asset a forte sconto, mantenendo gli spread di vendita ampiamente sopra la soglia limite del 2.0% per coprire ampiamente le commissioni Coinbase.",
+      "lezione_appresa": "L'efficacia del Protocollo Cash Drain No-Loss si misura nella velocità di rigenerazione della cassa senza impatti negativi sul capitale (no realizzazioni in perdita). Una volta ripristinata la riserva strategica (>15%), il risk manager deve rimuovere immediatamente i blocchi cautelativi (conviction 0) e reimpostare l'algoritmo per raccogliere i frutti della correzione tramite acquisti mirati (conviction > 1.0x) su livelli di RSI favorevoli."
+    }
+  ]
 ]
