@@ -157,3 +157,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-09-03 19:10:46,SOL-EUR,90.45,87.50,80.12,0.16100,True,77.0,0.27,87.06,93.98,3.75,3.90,"SELL Eseguito su Exchange (Saldo Riallineato)"
 2026-09-03 20:01:07,BTC-EUR,70300.93,67581.00,80.12,0.00125,True,83.6,1.42,68191.90,72585.71,3.00,3.25,"Ripristino Ordine BUY ⚡[ML High Vol] 📈[Dynamic Profit MED: +3.2%]"
 2026-09-03 20:01:09,DOGE-EUR,0.08,0.07,80.12,0.00000,True,87.9,0.01,0.07,0.08,4.50,4.55,"Inizializzazione Griglia ⚡[ML High Vol] 📈[Dynamic Profit MED: +4.6%]"
+2026-09-04 12:40:47,SOL-EUR,87.30,88.39,73.04,0.16100,True,23.0,1.30,85.12,89.26,2.50,2.25,"Ripristino Ordine BUY 🎯[Dynamic Profit FAST: +2.2%]"
