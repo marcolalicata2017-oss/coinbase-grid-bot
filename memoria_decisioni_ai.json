@@ -184,5 +184,14 @@
       "motivazione": "L'esecuzione del target di vendita su SOL-EUR a 89.42 EUR ha generato cassa mantenendo la riserva di portafoglio a un solido 17.4% (area di sicurezza). Poiché SOL si trova in ipercomprato orario di breve periodo (RSI 74.4), riduciamo preventivamente la buy_conviction a 0.5 e allarghiamo le spaziature della griglia a 3.5% su SOL per non riacquistare prematuramente su possibili massimi locali. Con il graduale riassorbimento dell'ipervenduto su BTC ed ETH, si riportano le rispettive conviction a livello standard (1.0x).",
       "lezione_appresa": "Nel grid trading quantitativo, il passaggio repentino da un ipervenduto estremo a un ipercomprato locale (RSI > 70) deve attivare una riduzione simmetrica dei moltiplicatori di acquisto (buy_conviction) ed un allargamento della griglia sull'asset specifico per evitare il fenomeno del 'buying at the top', mentre gli asset core possono essere riportati a parametri di regime non appena si normalizzano."
     }
+  ],
+  [
+    {
+      "data": "2026-09-06",
+      "tipo_audit": "settimanale",
+      "decisione": "Rimodulazione Macro Pesi (BTC +5%, SOL -5%) con focus difensivo-attivo su SOL-EUR (scale_out, conviction 0.5x, griglie al 4.0%) e aumento esposizione core su BTC-EUR (target 40.0%).",
+      "motivazione": "La riserva di cassa si e' consolidata al 19.3% del portafoglio grazie alla vendita in profitto su SOL-EUR a quota 89.42 EUR. Poiche' SOL si trova in ipercomprato tecnico di breve periodo (RSI 74.4), riduciamo il suo target macro al 15% allocando il 5% su BTC-EUR, che si trova in un'area di sconto ottimale. Su SOL impostiamo parametri asimmetrici protettivi per non comprare su massimi locali, mantenendo un elevato potenziale di accumulo su BTC.",
+      "lezione_appresa": "Il ribilanciamento macro settimanale nel modello a bande flessibili deve capitalizzare sui flussi rigenerati dalle prese di profitto tattiche. Ridurre il peso target degli asset surriscaldati e trasferirlo sugli indicatori core sotto la EMA50 stabilizza la volatilità del portafoglio senza bloccare l'operatività del market maker algoritmico."
+    }
   ]
 ]
