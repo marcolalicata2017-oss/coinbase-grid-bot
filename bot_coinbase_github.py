@@ -587,6 +587,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     exit_strategy = cfg.get("exit_strategy", "none")
     is_active = cfg.get("is_active", True)
     min_order_eur = cfg["min_order_eur"]
+    sell_action = cfg.get("sell_action", "tranche")
 
     prezzo_attuale, ema50, returns_24h, vol_24h, rsi, volume_ratio = ottieni_dati_mercato_avanzati(pair)
     if not prezzo_attuale or not ema50: return None, False
@@ -594,9 +595,11 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
     crypto_posseduta_disp = dict_cripto_disp.get(symbol_crypto, 0.0)
 
+    # Filtro Residui Dust (< 0.50 EUR)
     if (crypto_posseduta_disp * prezzo_attuale) < 0.50:
         crypto_posseduta_disp = 0.0
 
+    # 1. GESTIONE EXIT STRATEGY ESTERNA (Market Sell immediato)
     if exit_strategy == "market_sell":
         cancella_ordini_pair(pair)
         if (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur:
@@ -618,6 +621,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
             carica_e_sincronizza_config()
         return prezzo_attuale, False
 
+    # 2. GESTIONE SOFT EXIT O ASSET INATTIVO
     if exit_strategy == "soft_exit" or not is_active:
         cancella_ordini_pair(pair, cancella_solo_buy=True)
         return prezzo_attuale, False
@@ -628,20 +632,35 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     id_buy, id_sell = recupera_ordini_pair(pair)
     ha_crypto_per_sell = (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Saldo Disp EUR: {saldo_eur_disp:.2f}", flush=True)
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Saldo Disp EUR: {saldo_eur_disp:.2f} | Action: {sell_action}", flush=True)
 
+    # 3. PRIORITÀ AZIONI SPECIALI AI (SCALE-OUT / LIQUIDATE-ALL)
+    # Se l'Auditor richiede uno scarico d'emergenza o realizzo liquidità, cancelliamo 
+    # subito il vecchio sell (anche se presente) per piazzare l'ordine sulla quota maggiorata
+    if sell_action in ["scale_out", "liquidate_all"] and ha_crypto_per_sell:
+        print(f"⚡ [OVERRIDE {pair}] Richiesta azione speciale '{sell_action}': aggiornamento forzato della griglia...", flush=True)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, 
+                             motivo_reset=f"Esecuzione Speciale AI ({sell_action.upper()})", 
+                             ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, 
+                             rsi=rsi, volume_ratio=volume_ratio, 
+                             valore_totale_portafoglio=valore_totale_portafoglio)
+        return prezzo_attuale, not trend_ok
+
+    # 4. STATO: ENTRAMBI GLI ORDINI ASSENTI (Nuova Griglia)
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Griglia", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
+    # 5. STATO: CIRCUIT BREAKER ATTIVO CON BUY ANCORA PRESENTE
     if not trend_ok and id_buy is not None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, True
 
+    # 6. STATO: MANCA BUY (Riallineamento)
     if id_buy is None and id_sell is not None:
         if saldo_eur_disp >= min_order_eur:
             print(f"⚠️ [DEBUG {pair}] Manca BUY. Riallineamento griglia...", flush=True)
@@ -650,6 +669,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                                  valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
+    # 7. STATO: MANCA SELL CON CRYPTO IN CARICO (Riallineamento)
     if id_buy is not None and id_sell is None:
         if ha_crypto_per_sell:
             print(f"⚠️ [DEBUG {pair}] Manca SELL con crypto in carico. Riallineamento...", flush=True)
