@@ -193,5 +193,12 @@
       "motivazione": "La riserva di cassa si e' consolidata al 19.3% del portafoglio grazie alla vendita in profitto su SOL-EUR a quota 89.42 EUR. Poiche' SOL si trova in ipercomprato tecnico di breve periodo (RSI 74.4), riduciamo il suo target macro al 15% allocando il 5% su BTC-EUR, che si trova in un'area di sconto ottimale. Su SOL impostiamo parametri asimmetrici protettivi per non comprare su massimi locali, mantenendo un elevato potenziale di accumulo su BTC.",
       "lezione_appresa": "Il ribilanciamento macro settimanale nel modello a bande flessibili deve capitalizzare sui flussi rigenerati dalle prese di profitto tattiche. Ridurre il peso target degli asset surriscaldati e trasferirlo sugli indicatori core sotto la EMA50 stabilizza la volatilità del portafoglio senza bloccare l'operatività del market maker algoritmico."
     }
-  ]
+  ],
+  {
+    "data": "2026-09-08",
+    "tipo_audit": "giornaliero",
+    "decisione": "Incremento asimmetrico della 'buy_conviction' su BTC-EUR a 1.5x per sfruttare l'ipervenduto estremo (RSI 28.2) e mantenimento di un'impostazione protettiva su SOL-EUR (conviction 0.5x, griglie larghe) dopo l'esecuzione del target di scale-out.",
+    "motivazione": "La riserva di cassa è stabile al 19.4% (67.89 EUR), garantendo piena operatività. Il forte scarico odierno spinge BTC-EUR in territorio di ipervenduto marcato (RSI 28.2) sotto la EMA50: questo scenario tecnico giustifica l'attivazione di un moltiplicatore di accumulo a 1.5x per caricare i supporti locali con size maggiorate. Su SOL-EUR, invece, l'RSI si è raffreddato a 40.3 dopo l'ordine di scale-out a 88.50 EUR; manteniamo cautela con conviction 0.5x e griglia larga al 4% per prevenire riacquisti anticipati durante la fase di compressione.",
+    "lezione_appresa": "Nelle fasi di storno improvviso con cassa in sicurezza (>15%), il risk manager deve saper scindere il comportamento degli asset: incrementare con decisione l'accumulo sugli asset core sistemicamente ipervenduti (RSI < 30) e congelare parzialmente l'operatività (bassa conviction, griglia larga) sulle altcoin reduci da rally che non hanno ancora completato il pattern di consolidamento."
+  }
 ]
