@@ -200,5 +200,49 @@
     "decisione": "Incremento asimmetrico della 'buy_conviction' su BTC-EUR a 1.5x per sfruttare l'ipervenduto estremo (RSI 28.2) e mantenimento di un'impostazione protettiva su SOL-EUR (conviction 0.5x, griglie larghe) dopo l'esecuzione del target di scale-out.",
     "motivazione": "La riserva di cassa è stabile al 19.4% (67.89 EUR), garantendo piena operatività. Il forte scarico odierno spinge BTC-EUR in territorio di ipervenduto marcato (RSI 28.2) sotto la EMA50: questo scenario tecnico giustifica l'attivazione di un moltiplicatore di accumulo a 1.5x per caricare i supporti locali con size maggiorate. Su SOL-EUR, invece, l'RSI si è raffreddato a 40.3 dopo l'ordine di scale-out a 88.50 EUR; manteniamo cautela con conviction 0.5x e griglia larga al 4% per prevenire riacquisti anticipati durante la fase di compressione.",
     "lezione_appresa": "Nelle fasi di storno improvviso con cassa in sicurezza (>15%), il risk manager deve saper scindere il comportamento degli asset: incrementare con decisione l'accumulo sugli asset core sistemicamente ipervenduti (RSI < 30) e congelare parzialmente l'operatività (bassa conviction, griglia larga) sulle altcoin reduci da rally che non hanno ancora completato il pattern di consolidamento."
-  }
+  },
+  [
+    {
+      "data": "2026-09-03",
+      "tipo_audit": "giornaliero",
+      "decisione": "Attivazione Protocollo Liquidity Crunch No-Loss: impostazione 'scale_out' e buy_conviction 0.0 su ETH-EUR (sovraesposto al 61.5% ma in profitto +3.2%), riduzione della conviction su BTC/SOL a 0.5 e azzeramento su DOGE.",
+      "motivazione": "La riserva di cassa EUR e' scesa al livello critico del 2.7% (9.30 EUR), rischiando il blocco degli ordini d'acquisto. ETH-EUR e' fortemente sovraesposto rispetto al suo target (35%) ma si trova in utile. Applicando rigorosamente il Protocollo No-Loss, impostiamo ETH su 'scale_out' con grid_dist_sell al 2.2% e conviction 0.0 per monetizzare parzialmente l'accumulo al prossimo leg-up ed estrarre liquidita' EUR senza registrare alcuna perdita, congelando contemporaneamente i deflussi sul resto del portafoglio.",
+      "lezione_appresa": "Nelle fases di emergenza liquidita' (<5% cassa), il protocollo No-Loss impone di non svendere mai in drawdown, ma di convertire temporaneamente la gestione dell'asset sovraesposto in utile in una macchina da estrazione liquidita' ('scale_out' a griglia stretta e conviction zero), preservando l'integrita' del capitale e rigenerando la cassa operativo-tattica."
+    },
+    {
+      "data": "2026-09-04",
+      "tipo_audit": "giornaliero",
+      "decisione": "Revoca del Protocollo Liquidity Crunch, ripristino di 'sell_action' su 'tranche' su tutto il portafoglio e incremento della 'buy_conviction' (1.5x su BTC-EUR e SOL-EUR) per sfruttare le condizioni di ipervenduto (RSI < 25).",
+      "motivazione": "La cassa EUR è tornata a livelli di sicurezza ottimali (22.6% del portafoglio, pari a 80.12 EUR) grazie ai sell parziali eseguiti ieri in profitto su ETH e SOL. Contemporaneamente, BTC e SOL si trovano in forte ipervenduto tecnico orario (RSI risp. 25.0 e 23.0) sotto la EMA50. Questo scenario consente di disattivare la configurazione di emergenza 'scale_out' su ETH-EUR e di riattivare l'accumulo asimmetrico e sistematico dei principali asset a forte sconto, mantenendo gli spread di vendita ampiamente sopra la soglia limite del 2.0% per coprire ampiamente le commissioni Coinbase.",
+      "lezione_appresa": "L'efficacia del Protocollo Cash Drain No-Loss si misura nella velocità di rigenerazione della cassa senza impatti negativi sul capitale (no realizzazioni in perdita). Una volta ripristinata la riserva strategica (>15%), il risk manager deve rimuovere immediatamente i blocchi cautelativi (conviction 0) e reimpostare l'algoritmo per raccogliere i frutti della correzione tramite acquisti mirati (conviction > 1.0x) su livelli di RSI favorevoli."
+    },
+    {
+      "data": "2026-09-05",
+      "tipo_audit": "giornaliero",
+      "decisione": "Modulazione difensiva su SOL-EUR dopo esecuzione di presa profitto (RSI 74.4) e normalizzazione della buy_conviction su BTC/ETH a 1.0x.",
+      "motivazione": "L'esecuzione del target di vendita su SOL-EUR a 89.42 EUR ha generato cassa mantenendo la riserva di portafoglio a un solido 17.4% (area di sicurezza). Poiché SOL si trova in ipercomprato orario di breve periodo (RSI 74.4), riduciamo preventivamente la buy_conviction a 0.5 e allarghiamo le spaziature della griglia a 3.5% su SOL per non riacquistare prematuramente su possibili massimi locali.",
+      "lezione_appresa": "Nel grid trading quantitativo, il passaggio repentino da un ipervenduto estremo a un ipercomprato locale (RSI > 70) deve attivare una riduzione simmetrica dei moltiplicatori di acquisto (buy_conviction) ed un allargamento della griglia sull'asset specifico per evitare il fenomeno del 'buying at the top'."
+    },
+    {
+      "data": "2026-09-06",
+      "tipo_audit": "settimanale",
+      "decisione": "Rimodulazione Macro Pesi (BTC +5%, SOL -5%) con focus difensivo-attivo su SOL-EUR (scale_out, conviction 0.5x, griglie al 4.0%) e aumento esposizione core su BTC-EUR (target 40.0%).",
+      "motivazione": "La riserva di cassa si e' consolidata al 19.3% del portafoglio grazie alla vendita in profitto su SOL-EUR a quota 89.42 EUR. Poiche' SOL si trova in ipercomprato tecnico di breve periodo (RSI 74.4), riduciamo il suo target macro al 15% allocando il 5% su BTC-EUR, che si trova in un'area di sconto ottimale.",
+      "lezione_appresa": "Il ribilanciamento macro settimanale nel modello a bande flessibili deve capitalizzare sui flussi rigenerati dalle prese di profitto tattiche. Ridurre il peso target degli asset surriscaldati e trasferirlo sugli indicatori core sotto la EMA50 stabilizza la volatilità del portafoglio."
+    },
+    {
+      "data": "2026-09-08",
+      "tipo_audit": "giornaliero",
+      "decisione": "Incremento asimmetrico della 'buy_conviction' su BTC-EUR a 1.5x per sfruttare l'ipervenduto estremo (RSI 28.2) e mantenimento di un'impostazione protettiva su SOL-EUR (conviction 0.5x, griglie larghe) dopo l'esecuzione del target di scale-out.",
+      "motivazione": "La riserva di cassa è stabile al 19.4% (67.89 EUR), garantendo piena operatività. Il forte scarico spinge BTC-EUR in territorio di ipervenduto marcato (RSI 28.2) sotto la EMA50: questo scenario tecnico giustifica l'attivazione di un moltiplicatore di accumulo a 1.5x. Su SOL-EUR manteniamo cautela con conviction 0.5x e griglia larga al 4% per prevenire riacquisti anticipati durante la fase di compressione.",
+      "lezione_appresa": "Nelle fasi di storno improvviso con cassa in sicurezza (>15%), il risk manager deve saper scindere il comportamento degli asset: incrementare con decisione l'accumulo sugli asset core sistemicamente ipervenduti (RSI < 30) e congelare parzialmente l'operatività sulle altcoin reduci da rally."
+    },
+    {
+      "data": "2026-09-09",
+      "tipo_audit": "giornaliero",
+      "decisione": "Riduzione precauzionale della 'buy_conviction' su BTC-EUR a 0.5x e riallargamento della griglia a 2.5% a seguito di presa profitto (RSI 74.7); ripristino dei parametri standard (conviction 1.0x) su SOL-EUR.",
+      "motivazione": "L'esecuzione dell'ordine di vendita su BTC-EUR a quota 68,330.60 EUR ha rimpinguato la cassa ma ha spinto l'RSI locale a 74.7 (ipercomprato orario). Riduciamo la conviction a 0.5x e portiamo lo spread a 2.5% per evitare acquisti affrettati sui massimi locali. Di contro, SOL-EUR si è stabilizzato con RSI a 40.3, consentendo il ripristino della conviction standard a 1.0x per catturare l'operatività ordinaria con cassa in sicurezza al 16.8%.",
+      "lezione_appresa": "Nel grid trading a bande flessibili, le prese di profitto di successo che surriscaldano gli indicatori tecnici di momentum (RSI > 70) devono essere immediatamente seguite da una riduzione preventiva dei moltiplicatori di acquisto sull'asset specifico per evitare il chasing. Contemporaneamente, la cassa rigenerata permette di normalizzare l'operatività sugli altri asset in area neutrale."
+    }
+  ]
 ]
