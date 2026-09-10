@@ -17,7 +17,6 @@ FILE_CONFIG = "config.json"
 FILE_MEMORIA = "memoria_decisioni_ai.json"
 
 def invia_telegram(messaggio):
-    """Invia un messaggio a Telegram gestendo automaticamente i fallimenti di parsing Markdown."""
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
         print("⚠️ Token o Chat ID Telegram non configurati.", flush=True)
         return
@@ -32,19 +31,14 @@ def invia_telegram(messaggio):
     try:
         resp = requests.post(url, json=payload_markdown, timeout=10)
         if resp.status_code != 200:
-            print(f"⚠️ Errore Telegram API ({resp.status_code}): {resp.text}", flush=True)
-            print("🔄 Riprovo in formato TESTO SEMPLICE...", flush=True)
             payload_plain = {"chat_id": TELEGRAM_CHAT_ID, "text": messaggio}
-            resp_retry = requests.post(url, json=payload_plain, timeout=10)
-            if resp_retry.status_code == 200:
-                print("✅ Notifica inviata in testo semplice!", flush=True)
+            requests.post(url, json=payload_plain, timeout=10)
         else:
             print("✅ Notifica Telegram inviata con successo!", flush=True)
     except Exception as e:
         print(f"❌ Errore invio Telegram: {e}", flush=True)
 
 def ottieni_altcoin_eur_disponibili_coinbase():
-    """Recupera dinamicamente l'elenco di tutti i pair SPOT EUR attivi su Coinbase."""
     try:
         url = "https://api.exchange.coinbase.com/products"
         headers = {"User-Agent": "Python-Bot"}
@@ -65,7 +59,7 @@ def ottieni_altcoin_eur_disponibili_coinbase():
             return coppie_eur_valide
     except Exception as e:
         print(f"⚠️ Errore recupero pair dinamici da Coinbase: {e}", flush=True)
-    return ["BTC-EUR", "ETH-EUR", "SOL-EUR", "LINK-EUR", "ADA-EUR", "NEAR-EUR", "AVAX-EUR", "DOT-EUR"]
+    return ["BTC-EUR", "ETH-EUR", "SOL-EUR", "DOGE-EUR", "LINK-EUR", "ADA-EUR", "NEAR-EUR", "AVAX-EUR", "DOT-EUR"]
 
 def carica_memoria_storica():
     if os.path.exists(FILE_MEMORIA):
@@ -103,7 +97,7 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Ribilanciamento dinamico a Bande Flessibili"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Ottimizzazione resa in trend ribassista & Memoria"], check=True)
             subprocess.run(["git", "push"], check=True)
             print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
             return True
@@ -139,11 +133,12 @@ def esegui_audit():
     data_limite = (ora_dt - timedelta(days=7 if is_domenica else 1)).strftime("%Y-%m-%d")
     diario_rec = df_diario[df_diario['Data_Ora'] >= data_limite] if not df_diario.empty and 'Data_Ora' in df_diario.columns else pd.DataFrame()
 
-    # Diagnosi Liquidità e Valore Totale
     saldo_eur_effettivo = 0.0
     valore_crypto_totale = 0.0
     valore_totale_portafoglio = 1.0
     pct_cassa_eur = 100.0
+    dd_3gg_pct = 0.0
+    dd_7gg_pct = 0.0
 
     if not df_portafoglio.empty:
         ultima_riga = df_portafoglio.iloc[-1]
@@ -153,72 +148,85 @@ def esegui_audit():
         if valore_totale_portafoglio > 0:
             pct_cassa_eur = (saldo_eur_effettivo / valore_totale_portafoglio) * 100.0
 
+        valore_3gg = float(df_portafoglio.iloc[-3]["Valore_Totale_EUR"]) if len(df_portafoglio) >= 3 else valore_totale_portafoglio
+        valore_7gg = float(df_portafoglio.iloc[-7]["Valore_Totale_EUR"]) if len(df_portafoglio) >= 7 else valore_totale_portafoglio
+
+        if valore_3gg > 0:
+            dd_3gg_pct = ((valore_totale_portafoglio - valore_3gg) / valore_3gg) * 100.0
+        if valore_7gg > 0:
+            dd_7gg_pct = ((valore_totale_portafoglio - valore_7gg) / valore_7gg) * 100.0
+
     stato_liquidita_alert = "NORMALE"
     if pct_cassa_eur < 15.0 or saldo_eur_effettivo < 35.0:
-        stato_liquidita_alert = "ALLERTA CRITICA LIQUIDITÀ (RISCHIO BLOCCO GRIGLIE BUY)"
+        stato_liquidita_alert = "ALLERTA CRITICA LIQUIDITÀ"
 
     prompt = f"""
     Sei il Direttore Investimenti e Risk Manager Quantitativo di un Hedge Fund Crypto su Coinbase Advanced.
-    Il tuo compito è gestire un portafoglio a BANDE FLESSIBILI SENZA DISTINZIONE FISSA CORE/SATELLITE.
+    Gestisci un portafoglio a BANDE FLESSIBILI SENZA DISTINZIONE FISSA CORE/SATELLITE.
 
     Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
-    Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Sizing & Ribilanciamento Liquidità)"}
+    Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Sizing & Regolazione Resa in Volatilità)"}
 
-    ⚡ COMMISSIONI COINBASE ADVANCED (INTRO 2): Maker 0.35%, Taker 0.75%, Ordine Minimo 5.00 EUR.
-    🎯 NET SPREAD RULE: 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%).
+    ⚡ COMMISSIONI COINBASE ADVANCED: Maker 0.35%, Taker 0.75%.
+    🎯 REGOLE NET SPREAD: Con fee totali a 0.70%, 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%).
 
-    💰 STATO REALE PORTAFOGLIO & LIQUIDITÀ:
-    - Valore Totale Portafoglio: {valore_totale_portafoglio:.2f} EUR
+    💰 STATO REALE PORTAFOGLIO, LIQUIDITÀ & DRAWDOWN:
+    - Valore Totale: {valore_totale_portafoglio:.2f} EUR
     - Cassa EUR Libera: {saldo_eur_effettivo:.2f} EUR ({pct_cassa_eur:.1f}% del portafoglio)
-    - Controvalore Totale Crypto in Carico: {valore_crypto_totale:.2f} EUR
+    - Totale Crypto in Carico: {valore_crypto_totale:.2f} EUR
     - Stato Riserva Cassa: {stato_liquidita_alert}
+    - 📉 Traiettoria Capitale (Portfolio Drawdown):
+      * Rendimento/Drawdown 3 Giorni: {dd_3gg_pct:+.2f}%
+      * Rendimento/Drawdown 7 Giorni: {dd_7gg_pct:+.2f}%
+
+    🧠 VALUTAZIONE DELLA MEMORIA DECISIONALE (COSA HA FUNZIONATO E COSA NO):
+    Analizza attentamente le ultime decisioni salvate:
+    {json.dumps(memoria_storica[-5:], indent=2) if memoria_storica else "Nessuna memoria registrata."}
+    * Confronta l'aspettativa dell'ultimo audit con i dati reali del diario recente.
+    * Gli ordini piazzati sono stati eseguiti? La liquidità è migliorata? Se un target precedente era troppo ambizioso ed è rimasto invenduto, annotalo come lezione appresa e correggilo!
+
+    🌊 PROTOCOLLO DI PROFITTO IN TREND RIBASSISTA (FAST HARVESTING):
+    Se il mercato è in downtrend da giorni (dd_3gg_pct < -3% o dd_7gg_pct < -5%), il nostro obiettivo NON è restare fermi, ma CONTINUARE A GUADAGNARE sui rimbalzi intraday:
+    1. Abbassa il target di vendita ('grid_dist_sell') a 0.020 (2.0%) su tutti gli asset: nei trend ribassisti i rimbalzi sono brevi, dobbiamo incassare subito il +1.30% netto e rimettere EUR in cassa.
+    2. Allarga 'grid_dist_buy' (tra 0.025 e 0.035): non comprare a piccoli cali, aspetta affondi consistenti per comprare token a forte sconto.
+    3. Assegna 'buy_conviction' (1.0x o 1.2x) preferibilmente all'asset che ha ritracciato di più ma mostra segnali di ipervenduto/rimbalzo imminente, tenendo a 0.5x o 0.0 gli altri per preservare cassa.
+
+    🚨 PROTOCOLLO LIQUIDITY CRUNCH & NO-LOSS RULE:
+    - Se Cassa EUR < 15% (o < 40 EUR) o un asset supera di molto il target weight:
+      * NON VENDERE MAI IN PERDITA RISPETTO AL CARICO MEDIO!
+      * Se l'asset è in profitto: applica 'sell_action': 'scale_out' (vende il 50%) per liberare cassa.
+      * Se l'asset è in perdita: tieni 'sell_action': 'tranche' e metti 'buy_conviction': 0.5 o 0.0.
 
     CONFIGURAZIONE ATTUALE (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
 
-    MEMORIA STORICA ULTIME DECISIONI & LEZIONI APPRESE:
-    {json.dumps(memoria_storica[-5:], indent=2) if memoria_storica else "Nessuna memoria registrata."}
-
-    DATI RECENTI DIARIO DI BORDO (Prezzi medi di carico, acquisti e vendite eseguite):
+    DATI RECENTI DIARIO DI BORDO:
     {diario_rec.to_string() if not diario_rec.empty else "Nessuna operazione registrata nel periodo."}
 
-    PAIR SPOT EUR SCAMBIABILI SU COINBASE:
+    PAIR DISPONIBILI:
     {json.dumps(altcoin_disponibili)}
 
-    🏛️ REGOLE DEL MODELLO A BANDE FLESSIBILI (FULL DYNAMIC ALLOCATION):
-    1. Libertà di Allocazione ("target_weight_pct"):
-       - La somma totale dei "target_weight_pct" per tutti gli asset attivi deve fare SEMPRE 100.0.
-       - BTC-EUR ed ETH-EUR sono gli asset cardine: ciascuno deve avere un peso compreso tra 20.0% e 60.0% (possono scendere quando sono in ipercomprato per monetizzare, ma non possono essere azzerati).
-       - Qualsiasi altra altcoin (es. SOL, LINK, ecc.): peso flessibile tra 0.0% e 25.0% ciascuna.
-       - Puoi decidere di dismettere una moneta impostando "target_weight_pct": 0.0 ed "exit_strategy": "soft_exit".
+    STRUTTURA OBBLIGATORIA:
+    Separa rigorosamente le 3 parti con '---JSON_CONFIG---' e '---JSON_MEMORIA---':
 
-    2. GESTIONE DELLA LIQUIDITÀ & SOVRAESPOSIZIONE (CASH DRAIN PROTOCOL):
-       - Se la Cassa EUR è < 15% (o < 40 EUR), oppure un asset pesa molto più del suo target (es. ETH al 60% invece del 35%):
-         * REGOLA DI FERRO: NON VENDERE MAI IN PERDITA!
-         * Se l'asset sovraesposto è IN PROFITTO rispetto al prezzo di carico:
-           - Riduci 'buy_conviction' a 0.5 per congelare acquisti.
-           - Imposta 'sell_action': 'scale_out' (per vendere il 50% dell'accumulo sul target di presa profitto) o 'liquidate_all' se ha raggiunto massimi storici/ipercomprato, trasformandolo in cassa EUR da reinvestire.
-         * Se l'asset sovraesposto è IN PERDITA (drawdown):
-           - NON liquidare l'accumulo. Lascia 'sell_action': 'tranche' e riduci 'buy_conviction' a 0.5 per non spendere altri soldi, attendendo il recupero.
-
-    3. PARAMETRI OPERATIVI PER OGNI ASSET IN 'assets':
-       - "target_weight_pct": Peso percentuale nel portafoglio.
-       - "buy_conviction": Moltiplicatore di size d'acquisto (0.5x prudente, 1.0x standard, 1.5x-2.0x aggressivo su supporto/ipervenduto).
-       - "sell_action": "tranche" (Modo B standard), "scale_out" (monetizza 50% solo se in utile), "liquidate_all" (monetizza 100% solo se in utile).
-       - "grid_dist_buy": Tra 0.008 e 0.050.
-       - "grid_dist_sell": Minimo 0.020 (>= 2.0%).
-
-    STRUTTURA DELLA RISPOSTA (OBBLIGATORIA):
-    Separa le 3 parti con '---JSON_CONFIG---' e '---JSON_MEMORIA---':
-
-    Parte 1: Report narrativo per Telegram (Markdown) con:
-    - 💧 Quadro Liquidità e Riserva EUR ({pct_cassa_eur:.1f}% cassa)
-    - ⚖️ Ribilanciamento Pesi e Strategia di Scale-Out/Rotazione (Verifica No-Loss)
-    - 🎯 Matrice Operativa per ogni Pair (Conviction, Sell Action, Spread)
+    Parte 1: Report per Telegram (Markdown) con:
+    - 💧 Quadro Cassa & Drawdown ({dd_3gg_pct:+.2f}% 3G)
+    - 🔍 Verifica della Memoria: esame critico se le decisioni del ciclo precedente hanno funzionato
+    - ⚡ Strategia Fast Harvesting: come estraiamo profitto nelle condizioni odierne
+    - 🎯 Decisioni operative sui singoli pair
     ---JSON_CONFIG---
-    Parte 2: Il JSON completo valido per config.json (o 'NO_CHANGE').
+    Parte 2: JSON completo per config.json (o 'NO_CHANGE').
     ---JSON_MEMORIA---
-    Parte 3: Scheda di memoria JSON (data, tipo_audit, decisione, motivazione, lezione_appresa) o 'NO_CHANGE'.
+    Parte 3: Scheda di memoria JSON con i campi:
+    {
+      "data": "{ora_dt.strftime('%Y-%m-%d')}",
+      "tipo_audit": "DAILY TACTICAL",
+      "regime_rilevato": "string",
+      "decisione": "sintesi modifiche",
+      "ipotesi_e_aspettativa": "cosa ci aspettiamo che succeda sul mercato e sul cashflow",
+      "esito_decisione_precedente": "analisi se la decisione passata ha avuto successo o ha fallito",
+      "lezione_appresa": "regola concreta appresa per i prossimi cicli"
+    }
     """
 
     modelli = ['gemini-3.5-flash', 'gemini-3.6-flash']
@@ -267,9 +275,9 @@ def esegui_audit():
         except Exception as e:
             print(f"⚠️ Errore parsing JSON da Gemini: {e}", flush=True)
 
-    intestazione = "🧠 *[AI AUDITOR - SETTIMANALE BANDE FLESSIBILI]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - DAILY REBALANCING & SIZING]*\n\n"
+    intestazione = "🧠 *[AI AUDITOR - SETTIMANALE STRATEGICO]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - HARVESTING & MEMORIA]*\n\n"
     if modificato:
-        report_telegram += "\n\n🚀 *[RIBILANCIAMENTO APPLICATO]*: config.json aggiornato su GitHub."
+        report_telegram += "\n\n🚀 *[PARAMETRI & MEMORIA AGGIORNATI SU GITHUB]*"
 
     invia_telegram(intestazione + report_telegram)
     print("✅ Audit completato con successo!", flush=True)
