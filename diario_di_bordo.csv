@@ -169,3 +169,5 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-09-11 08:01:09,ETH-EUR,2125.31,2122.60,41.47,0.04468,True,50.2,0.00,2072.18,2178.44,2.50,2.50,"Ripristino Ordine BUY"
 2026-09-11 13:50:46,ETH-EUR,2179.21,2126.88,54.10,0.08093,True,81.1,2.26,2097.49,2288.17,3.75,5.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
 2026-09-11 13:50:48,SOL-EUR,88.89,86.85,54.10,0.13800,True,86.9,2.83,83.56,96.00,6.00,8.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
+2026-09-11 14:10:43,BTC-EUR,68134.17,66966.28,71.22,0.00150,True,83.1,0.79,66430.82,70348.53,2.50,3.25,"SELL Eseguito su Exchange (Saldo Riallineato)"
+2026-09-11 14:10:44,ETH-EUR,2264.00,2135.49,71.22,0.07760,True,87.6,2.16,2207.40,2377.20,2.50,5.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
