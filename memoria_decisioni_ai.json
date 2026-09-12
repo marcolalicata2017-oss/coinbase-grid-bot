@@ -244,5 +244,14 @@
       "motivazione": "L'esecuzione dell'ordine di vendita su BTC-EUR a quota 68,330.60 EUR ha rimpinguato la cassa ma ha spinto l'RSI locale a 74.7 (ipercomprato orario). Riduciamo la conviction a 0.5x e portiamo lo spread a 2.5% per evitare acquisti affrettati sui massimi locali. Di contro, SOL-EUR si è stabilizzato con RSI a 40.3, consentendo il ripristino della conviction standard a 1.0x per catturare l'operatività ordinaria con cassa in sicurezza al 16.8%.",
       "lezione_appresa": "Nel grid trading a bande flessibili, le prese di profitto di successo che surriscaldano gli indicatori tecnici di momentum (RSI > 70) devono essere immediatamente seguite da una riduzione preventiva dei moltiplicatori di acquisto sull'asset specifico per evitare il chasing. Contemporaneamente, la cassa rigenerata permette di normalizzare l'operatività sugli altri asset in area neutrale."
     }
-  ]
+  ],
+  {
+    "data": "2026-09-12",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "RECOVERY WITH LOCAL COOL-DOWN",
+    "decisione": "Attivazione Protocollo Liquidity Crunch No-Loss: ETH impostato su 'scale_out' con buy_conviction 0.0 per estrarre cassa sulla sovraesposizione; buy_conviction ridotta a 0.5 su BTC/SOL e azzerata su DOGE; spaziature d'acquisto ampliate su tutto il portafoglio.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il dimezzamento della tranche di vendita su ETH-EUR (scale_out) liberi immediatamente tra i 15 e i 25 EUR di cassa al prossimo rimbalzo sopra i 2260 EUR, riportando la riserva di liquidità sopra la soglia di sicurezza del 18%. Nel frattempo, l'allargamento delle griglie d'acquisto eviterà acquisti precoci in caso di ulteriore debolezza del mercato nel weekend.",
+    "esito_decisione_precedente": "Successo parziale: le prese di profitto tattiche dell'11 settembre hanno generato elevate commissioni attive e confermato la bontà dei target di vendita. Tuttavia, l'immediato ripristino automatico degli ordini di acquisto ha ridotto la cassa al 14.1%, rendendo necessaria questa correzione difensiva.",
+    "lezione_appresa": "Quando la cassa di portafoglio è nominalmente ridotta, non basta impostare prese di profitto elevate; è imperativo frenare l'automatismo dei riacquisti (buy_conviction) non appena il portafoglio scivola sotto il 15% di liquidità, preferendo un accumulo asimmetrico e ritardato nel tempo."
+  }
 ]
