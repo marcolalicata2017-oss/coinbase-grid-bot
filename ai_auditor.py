@@ -128,6 +128,7 @@ def esegui_audit():
             print(f"⚠️ Errore lettura config.json: {e}", flush=True)
 
     ora_dt = datetime.now()
+    data_odierna_str = ora_dt.strftime('%Y-%m-%d')
     is_domenica = (ora_dt.weekday() == 6)
 
     data_limite = (ora_dt - timedelta(days=7 if is_domenica else 1)).strftime("%Y-%m-%d")
@@ -164,7 +165,7 @@ def esegui_audit():
     Sei il Direttore Investimenti e Risk Manager Quantitativo di un Hedge Fund Crypto su Coinbase Advanced.
     Gestisci un portafoglio a BANDE FLESSIBILI SENZA DISTINZIONE FISSA CORE/SATELLITE.
 
-    Data Corrente: {ora_dt.strftime('%Y-%m-%d')}
+    Data Corrente: {data_odierna_str}
     Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Sizing & Regolazione Resa in Volatilità)"}
 
     ⚡ COMMISSIONI COINBASE ADVANCED: Maker 0.35%, Taker 0.75%.
@@ -218,15 +219,15 @@ def esegui_audit():
     Parte 2: JSON completo per config.json (o 'NO_CHANGE').
     ---JSON_MEMORIA---
     Parte 3: Scheda di memoria JSON con i campi:
-    {
-      "data": "{ora_dt.strftime('%Y-%m-%d')}",
+    {{
+      "data": "{data_odierna_str}",
       "tipo_audit": "DAILY TACTICAL",
       "regime_rilevato": "string",
       "decisione": "sintesi modifiche",
       "ipotesi_e_aspettativa": "cosa ci aspettiamo che succeda sul mercato e sul cashflow",
       "esito_decisione_precedente": "analisi se la decisione passata ha avuto successo o ha fallito",
       "lezione_appresa": "regola concreta appresa per i prossimi cicli"
-    }
+    }}
     """
 
     modelli = ['gemini-3.5-flash', 'gemini-3.6-flash']
