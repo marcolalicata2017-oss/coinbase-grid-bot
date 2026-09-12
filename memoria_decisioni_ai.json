@@ -253,5 +253,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il dimezzamento della tranche di vendita su ETH-EUR (scale_out) liberi immediatamente tra i 15 e i 25 EUR di cassa al prossimo rimbalzo sopra i 2260 EUR, riportando la riserva di liquidità sopra la soglia di sicurezza del 18%. Nel frattempo, l'allargamento delle griglie d'acquisto eviterà acquisti precoci in caso di ulteriore debolezza del mercato nel weekend.",
     "esito_decisione_precedente": "Successo parziale: le prese di profitto tattiche dell'11 settembre hanno generato elevate commissioni attive e confermato la bontà dei target di vendita. Tuttavia, l'immediato ripristino automatico degli ordini di acquisto ha ridotto la cassa al 14.1%, rendendo necessaria questa correzione difensiva.",
     "lezione_appresa": "Quando la cassa di portafoglio è nominalmente ridotta, non basta impostare prese di profitto elevate; è imperativo frenare l'automatismo dei riacquisti (buy_conviction) non appena il portafoglio scivola sotto il 15% di liquidità, preferendo un accumulo asimmetrico e ritardato nel tempo."
+  },
+  {
+    "data": "2026-09-12",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "RECOVERY WITH LOCAL COOL-DOWN",
+    "decisione": "Mantenimento del Protocollo Liquidity Crunch No-Loss su ETH-EUR (scale_out, buy_conviction 0.0) e riduzione della buy_conviction su BTC e SOL a 0.3 con allargamento delle griglie d'acquisto.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il mantenimento della conviction d'acquisto compressa su BTC/SOL impedisca nuovi assorbimenti di cassa nel weekend. Il target di vendita su ETH a 2240 EUR (distanza 2.5%) dovrebbe attivare un parziale scale-out liberando circa 15-20 EUR di liquidità alla prima reazione rialzista, riportando la cassa sopra il 18%.",
+    "esito_decisione_precedente": "Insuccesso parziale nella conservazione della liquidità. Nonostante le ottime vendite eseguite l'11 settembre che hanno rigenerato la cassa a 71 EUR, i riacquisti automatici generati dal repentino storno pomeridiano hanno immediatamente risucchiato la liquidità a 49.67 EUR.",
+    "lezione_appresa": "Nelle fasi di riallineamento dei prezzi post-profit taking, la rigenerazione della cassa deve essere protetta imponendo un blocco o un forte ridimensionamento dei coefficienti d'acquisto (buy_conviction) su tutto il portafoglio, per evitare che l'algoritmo riacquisti immediatamente gli asset venduti durante le normali oscillazioni intraday."
   }
 ]
