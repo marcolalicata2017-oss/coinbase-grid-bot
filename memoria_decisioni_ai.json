@@ -262,5 +262,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il mantenimento della conviction d'acquisto compressa su BTC/SOL impedisca nuovi assorbimenti di cassa nel weekend. Il target di vendita su ETH a 2240 EUR (distanza 2.5%) dovrebbe attivare un parziale scale-out liberando circa 15-20 EUR di liquidità alla prima reazione rialzista, riportando la cassa sopra il 18%.",
     "esito_decisione_precedente": "Insuccesso parziale nella conservazione della liquidità. Nonostante le ottime vendite eseguite l'11 settembre che hanno rigenerato la cassa a 71 EUR, i riacquisti automatici generati dal repentino storno pomeridiano hanno immediatamente risucchiato la liquidità a 49.67 EUR.",
     "lezione_appresa": "Nelle fasi di riallineamento dei prezzi post-profit taking, la rigenerazione della cassa deve essere protetta imponendo un blocco o un forte ridimensionamento dei coefficienti d'acquisto (buy_conviction) su tutto il portafoglio, per evitare che l'algoritmo riacquisti immediatamente gli asset venduti durante le normali oscillazioni intraday."
+  },
+  {
+    "data": "2026-09-13",
+    "tipo_audit": "WEEKLY STRATEGIC",
+    "regime_rilevato": "CONSOLIDATION WITH LIQUIDITY SQUEEZE",
+    "decisione": "Rimodulazione Macro Pesi Settimanale: BTC +5.0% (nuovo target 45.0%), DOGE -5.0% (nuovo target 5.0%). Mantenimento del Protocollo Liquidity Crunch No-Loss su ETH-EUR (scale_out, conviction 0.0) e profili di conviction compressi (0.3) su BTC/SOL.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la riduzione del peso target di DOGE riduca la pressione d'acquisto potenziale su asset speculativi ad alta beta. L'esecuzione dell'ordine di scale-out su ETH-EUR sul primo movimento rialzista di inizio settimana sopra i 2240 EUR libererà circa 15-20 EUR, portando la cassa dal 14.1% a oltre il 18.5%, ripristinando la piena operatività strategica.",
+    "esito_decisione_precedente": "Successo parziale: il blocco cautelativo introdotto il 12 settembre ha evitato nuovi acquisti nel weekend mantenendo la cassa stabile a 49.67 EUR (14.1%). Tuttavia, la bassa volatilità domenicale ha rimandato l'esecuzione del target di vendita di ETH-EUR.",
+    "lezione_appresa": "Nelle fasi di emergenza cassa (<15%), il ribilanciamento macro-settimanale deve essere utilizzato per de-rischiare il portafoglio tagliando i pesi teorici degli asset ad alta beta e convogliando i flussi verso la stabilità di BTC, mantenendo inalterato e attivo il motore di estrazione liquidità (scale_out) sugli asset in profitto fino alla completa risoluzione del crunch."
   }
 ]
