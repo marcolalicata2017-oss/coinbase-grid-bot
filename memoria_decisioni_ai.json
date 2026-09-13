@@ -271,5 +271,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la riduzione del peso target di DOGE riduca la pressione d'acquisto potenziale su asset speculativi ad alta beta. L'esecuzione dell'ordine di scale-out su ETH-EUR sul primo movimento rialzista di inizio settimana sopra i 2240 EUR libererà circa 15-20 EUR, portando la cassa dal 14.1% a oltre il 18.5%, ripristinando la piena operatività strategica.",
     "esito_decisione_precedente": "Successo parziale: il blocco cautelativo introdotto il 12 settembre ha evitato nuovi acquisti nel weekend mantenendo la cassa stabile a 49.67 EUR (14.1%). Tuttavia, la bassa volatilità domenicale ha rimandato l'esecuzione del target di vendita di ETH-EUR.",
     "lezione_appresa": "Nelle fasi di emergenza cassa (<15%), il ribilanciamento macro-settimanale deve essere utilizzato per de-rischiare il portafoglio tagliando i pesi teorici degli asset ad alta beta e convogliando i flussi verso la stabilità di BTC, mantenendo inalterato e attivo il motore di estrazione liquidità (scale_out) sugli asset in profitto fino alla completa risoluzione del crunch."
+  },
+  {
+    "data": "2026-09-13",
+    "tipo_audit": "WEEKLY STRATEGIC",
+    "regime_rilevato": "CONSOLIDATION WITH LIQUIDITY SQUEEZE",
+    "decisione": "Conferma del ribilanciamento macro difensivo (BTC 45%, ETH 35%, SOL 15%, DOGE 5%) e allineamento formale di config.json con l'impostazione 'scale_out' su ETH-EUR per l'estrazione immediata di cassa a rendimento protetto. Mantenimento di conviction d'acquisto compresse (0.3 su BTC/SOL, 0.0 su ETH/DOGE) e griglie di acquisto ampie.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che l'apertura dei mercati settimanali aumenti la volatilità permettendo l'esecuzione del target di scale-out su ETH-EUR sopra i 2217 EUR, liberando tra i 15 e i 20 EUR di liquidità. Questo riporterà la riserva di cassa sopra il 18.5%, normalizzando l'operatività del fondo. Le griglie d'acquisto larghe preverranno accumuli anticipati in caso di volatilità ribassista iniziale.",
+    "esito_decisione_precedente": "Successo parziale: la strategia difensiva introdotta nel weekend ha protetto interamente la cassa residua, che è rimasta stabile a 49.67 EUR (14.1%) senza generare eseguiti indesiderati. Tuttavia, la bassa volatilità domenicale ha posticipato i target di vendita previsti su ETH-EUR.",
+    "lezione_appresa": "Nelle fasi di emergenza liquidità (<15%), il Risk Manager deve verificare con assoluto rigore la perfetta corrispondenza tra le linee guida teoriche dell'audit e i parametri del file config.json. Il passaggio di ETH a 'scale_out' deve essere codificato in modo esplicito nel file di configurazione per evitare che l'algoritmo esegua vendite a tranche intera anziché parziali, esaurendo prematuramente l'inventario prima del recupero del target."
   }
 ]
