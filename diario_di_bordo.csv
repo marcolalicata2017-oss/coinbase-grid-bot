@@ -178,3 +178,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-09-13 18:40:44,ETH-EUR,2163.74,2162.37,49.67,0.06076,True,44.7,0.41,2077.19,2217.83,4.00,2.50,"Esecuzione Speciale AI (SCALE_OUT) [AI: Scale-Out 50%]"
 2026-09-13 18:50:43,ETH-EUR,2163.80,2162.37,49.67,0.05208,True,44.8,0.46,2077.25,2217.89,4.00,2.50,"Esecuzione Speciale AI (SCALE_OUT) [AI: Scale-Out 50%]"
 2026-09-14 14:20:54,BTC-EUR,68045.33,66911.40,57.04,0.00155,True,82.3,1.32,64472.95,70256.80,5.25,3.25,"SELL Eseguito su Exchange (Saldo Riallineato)"
+2026-09-14 20:20:41,ETH-EUR,2248.00,2173.11,114.60,0.05642,True,83.1,0.63,2129.98,2306.45,5.25,2.60,"SELL Eseguito su Exchange (Saldo Riallineato)"
