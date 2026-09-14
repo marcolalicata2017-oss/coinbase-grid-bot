@@ -280,5 +280,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che l'apertura dei mercati settimanali aumenti la volatilità permettendo l'esecuzione del target di scale-out su ETH-EUR sopra i 2217 EUR, liberando tra i 15 e i 20 EUR di liquidità. Questo riporterà la riserva di cassa sopra il 18.5%, normalizzando l'operatività del fondo. Le griglie d'acquisto larghe preverranno accumuli anticipati in caso di volatilità ribassista iniziale.",
     "esito_decisione_precedente": "Successo parziale: la strategia difensiva introdotta nel weekend ha protetto interamente la cassa residua, che è rimasta stabile a 49.67 EUR (14.1%) senza generare eseguiti indesiderati. Tuttavia, la bassa volatilità domenicale ha posticipato i target di vendita previsti su ETH-EUR.",
     "lezione_appresa": "Nelle fasi di emergenza liquidità (<15%), il Risk Manager deve verificare con assoluto rigore la perfetta corrispondenza tra le linee guida teoriche dell'audit e i parametri del file config.json. Il passaggio di ETH a 'scale_out' deve essere codificato in modo esplicito nel file di configurazione per evitare che l'algoritmo esegua vendite a tranche intera anziché parziali, esaurendo prematuramente l'inventario prima del recupero del target."
+  },
+  {
+    "data": "2026-09-14",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "BULLISH EXTENSION WITH OVERBOUGHT BTC",
+    "decisione": "Disattivazione della configurazione di emergenza 'scale_out' su ETH-EUR (ritorno a 'tranche' e conviction 0.3x) grazie alla riserva di cassa rientrata al 16.4% dopo l'eseguito di vendita su BTC-EUR a 68,045 EUR. Compressione prudenziale della buy_conviction su BTC a 0.2x per via dell'RSI a 82.3 ed attivazione del Fast Harvesting con grid_dist_sell al 2.0% su ETH.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il freno sugli acquisti di BTC eviti il riacquisto prematuro sui massimi locali (RSI > 80). L'abbassamento della griglia di vendita di ETH a 0.020 permetterà di catturare rapidi micro-rimbalzi estraendo ulteriore cassa, mantenendo la liquidità stabilmente sopra il 16%.",
+    "esito_decisione_precedente": "Pieno successo: l'ordine di vendita su BTC-EUR a quota 68,045.33 EUR unitamente al precedente scale-out su ETH ha ripristinato la cassa a 57.04 EUR (16.4%), risolvendo la fase di allerta critica della riserva.",
+    "lezione_appresa": "Quando un asset principale (BTC) effettua una gamba rialzista portando l'RSI oltre 80 e liquidando le posizioni in profitto, la rigenerazione della cassa deve essere immediatamente protetta abbassando la buy_conviction dell'asset stesso a valori minimi (0.2x) per evitare di riacquistare sulla coda finale del trend intraday."
   }
 ]
