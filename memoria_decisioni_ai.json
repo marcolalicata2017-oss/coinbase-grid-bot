@@ -307,5 +307,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la compressione dei target di vendita al 2.0% (pari a un +1.30% netto da commissioni Coinbase Advanced) consenta la monetizzazione immediata dei rimbalzi tecnici notturni su SOL, ETH e DOGE, proteggendo la riserva di cassa libera stabilmente sopra la soglia del 25%.",
     "esito_decisione_precedente": "Pieno successo: l'acquisto sul livello di ipervenduto di ETH-EUR a 2050.76 EUR è stato liquidato in profitto poche ore dopo a 2083.70 EUR (+1.30% netto), validando empiricamente il protocollo di estrazione rapida della liquidità.",
     "lezione_appresa": "Nelle fasi di correzione intraday rapida con RSI delle Altcoin < 30, la riduzione coordinata di 'grid_dist_sell' al limite del net-spread (2.0%) massimizza il tasso di rotazione del capitale, trasformando la volatilità negativa in profitti immediati senza appesantire l'inventario di portafoglio."
+  },
+  {
+    "data": "2026-09-15",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "POST-PUMP INTRADAY PULLBACK WITH OVERSOLD ALTS",
+    "decisione": "Mantenimento del setup di Fast Harvesting su tutto il portafoglio (grid_dist_sell fissa a 0.020) e allineamento delle griglie di acquisto larghe (da 3.0% a 4.0%). Preservata la buy_conviction asimmetrica su ETH (0.8x) e SOL (0.6x) per catturare i rimbalzi tecnici in sicurezza.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la combinazione di griglie d'acquisto ampie e target di vendita stretti (2.0% lordo / 1.30% netto) continui a monetizzare la forte volatilità intraday generata dagli asset in ipervenduto (RSI < 27), mantenendo al contempo la riserva di cassa saldamente al di sopra del 25%.",
+    "esito_decisione_precedente": "Pieno successo: l'ordine di acquisto impostato su ETH-EUR a 2050.76 EUR è stato eseguito e rivenduto in profitto poche ore dopo a 2083.70 EUR (+1.30% netto). La liquidità complessiva è stata brillantemente preservata a 114.60 EUR (32.3% del portafoglio).",
+    "lezione_appresa": "Nelle correzioni veloci intraday, il mantenimento del target di profitto al limite inferiore dello spread netto (2.0%) è lo strumento quantitativo più efficiente per massimizzare la rotazione del capitale ed estrarre rendimento continuo dai micro-rimbalzi senza appesantire l'inventario."
   }
 ]
