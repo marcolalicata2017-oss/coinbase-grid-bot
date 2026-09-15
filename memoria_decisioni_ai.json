@@ -289,5 +289,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il freno sugli acquisti di BTC eviti il riacquisto prematuro sui massimi locali (RSI > 80). L'abbassamento della griglia di vendita di ETH a 0.020 permetterà di catturare rapidi micro-rimbalzi estraendo ulteriore cassa, mantenendo la liquidità stabilmente sopra il 16%.",
     "esito_decisione_precedente": "Pieno successo: l'ordine di vendita su BTC-EUR a quota 68,045.33 EUR unitamente al precedente scale-out su ETH ha ripristinato la cassa a 57.04 EUR (16.4%), risolvendo la fase di allerta critica della riserva.",
     "lezione_appresa": "Quando un asset principale (BTC) effettua una gamba rialzista portando l'RSI oltre 80 e liquidando le posizioni in profitto, la rigenerazione della cassa deve essere immediatamente protetta abbassando la buy_conviction dell'asset stesso a valori minimi (0.2x) per evitare di riacquistare sulla coda finale del trend intraday."
+  },
+  {
+    "data": "2026-09-15",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "POST-PUMP INTRADAY PULLBACK WITH OVERSOLD ALTS",
+    "decisione": "Aumento della buy_conviction su ETH (0.8x), BTC (0.5x), SOL (0.5x) e DOGE (0.3x) guidato dal pieno ripristino della riserva di cassa (32.3%). Attivazione del Fast Harvesting su ETH e DOGE con grid_dist_sell impostata al limite di sicurezza del 2.0%.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che le condizioni di forte ipervenduto intraday registrate su ETH (RSI 21.4) e DOGE (RSI 23.9) inneschino un veloce rimbalzo tecnico. L'acquisto a sconto finanziato dall'ampia cassa disponibile consentirà di eseguire prese di profitto rapide (+2.0% lordo / +1.30% netto) rigenerando continuativamente il cashflow.",
+    "esito_decisione_precedente": "Pieno successo: le vendite tattiche eseguite il 14 settembre su BTC (68,045 EUR) ed ETH (2,248 EUR) hanno fatto balzare la riserva di liquidità da 57.04 EUR a 114.60 EUR (32.3%), risolvendo integralmente l'allerta di cassa.",
+    "lezione_appresa": "Quando le vendite da ipercomprato (RSI > 80) rigenerano un'ampia riserva di cassa (>30%), il Risk Manager deve passare immediatamente dall'atteggiamento difensivo all'accumulo asimmetrico sui successivi affondi in ipervenduto (RSI < 25), associando una griglia di vendita stretta (2.0%) per monetizzare subito l'inevitabile rimbalzo intraday."
   }
 ]
