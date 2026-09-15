@@ -298,5 +298,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che le condizioni di forte ipervenduto intraday registrate su ETH (RSI 21.4) e DOGE (RSI 23.9) inneschino un veloce rimbalzo tecnico. L'acquisto a sconto finanziato dall'ampia cassa disponibile consentirà di eseguire prese di profitto rapide (+2.0% lordo / +1.30% netto) rigenerando continuativamente il cashflow.",
     "esito_decisione_precedente": "Pieno successo: le vendite tattiche eseguite il 14 settembre su BTC (68,045 EUR) ed ETH (2,248 EUR) hanno fatto balzare la riserva di liquidità da 57.04 EUR a 114.60 EUR (32.3%), risolvendo integralmente l'allerta di cassa.",
     "lezione_appresa": "Quando le vendite da ipercomprato (RSI > 80) rigenerano un'ampia riserva di cassa (>30%), il Risk Manager deve passare immediatamente dall'atteggiamento difensivo all'accumulo asimmetrico sui successivi affondi in ipervenduto (RSI < 25), associando una griglia di vendita stretta (2.0%) per monetizzare subito l'inevitabile rimbalzo intraday."
+  },
+  {
+    "data": "2026-09-15",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "INTRADAY CORRECTION WITH OVERSOLD ALTS",
+    "decisione": "Estensione del Fast Harvesting (grid_dist_sell al 2.0%) su tutto il portafoglio e incremento tattico della buy_conviction su SOL-EUR a 0.6x per sfruttare l'ipervenduto estremo (RSI 26.5) mantenendo invariato l'assetto difensivo ad alta efficienza.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la compressione dei target di vendita al 2.0% (pari a un +1.30% netto da commissioni Coinbase Advanced) consenta la monetizzazione immediata dei rimbalzi tecnici notturni su SOL, ETH e DOGE, proteggendo la riserva di cassa libera stabilmente sopra la soglia del 25%.",
+    "esito_decisione_precedente": "Pieno successo: l'acquisto sul livello di ipervenduto di ETH-EUR a 2050.76 EUR è stato liquidato in profitto poche ore dopo a 2083.70 EUR (+1.30% netto), validando empiricamente il protocollo di estrazione rapida della liquidità.",
+    "lezione_appresa": "Nelle fasi di correzione intraday rapida con RSI delle Altcoin < 30, la riduzione coordinata di 'grid_dist_sell' al limite del net-spread (2.0%) massimizza il tasso di rotazione del capitale, trasformando la volatilità negativa in profitti immediati senza appesantire l'inventario di portafoglio."
   }
 ]

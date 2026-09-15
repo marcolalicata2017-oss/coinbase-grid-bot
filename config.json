@@ -7,7 +7,7 @@
     "BTC-EUR": {
       "target_weight_pct": 45.0,
       "grid_dist_buy": 0.03,
-      "grid_dist_sell": 0.025,
+      "grid_dist_sell": 0.02,
       "buy_conviction": 0.5,
       "sell_action": "tranche",
       "max_active_levels": 5,
@@ -27,8 +27,8 @@
     "SOL-EUR": {
       "target_weight_pct": 15.0,
       "grid_dist_buy": 0.035,
-      "grid_dist_sell": 0.025,
-      "buy_conviction": 0.5,
+      "grid_dist_sell": 0.02,
+      "buy_conviction": 0.6,
       "sell_action": "tranche",
       "max_active_levels": 5,
       "is_active": true,
