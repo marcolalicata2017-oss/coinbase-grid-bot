@@ -316,5 +316,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la combinazione di griglie d'acquisto ampie e target di vendita stretti (2.0% lordo / 1.30% netto) continui a monetizzare la forte volatilità intraday generata dagli asset in ipervenduto (RSI < 27), mantenendo al contempo la riserva di cassa saldamente al di sopra del 25%.",
     "esito_decisione_precedente": "Pieno successo: l'ordine di acquisto impostato su ETH-EUR a 2050.76 EUR è stato eseguito e rivenduto in profitto poche ore dopo a 2083.70 EUR (+1.30% netto). La liquidità complessiva è stata brillantemente preservata a 114.60 EUR (32.3% del portafoglio).",
     "lezione_appresa": "Nelle correzioni veloci intraday, il mantenimento del target di profitto al limite inferiore dello spread netto (2.0%) è lo strumento quantitativo più efficiente per massimizzare la rotazione del capitale ed estrarre rendimento continuo dai micro-rimbalzi senza appesantire l'inventario."
+  },
+  {
+    "data": "2026-09-16",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "LIQUIDITY CRUNCH DUE TO ALTCOIN OVER-BUYING",
+    "decisione": "Azzeramento completo delle buy_conviction su tutto il portafoglio e allargamento delle griglie di acquisto (5.0%-6.0%) per congelare l'esborso di cassa. Impostazione di DOGE-EUR in 'scale_out' per forzare la monetizzazione e il dimezzamento della posizione iper-estesa al primo rimbalzo tecnico.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il congelamento totale degli acquisti preservi la cassa residua di 33.74 EUR da ulteriori discese. Il target di vendita ristretto al 2.0% su DOGE (in modalità scale-out) e sugli altri asset permetterà di estrarre liquidità immediata dai primi rimbalzi intraday, riportando la cassa sopra i 60 EUR (>17%) senza incorrere in perdite sul prezzo medio di carico.",
+    "esito_decisione_precedente": "Parzialmente riuscito. Il Fast Harvesting su ETH ha generato un profitto netto del +1.30% ripristinando cassa temporanea, ma l'accumulo ripetuto e imprevisto di DOGE (guidato da buy_conviction attiva e griglie strette in downtrend) ha consumato la riserva portando la liquidità al livello critico del 9.8%.",
+    "lezione_appresa": "Nelle fasi di correzione rapida, gli asset a bassa capitalizzazione o ad alta beta (meme coin) devono essere disattivati immediatamente sul lato acquisti non appena la riserva di cassa scende sotto il 15%, onde evitare che la ripetizione seriale di piccoli eseguiti prosciughi la liquidità strategica destinata ai pilastri del portafoglio."
   }
 ]

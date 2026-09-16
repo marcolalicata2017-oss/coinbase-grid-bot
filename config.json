@@ -6,41 +6,41 @@
   "assets": {
     "BTC-EUR": {
       "target_weight_pct": 45.0,
-      "grid_dist_buy": 0.03,
+      "grid_dist_buy": 0.05,
       "grid_dist_sell": 0.02,
-      "buy_conviction": 0.5,
+      "buy_conviction": 0.0,
       "sell_action": "tranche",
-      "max_active_levels": 5,
+      "max_active_levels": 2,
       "is_active": true,
       "exit_strategy": "none"
     },
     "ETH-EUR": {
       "target_weight_pct": 35.0,
-      "grid_dist_buy": 0.03,
+      "grid_dist_buy": 0.05,
       "grid_dist_sell": 0.02,
-      "buy_conviction": 0.8,
+      "buy_conviction": 0.0,
       "sell_action": "tranche",
-      "max_active_levels": 5,
+      "max_active_levels": 2,
       "is_active": true,
       "exit_strategy": "none"
     },
     "SOL-EUR": {
       "target_weight_pct": 15.0,
-      "grid_dist_buy": 0.035,
+      "grid_dist_buy": 0.05,
       "grid_dist_sell": 0.02,
-      "buy_conviction": 0.6,
+      "buy_conviction": 0.0,
       "sell_action": "tranche",
-      "max_active_levels": 5,
+      "max_active_levels": 2,
       "is_active": true,
       "exit_strategy": "none"
     },
     "DOGE-EUR": {
       "target_weight_pct": 5.0,
-      "grid_dist_buy": 0.04,
+      "grid_dist_buy": 0.06,
       "grid_dist_sell": 0.02,
-      "buy_conviction": 0.3,
-      "sell_action": "tranche",
-      "max_active_levels": 4,
+      "buy_conviction": 0.0,
+      "sell_action": "scale_out",
+      "max_active_levels": 1,
       "is_active": true,
       "exit_strategy": "none"
     }
