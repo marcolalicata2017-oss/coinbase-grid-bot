@@ -325,5 +325,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il congelamento totale degli acquisti preservi la cassa residua di 33.74 EUR da ulteriori discese. Il target di vendita ristretto al 2.0% su DOGE (in modalità scale-out) e sugli altri asset permetterà di estrarre liquidità immediata dai primi rimbalzi intraday, riportando la cassa sopra i 60 EUR (>17%) senza incorrere in perdite sul prezzo medio di carico.",
     "esito_decisione_precedente": "Parzialmente riuscito. Il Fast Harvesting su ETH ha generato un profitto netto del +1.30% ripristinando cassa temporanea, ma l'accumulo ripetuto e imprevisto di DOGE (guidato da buy_conviction attiva e griglie strette in downtrend) ha consumato la riserva portando la liquidità al livello critico del 9.8%.",
     "lezione_appresa": "Nelle fasi di correzione rapida, gli asset a bassa capitalizzazione o ad alta beta (meme coin) devono essere disattivati immediatamente sul lato acquisti non appena la riserva di cassa scende sotto il 15%, onde evitare che la ripetizione seriale di piccoli eseguiti prosciughi la liquidità strategica destinata ai pilastri del portafoglio."
+  },
+  {
+    "data": "2026-09-16",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "CRITICAL CASH DEFICIT WITH HIGH DUST ALLOCATION",
+    "decisione": "Conferma del congelamento totale degli acquisti (buy_conviction 0.0 su tutti i pair) e mantenimento di DOGE-EUR in modalita 'scale_out' con grid_dist_sell al 2.0% per forzare la rigenerazione della cassa sui primi micro-rimbalzi.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il mantenimento dei target di vendita contratti (2.0% lordo / +1.30% netto) unito alla disattivazione di qualsiasi esborso per acquisti permetta l'esecuzione di ordini di vendita limit su DOGE ed ETH durante le fluttuazioni intraday, ripristinando la riserva di cassa oltre la soglia minima di sicurezza del 15% (>51 EUR).",
+    "esito_decisione_precedente": "Successo difensivo: il blocco completo degli acquisti disposto nelle prime ore del 16 settembre ha arrestato il drain di cassa causato dal ciclo di riacquisti seriali su DOGE, consentendo all'algoritmo di avviare il primo ordine speciale di scale-out.",
+    "lezione_appresa": "In regime di Allerta Critica Liquidita (< 10%), il passaggio strategico della sell_action a 'scale_out' sugli asset ad elevato inventario e la simultanea compressione di grid_dist_sell al net-spread minimo (2.0%) rappresentano l'unica via quantitativa per estrarre liquidita immediata senza violare la No-Loss rule sul prezzo medio di carico."
   }
 ]
