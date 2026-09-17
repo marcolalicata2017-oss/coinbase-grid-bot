@@ -334,5 +334,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il mantenimento dei target di vendita contratti (2.0% lordo / +1.30% netto) unito alla disattivazione di qualsiasi esborso per acquisti permetta l'esecuzione di ordini di vendita limit su DOGE ed ETH durante le fluttuazioni intraday, ripristinando la riserva di cassa oltre la soglia minima di sicurezza del 15% (>51 EUR).",
     "esito_decisione_precedente": "Successo difensivo: il blocco completo degli acquisti disposto nelle prime ore del 16 settembre ha arrestato il drain di cassa causato dal ciclo di riacquisti seriali su DOGE, consentendo all'algoritmo di avviare il primo ordine speciale di scale-out.",
     "lezione_appresa": "In regime di Allerta Critica Liquidita (< 10%), il passaggio strategico della sell_action a 'scale_out' sugli asset ad elevato inventario e la simultanea compressione di grid_dist_sell al net-spread minimo (2.0%) rappresentano l'unica via quantitativa per estrarre liquidita immediata senza violare la No-Loss rule sul prezzo medio di carico."
+  },
+  {
+    "data": "2026-09-17",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "POST-CRUNCH CASH RECOVERY & VOLATILITY HARVESTING",
+    "decisione": "Reintroduzione mirata delle buy_conviction su BTC (0.5x), ETH (0.6x) e SOL (0.4x) con griglie di acquisto allargate (4.0% - 4.5%). Congelamento totale degli acquisti su DOGE (0.0x) per tutelare la riserva di liquidità, riportata a 'tranche' dopo il successo dello scale-out. Uniformata la grid_dist_sell al 2.5% su tutti i pair.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la cassa ricostituita al 27.7% (96.39 EUR) agisca da solido cuscinetto per assorbire eventuali ribassi asimmetrici sulle Blue Chips, mentre la compressione delle griglie di vendita al 2.5% genererà una rotazione rapida del capitale estraendo +1.80% netto a ogni oscillazione intraday, escludendo il rischio di un nuovo drenaggio causato dalle memecoin.",
+    "esito_decisione_precedente": "Pieno successo strategico: l'attivazione della modalità 'scale_out' su DOGE combinata con il blocco totale degli acquisti ha drenato liquidità dai rimbalzi del token rimpolpando la cassa dal critico 9.8% al 27.7%, dimostrando l'efficacia delle regole di emergenza.",
+    "lezione_appresa": "Il protocollo di scale-out associato al congelamento dei buy su asset ad alta beta è lo strumento quantitativo ideale per ripristinare la salute finanziaria del portafoglio senza dover forzare vendite in perdita sugli asset principali."
   }
 ]
