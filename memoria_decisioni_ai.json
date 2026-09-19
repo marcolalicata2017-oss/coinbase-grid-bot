@@ -343,5 +343,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la cassa ricostituita al 27.7% (96.39 EUR) agisca da solido cuscinetto per assorbire eventuali ribassi asimmetrici sulle Blue Chips, mentre la compressione delle griglie di vendita al 2.5% genererà una rotazione rapida del capitale estraendo +1.80% netto a ogni oscillazione intraday, escludendo il rischio di un nuovo drenaggio causato dalle memecoin.",
     "esito_decisione_precedente": "Pieno successo strategico: l'attivazione della modalità 'scale_out' su DOGE combinata con il blocco totale degli acquisti ha drenato liquidità dai rimbalzi del token rimpolpando la cassa dal critico 9.8% al 27.7%, dimostrando l'efficacia delle regole di emergenza.",
     "lezione_appresa": "Il protocollo di scale-out associato al congelamento dei buy su asset ad alta beta è lo strumento quantitativo ideale per ripristinare la salute finanziaria del portafoglio senza dover forzare vendite in perdita sugli asset principali."
+  },
+  {
+    "data": "2026-09-19",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "POST-PUMP EXTREME OVERBOUGHT TO CONSOLIDATION",
+    "decisione": "Incremento frazionato e prudente delle buy_conviction (BTC/ETH a 0.6x, SOL a 0.5x, DOGE a 0.2x) con allargamento protettivo delle griglie di acquisto (4.5% - 6.0%) e mantenimento di grid_dist_sell fissa al 2.5%.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il mercato subisca un ritracciamento tecnico o una lateralizzazione dopo i picchi di RSI (>90) registrati ieri. L'allargamento delle griglie permetterà di comprare esclusivamente su supporti solidi, mentre la cassa (attualmente al 47.3%) si manterrà stabilmente sopra la soglia di sicurezza del 35% anche in caso di rapido ribasso.",
+    "esito_decisione_precedente": "Successo straordinario: l'attivazione programmata dei target di vendita corti al 2.5% ha intercettato perfettamente i massimi del pump del 18 settembre. Liquidate posizioni core su BTC, ETH e SOL, portando la cassa a 171.35 EUR (+4.17% di performance di portafoglio a 3 giorni).",
+    "lezione_appresa": "Quando gli indicatori di momentum (RSI) segnalano ipercomprato estremo (>75-90) e la cassa si è ricostituita, mantenere griglie di acquisto ampie evita l'errore di ricomprare troppo presto (FOMO), massimizzando l'efficacia del capitale sui successivi ritracciamenti."
   }
 ]
