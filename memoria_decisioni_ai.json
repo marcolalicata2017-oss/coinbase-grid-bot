@@ -352,5 +352,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il mercato subisca un ritracciamento tecnico o una lateralizzazione dopo i picchi di RSI (>90) registrati ieri. L'allargamento delle griglie permetterà di comprare esclusivamente su supporti solidi, mentre la cassa (attualmente al 47.3%) si manterrà stabilmente sopra la soglia di sicurezza del 35% anche in caso di rapido ribasso.",
     "esito_decisione_precedente": "Successo straordinario: l'attivazione programmata dei target di vendita corti al 2.5% ha intercettato perfettamente i massimi del pump del 18 settembre. Liquidate posizioni core su BTC, ETH e SOL, portando la cassa a 171.35 EUR (+4.17% di performance di portafoglio a 3 giorni).",
     "lezione_appresa": "Quando gli indicatori di momentum (RSI) segnalano ipercomprato estremo (>75-90) e la cassa si è ricostituita, mantenere griglie di acquisto ampie evita l'errore di ricomprare troppo presto (FOMO), massimizzando l'efficacia del capitale sui successivi ritracciamenti."
+  },
+  {
+    "data": "2026-09-20",
+    "tipo_audit": "WEEKLY STRATEGIC",
+    "regime_rilevato": "POST-PUMP CONSOLIDATION WITH EXCELLENT LIQUIDITY RESERVE",
+    "decisione": "Ricalibrazione rialzista delle buy_conviction (BTC/ETH a 0.8x, SOL a 0.6x) e leggera riduzione delle distanze di acquisto (4.0% - 4.5%) per redeployare parte della cassa (47.2%). Mantenute impostazioni di massima difesa su DOGE (buy_conviction 0.3x, grid_buy 6.0%) per prevenire shock di liquidita.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la cassa accumulata (171.35 EUR) consenta di assorbire i ritracciamenti ordinari sui supporti principali di BTC, ETH e SOL senza intaccare la stabilita del portafoglio, generando profitti continui grazie alle vendite rapide impostate al 2.5% (+1.80% netto).",
+    "esito_decisione_precedente": "Pieno successo: le vendite del 18 settembre hanno catturato perfettamente i massimi locali del mercato, scaricando l'inventario ed incrementando la cassa fino al 47.2%. L'allargamento protettivo delle griglie ha evitato riacquisti precoci sui massimi.",
+    "lezione_appresa": "Quando la cassa si trova nella fascia alta (>45%) e il drawdown e assente (+4.49% a 7gg), e quantitativamente corretto riattivare i canali di acquisto sui pilastri principali riducendo leggermente la griglia di acquisto (da 5.0% a 4.0%), a patto di mantenere severe restrizioni di allocazione sulle meme coin speculative."
   }
 ]
