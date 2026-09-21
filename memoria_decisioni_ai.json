@@ -361,5 +361,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la cassa accumulata (171.35 EUR) consenta di assorbire i ritracciamenti ordinari sui supporti principali di BTC, ETH e SOL senza intaccare la stabilita del portafoglio, generando profitti continui grazie alle vendite rapide impostate al 2.5% (+1.80% netto).",
     "esito_decisione_precedente": "Pieno successo: le vendite del 18 settembre hanno catturato perfettamente i massimi locali del mercato, scaricando l'inventario ed incrementando la cassa fino al 47.2%. L'allargamento protettivo delle griglie ha evitato riacquisti precoci sui massimi.",
     "lezione_appresa": "Quando la cassa si trova nella fascia alta (>45%) e il drawdown e assente (+4.49% a 7gg), e quantitativamente corretto riattivare i canali di acquisto sui pilastri principali riducendo leggermente la griglia di acquisto (da 5.0% a 4.0%), a patto di mantenere severe restrizioni di allocazione sulle meme coin speculative."
+  },
+  {
+    "data": "2026-09-21",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "EXTREME OVERBOUGHT MOMENTUM PUMP WITH CONTINUOUS HARVESTING EXECUTIONS",
+    "decisione": "Mantenimento riserva di cassa elevata (47.1%), allargamento prudenziale delle griglie d'acquisto (4.5%-5.0% su Blue Chips) per evitare il riacquisto precoce (FOMO) dopo picchi RSI > 90 su ETH e > 75 su BTC. Confermata grid_dist_sell al 2.5% (+1.80% netto).",
+    "ipotesi_e_aspettativa": "Ci aspettiamo una fase di ritracciamento tecnico o lateralizzazione a breve termine dopo l'estensione di RSI. Le griglie d'acquisto allargate permetteranno di ricaricare le posizioni solo su supporti reali, mantenendo la cassa oltre il 40% in caso di correzioni più profonde.",
+    "esito_decisione_precedente": "Pieno successo strategico: gli ordini di vendita su ETH e BTC hanno scaricato l'inventario sui massimi locali di giornata, portando la cassa a 171.35 EUR e registrando rendimenti solidi a 3G (+0.46%) e 7G (+2.66%).",
+    "lezione_appresa": "Nelle fasi di overbought estremo (RSI > 85-90), impostare target di vendita quantitativi rigidi ed allargare contestualmente le distanze di riacquisto impedisce l'errore comportamentale del ricomprare troppo presto durante i primi micro-ribassi."
   }
 ]
