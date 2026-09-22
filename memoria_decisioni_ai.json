@@ -370,5 +370,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo una fase di ritracciamento tecnico o lateralizzazione a breve termine dopo l'estensione di RSI. Le griglie d'acquisto allargate permetteranno di ricaricare le posizioni solo su supporti reali, mantenendo la cassa oltre il 40% in caso di correzioni più profonde.",
     "esito_decisione_precedente": "Pieno successo strategico: gli ordini di vendita su ETH e BTC hanno scaricato l'inventario sui massimi locali di giornata, portando la cassa a 171.35 EUR e registrando rendimenti solidi a 3G (+0.46%) e 7G (+2.66%).",
     "lezione_appresa": "Nelle fasi di overbought estremo (RSI > 85-90), impostare target di vendita quantitativi rigidi ed allargare contestualmente le distanze di riacquisto impedisce l'errore comportamentale del ricomprare troppo presto durante i primi micro-ribassi."
+  },
+  {
+    "data": "2026-09-22",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "PARABOLIC EXTENSION HARVESTED TO HIGH CASH SURPLUS",
+    "decisione": "Aumento tattico delle buy_conviction su BTC ed ETH (0.9x) e SOL (0.7x) con stringimento controllato delle griglie d'acquisto (4.0% su BTC/ETH, 4.5% su SOL) per predisporre il redeployment ordinato del surplus di cassa (68.7%) durante i primi ritracciamenti tecnici.",
+    "ipotesi_e_aspettativa": "Dopo l'ondata di take-profit su livelli RSI estesi (>90), ci aspettiamo una fase di consolidamento o ritracciamento fisiologico. Le nuove griglie permetteranno di ricaricare inventario su supporti chiave senza incorrere in FOMO, mantenendo la cassa al di sopra della soglia di sicurezza del 40%.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: l'esecuzione di 4 ordini limit di vendita durante il picco di RSI ha liquidato l'inventario ai massimi di mercato, portando la cassa a 256.86 EUR (68.7%) e la performance a 7G al +8.72%.",
+    "lezione_appresa": "Quando la cassa supera il 65% a seguito di vendite automatiche sui massimi di un rally, la priorita risiede nel pianificare una scaletta di riacquisto progressiva (ladder buy) con buy_conviction elevate ma griglie ben strutturate (4.0%), evitando di inseguire i prezzi al rialzo."
   }
 ]
