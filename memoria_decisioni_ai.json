@@ -379,5 +379,14 @@
     "ipotesi_e_aspettativa": "Dopo l'ondata di take-profit su livelli RSI estesi (>90), ci aspettiamo una fase di consolidamento o ritracciamento fisiologico. Le nuove griglie permetteranno di ricaricare inventario su supporti chiave senza incorrere in FOMO, mantenendo la cassa al di sopra della soglia di sicurezza del 40%.",
     "esito_decisione_precedente": "Pieno successo quantitativo: l'esecuzione di 4 ordini limit di vendita durante il picco di RSI ha liquidato l'inventario ai massimi di mercato, portando la cassa a 256.86 EUR (68.7%) e la performance a 7G al +8.72%.",
     "lezione_appresa": "Quando la cassa supera il 65% a seguito di vendite automatiche sui massimi di un rally, la priorita risiede nel pianificare una scaletta di riacquisto progressiva (ladder buy) con buy_conviction elevate ma griglie ben strutturate (4.0%), evitando di inseguire i prezzi al rialzo."
+  },
+  {
+    "data": "2026-09-24",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS & LATERAL CONSOLIDATION HARVESTING",
+    "decisione": "Aumento buy_conviction su Blue Chips (BTC/ETH a 1.0x, SOL a 0.8x) con lieve compressione delle griglie d'acquisto (3.8%-4.0%) e abbassamento delle griglie di vendita (2.2% su Blue Chips, 2.0% su DOGE) per accelerare la rotazione della cassa libera (69.1%).",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il riarmamento dei buy limit sui supporti di breve periodo permetta di catturare i dip del consolidamento in corso (-0.66% a 3G), mentre l'abbassamento del target di vendita al 2.2%/2.0% genererà un turnover di cassa ad alta frequenza garantendo un profitto netto dello 1.30%-1.50% a ogni swing.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: l'ordine Limit di vendita su ETH-EUR (2.417,02 EUR) è stato eseguito perfettamente durante l'estensione di prezzo, portando la cassa libera a 256.86 EUR (69.1%) e preservando il rendimento a 7G al +6.27%.",
+    "lezione_appresa": "Quando la cassa libera supera il 65% in seguito all'incasso dei target di vendita sui massimi, la strategia ottimale richiede di restringere il target di take-profit (grid_dist_sell a 2.0%-2.2%) e riattivare gradualmente gli ordini d'acquisto per estrarre rendimento continuo dai micro-rimbalzi intraday."
   }
 ]
