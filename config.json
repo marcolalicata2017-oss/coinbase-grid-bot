@@ -6,7 +6,7 @@
   "assets": {
     "BTC-EUR": {
       "target_weight_pct": 45.0,
-      "grid_dist_buy": 0.038,
+      "grid_dist_buy": 0.035,
       "grid_dist_sell": 0.022,
       "buy_conviction": 1.0,
       "sell_action": "tranche",
@@ -16,7 +16,7 @@
     },
     "ETH-EUR": {
       "target_weight_pct": 35.0,
-      "grid_dist_buy": 0.038,
+      "grid_dist_buy": 0.035,
       "grid_dist_sell": 0.022,
       "buy_conviction": 1.0,
       "sell_action": "tranche",
@@ -26,7 +26,7 @@
     },
     "SOL-EUR": {
       "target_weight_pct": 15.0,
-      "grid_dist_buy": 0.04,
+      "grid_dist_buy": 0.038,
       "grid_dist_sell": 0.022,
       "buy_conviction": 0.8,
       "sell_action": "tranche",
@@ -36,7 +36,7 @@
     },
     "DOGE-EUR": {
       "target_weight_pct": 5.0,
-      "grid_dist_buy": 0.05,
+      "grid_dist_buy": 0.048,
       "grid_dist_sell": 0.02,
       "buy_conviction": 0.3,
       "sell_action": "tranche",
