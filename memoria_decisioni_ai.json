@@ -397,5 +397,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il leggero restringimento dei canali di acquisto consenta l'esecuzione di ordini limite sui micro-ritracciamenti giornalieri, riducendo l'inattivita del capitale senza compromettere la struttura difensiva del portafoglio (la cassa rimarra comunque sopra il 50%).",
     "esito_decisione_precedente": "Successo parziale/Neutro: La stabilità e l'assenza di drawdown (+0.06% a 3G) confermano l'efficacia del setup protettivo, ma l'assenza di esecuzioni ha causato un ristagno della liquidità al 70.1%, evidenziando la necessità di griglie più reattive.",
     "lezione_appresa": "Nelle fasi di compressione della volatilità (flat drawdown) con cassa eccezionalmente alta (>65%), mantenere griglie d'acquisto conservative (>4.0%) genera un costo opportunità. È quantitativamente corretto ridurre la distanza dei buy limit per forzare l'attivazione della rotazione del capitale."
+  },
+  {
+    "data": "2026-09-27",
+    "tipo_audit": "WEEKLY STRATEGIC",
+    "regime_rilevato": "LOW-VOLATILITY CONSOLIDATION WITH EXTREME CASH SURPLUS",
+    "decisione": "Ottimizzazione e compressione delle griglie d'acquisto sulle Blue Chips (BTC/ETH a 3.2%, SOL a 3.5%) e parziale riduzione su DOGE (4.5%). Mantenimento di target di vendita stretti (2.2% su asset primari, 2.0% su DOGE) per accelerare lo sblocco del 70% di liquidità accumulata.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la riduzione sistematica della distanza dei buy limit faciliti l'esecuzione di ordini d'acquisto parziali durante le fluttuazioni settimanali. I target di vendita corti garantiranno una rapida conversione delle posizioni caricate in profitti netti (minimo +1.30% netto per trade dopo le fee di Coinbase Advanced), rinvigorendo il flusso di cassa.",
+    "esito_decisione_precedente": "Pieno successo difensivo: l'assenza di drawdown (+2.23% a 7G) e la preservazione del capitale a 372.23 EUR confermano l'efficacia del setup protettivo. Tuttavia, l'estrema compressione della volatilità ha limitato le esecuzioni, lasciando la cassa immobile al 70.0% ed evidenziando un temporaneo costo opportunità.",
+    "lezione_appresa": "Quando la cassa di portafoglio stagna su livelli critici di surplus (>65%) in assenza di trend direzionali negativi, il mantenimento di griglie di acquisto eccessivamente larghe (>4.0%) rallenta la reattività del sistema. È quantitativamente necessario agire sulla micro-struttura riducendo lo spread di acquisto (3.2% - 3.5%) per massimizzare la probabilità di fill e la rotazione complessiva del portafoglio."
   }
 ]
