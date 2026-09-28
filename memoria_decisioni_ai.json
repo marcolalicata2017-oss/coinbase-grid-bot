@@ -406,5 +406,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la riduzione sistematica della distanza dei buy limit faciliti l'esecuzione di ordini d'acquisto parziali durante le fluttuazioni settimanali. I target di vendita corti garantiranno una rapida conversione delle posizioni caricate in profitti netti (minimo +1.30% netto per trade dopo le fee di Coinbase Advanced), rinvigorendo il flusso di cassa.",
     "esito_decisione_precedente": "Pieno successo difensivo: l'assenza di drawdown (+2.23% a 7G) e la preservazione del capitale a 372.23 EUR confermano l'efficacia del setup protettivo. Tuttavia, l'estrema compressione della volatilità ha limitato le esecuzioni, lasciando la cassa immobile al 70.0% ed evidenziando un temporaneo costo opportunità.",
     "lezione_appresa": "Quando la cassa di portafoglio stagna su livelli critici di surplus (>65%) in assenza di trend direzionali negativi, il mantenimento di griglie di acquisto eccessivamente larghe (>4.0%) rallenta la reattività del sistema. È quantitativamente necessario agire sulla micro-struttura riducendo lo spread di acquisto (3.2% - 3.5%) per massimizzare la probabilità di fill e la rotazione complessiva del portafoglio."
+  },
+  {
+    "data": "2026-09-28",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "LOW-VOLATILITY CONSOLIDATION WITH HIGH CASH SURPLUS",
+    "decisione": "Mantenimento dei parametri attuali (grid_dist_buy 3.2%-3.5%, sell_dist 2.2%) senza procedere a rotazioni forzate su asset in breakout (es. LINK) per preservare la struttura difensiva e la riserva di cassa al 70.0%.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la persistenza della struttura a griglia stretta consenta l'intercettazione dei micro-ritracciamenti giornalieri, riducendo gradualmente la cassa in eccesso non appena i mercati registreranno una normale espansione della volatilità.",
+    "esito_decisione_precedente": "Successo difensivo: il portafoglio ha mantenuto la stabilità (+0.12% a 3G) e preservato il capitale a 372.28 EUR, confermando la validità della riserva di cassa elevata in assenza di trend direzionali forti.",
+    "lezione_appresa": "In presenza di picchi di volume su singole altcoin in forte rally (LINK), inseguire il movimento viola i principi di risk management quantitativo; è preferibile mantenere la disciplina sulle Blue Chips e attendere configurazioni di accumulo pulite."
   }
 ]
