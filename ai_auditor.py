@@ -43,34 +43,11 @@ def invia_telegram(messaggio):
     except Exception as e:
         print(f"❌ Errore invio Telegram: {e}", flush=True)
 
-def ottieni_altcoin_eur_disponibili_coinbase():
-    try:
-        url = "https://api.exchange.coinbase.com/products"
-        headers = {"User-Agent": "Python-Bot"}
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code == 200:
-            prodotti = resp.json()
-            coppie_eur_valide = []
-            esclusi = ["USDC-EUR", "EURC-EUR", "USDT-EUR"]
-            for p in prodotti:
-                id_pair = p.get("id", "")
-                quote = p.get("quote_currency", "")
-                status = p.get("status", "")
-                disabled = p.get("trading_disabled", False)
-                if quote == "EUR" and status == "online" and not disabled:
-                    if id_pair not in esclusi:
-                        coppie_eur_valide.append(id_pair)
-            coppie_eur_valide.sort()
-            return coppie_eur_valide
-    except Exception as e:
-        print(f"⚠️ Errore recupero pair dinamici da Coinbase: {e}", flush=True)
-    return ALTCOIN_CANDIDATE_RADAR
-
-def scansiona_radar_altcoin(lista_pairs):
-    """Scansiona i dati tecnici reali (Prezzo, Delta 24h, RSI 1h) per offrire all'AI un radar concreto."""
+def scansiona_radar_altcoin_con_volumi(lista_pairs):
+    """Scansiona Prezzo, Delta 24h, RSI 1h e VAI (Volume Anomaly Index vs media 7 giorni)."""
     radar = {}
     headers = {"User-Agent": "Python-Bot"}
-    print("🔭 [RADAR] Scansione tecnica del mercato in corso...", flush=True)
+    print("🔭 [RADAR] Scansione tecnica e volumi anomali in corso...", flush=True)
     
     for pair in lista_pairs:
         try:
@@ -78,29 +55,42 @@ def scansiona_radar_altcoin(lista_pairs):
             resp = requests.get(url, headers=headers, timeout=5)
             if resp.status_code == 200:
                 data = resp.json()
-                if isinstance(data, list) and len(data) >= 15:
+                if isinstance(data, list) and len(data) >= 24:
                     candele = list(reversed(data))
                     prezzi = pd.Series([float(c[4]) for c in candele])
-                    px_att = prezzi.iloc[-1]
-                    var_24h = ((px_att - prezzi.iloc[-24]) / prezzi.iloc[-24] * 100.0) if len(prezzi) >= 24 else 0.0
+                    volumi = pd.Series([float(c[5]) for c in candele])
                     
+                    px_att = prezzi.iloc[-1]
+                    var_24h = ((px_att - prezzi.iloc[-24]) / prezzi.iloc[-24] * 100.0)
+                    
+                    # Calcolo Volume Anomaly Index (VAI): ultime 24 ore vs media storica disponibile
+                    vol_24h_tot = volumi.tail(24).sum()
+                    finestra_totale = min(len(volumi), 168) # Fino a 7 giorni (168 ore)
+                    vol_medio_24h = (volumi.tail(finestra_totale).sum() / (finestra_totale / 24.0)) if finestra_totale >= 24 else vol_24h_tot
+                    vai_ratio = round(vol_24h_tot / vol_medio_24h, 2) if vol_medio_24h > 0 else 1.0
+
                     delta = prezzi.diff()
                     gain = delta.where(delta > 0, 0).rolling(14).mean()
                     loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
                     rs = gain / loss
                     rsi = 100 - (100 / (1 + rs))
                     rsi_val = float(rsi.iloc[-1]) if not pd.isna(rsi.iloc[-1]) else 50.0
+
+                    # Stato della pressione (Verde se il prezzo regge, Rosso se distribuzione)
+                    pressione = "ACCUMULO" if (var_24h >= -1.5 and vai_ratio >= 1.8) else ("DISTRIBUZIONE" if vai_ratio >= 2.0 and var_24h < -4.0 else "NORMALE")
                     
                     radar[pair] = {
                         "prezzo": round(px_att, 4),
                         "var_24h_pct": round(var_24h, 2),
-                        "rsi_1h": round(rsi_val, 1)
+                        "rsi_1h": round(rsi_val, 1),
+                        "volume_anomaly_vai": vai_ratio,
+                        "pressione_rilevata": pressione
                     }
         except Exception:
             pass
-        time.sleep(0.15)
+        time.sleep(0.12)
         
-    print(f"✅ [RADAR] Scansionati {len(radar)} asset con successo.", flush=True)
+    print(f"✅ [RADAR] Scansionati {len(radar)} asset con analisi volumetrica.", flush=True)
     return radar
 
 def carica_memoria_storica():
@@ -139,7 +129,7 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Fast Harvesting, Market Radar & Memoria"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Aggiornamento tattico radar, volumi & memoria"], check=True)
             subprocess.run(["git", "push"], check=True)
             print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
             return True
@@ -159,10 +149,8 @@ def esegui_audit():
     df_diario = pd.read_csv(FILE_DIARIO, on_bad_lines='skip') if os.path.exists(FILE_DIARIO) else pd.DataFrame()
     df_portafoglio = pd.read_csv(FILE_PORTAFOGLIO) if os.path.exists(FILE_PORTAFOGLIO) else pd.DataFrame()
     memoria_storica = carica_memoria_storica()
-    altcoin_disponibili = ottieni_altcoin_eur_disponibili_coinbase()
     
-    # Scansione tecnica attiva
-    radar_mercato = scansiona_radar_altcoin(ALTCOIN_CANDIDATE_RADAR)
+    radar_mercato = scansiona_radar_altcoin_con_volumi(ALTCOIN_CANDIDATE_RADAR)
 
     config_attuale = {}
     if os.path.exists(FILE_CONFIG):
@@ -211,7 +199,7 @@ def esegui_audit():
     Gestisci un portafoglio a BANDE FLESSIBILI SENZA DISTINZIONE FISSA CORE/SATELLITE.
 
     Data Corrente: {data_odierna_str}
-    Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Scouting Opportunità & Fast Harvesting)"}
+    Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Scouting Volumi & Fast Harvesting)"}
 
     ⚡ COMMISSIONI COINBASE ADVANCED: Maker 0.35%, Taker 0.75%.
     🎯 REGOLE NET SPREAD: Con fee totali a 0.70%, 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%).
@@ -225,19 +213,20 @@ def esegui_audit():
       * Rendimento/Drawdown 3 Giorni: {dd_3gg_pct:+.2f}%
       * Rendimento/Drawdown 7 Giorni: {dd_7gg_pct:+.2f}%
 
-    🔭 RADAR TECNICO MERCATO (DATI IN TEMPO REALE SULLE MONETE SCANSIONATE):
+    🔭 RADAR TECNICO MERCATO & VOLUMI ANOMALI (VAI = Volume Anomaly Index):
     {json.dumps(radar_mercato, indent=2)}
 
     🧠 VALUTAZIONE MEMORIA DECISIONALE (COSA HA FUNZIONATO E COSA NO):
     {json.dumps(memoria_storica[-5:], indent=2) if memoria_storica else "Nessuna memoria registrata."}
     * Confronta l'aspettativa dell'ultimo audit con i dati reali del diario recente.
-    * Gli ordini piazzati sono stati eseguiti? La liquidità è migliorata? Se un target precedente era troppo ambizioso ed è rimasto invenduto, annotalo come lezione appresa e correggilo!
 
-    🌊 PROTOCOLLO DI PROFITTO IN TREND RIBASSISTA (FAST HARVESTING):
-    Se il mercato è in downtrend da giorni (dd_3gg_pct < -3% o dd_7gg_pct < -5%), il nostro obiettivo NON è restare fermi, ma CONTINUARE A GUADAGNARE sui rimbalzi intraday:
-    1. Abbassa il target di vendita ('grid_dist_sell') a 0.020 (2.0%) su tutti gli asset: nei trend ribassisti i rimbalzi sono brevi, dobbiamo incassare subito il +1.30% netto e rimettere EUR in cassa.
-    2. Allarga 'grid_dist_buy' (tra 0.025 e 0.035): non comprare a piccoli cali, aspetta affondi consistenti per comprare token a forte sconto.
-    3. Monitora asset con ordini BUY pendenti ma senza esecuzioni e con conviction 0.0 (come DOGE): se un asset è bloccato e non produce cash flow, imposta 'exit_strategy': 'soft_exit' per cancellare il BUY pendente e liberare cassa da riallocare su monete con setup migliore!
+    🌊 PROTOCOLLO CACCIA VOLUMI ANOMALI & FAST HARVESTING:
+    1. Se un asset nel Radar mostra 'pressione_rilevata': 'ACCUMULO' (volume_anomaly_vai >= 1.8x con prezzo stabile o in ipervenduto RSI < 40):
+       - Consideralo candidato ad alta priorità per catturare un'impennata di volatilità.
+       - Puoi assegnargli un target weight del 10.0% - 15.0% dismettendo asset fermi con 'buy_conviction': 0.0 (come DOGE).
+    2. Se un asset mostra 'pressione_rilevata': 'DISTRIBUZIONE' (volumi record su candele fortemente negative):
+       - EVITALO! È un falso positivo da scarico whale.
+    3. Su tutti gli asset in downtrend o laterale, mantieni 'grid_dist_sell': 0.020 per incassare velocemente sui rimbalzi.
 
     🚨 PROTOCOLLO LIQUIDITY CRUNCH & NO-LOSS RULE:
     - Se Cassa EUR < 15% (o < 40 EUR) o un asset supera di molto il target weight:
@@ -256,7 +245,7 @@ def esegui_audit():
 
     Parte 1: Report per Telegram (Markdown) contenente OBBLIGATORIAMENTE:
     - 💧 Quadro Cassa & Drawdown ({dd_3gg_pct:+.2f}% 3G)
-    - 🔭 RADAR OPPORTUNITÀ & ROTAZIONE ALTCOIN: commenta cosa emerge dai dati del Radar (LINK, AVAX, NEAR, SUI, ADA, ecc.). Se noti opportunità di rimbalzo o se ritieni necessario dismettere asset fermi (come DOGE) per ruotare capitale, esponilo chiaramente. Se decidi di non ruotare, motiva espressamente perché.
+    - 🔭 RADAR OPPORTUNITÀ & VOLUMI ANOMALI: commenta cosa emerge dall'analisi volumetrica (VAI, RSI, accumuli sospetti). Se proponi una rotazione (es. dismettere DOGE in soft_exit per un'opportunità), indicalo esplicitamente. Se non ruoti nulla, spiega perché.
     - 🔍 Verifica della Memoria: esame critico delle decisioni precedenti
     - 🎯 Decisioni operative sui singoli pair
     ---JSON_CONFIG---
@@ -311,7 +300,7 @@ def esegui_audit():
         except Exception as e:
             print(f"⚠️ Errore parsing JSON da Gemini: {e}", flush=True)
 
-    intestazione = "🧠 *[AI AUDITOR - SETTIMANALE STRATEGICO]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - RADAR & FAST HARVESTING]*\n\n"
+    intestazione = "🧠 *[AI AUDITOR - SETTIMANALE STRATEGICO]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - RADAR VOLUMI & HARVESTING]*\n\n"
     if modificato:
         report_telegram += "\n\n🚀 *[PARAMETRI & MEMORIA AGGIORNATI SU GITHUB]*"
 
