@@ -33,6 +33,7 @@ EMOJI_MAP = {
     "ADA": "🔵",
     "AVAX": "🔺",
     "NEAR": "🟢",
+    "SUI": "💧",
     "DEFAULT": "📊"
 }
 
@@ -407,7 +408,7 @@ def cancella_ordini_pair(product_id, cancella_solo_buy=False):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA CON BANDE FLESSIBILI
+# LOGICA DI PIAZZAMENTO GRIGLIA PARABOLICA
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", 
                          ema50=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0,
@@ -421,12 +422,11 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     dec = cfg["decimals"]
     emoji = cfg["emoji"]
     
-    # Parametri Dinamici AI
     target_weight_pct = cfg.get("target_weight_pct", 25.0)
     buy_conviction = max(0.0, min(2.0, cfg.get("buy_conviction", 1.0)))
     sell_action = cfg.get("sell_action", "tranche")
 
-    # 1. Spaziatura Dinamica ML / Dynamic Profit Target
+    # 1. Spaziatura Dinamica ML
     grid_dist_buy = grid_dist_base
     if MODELLO_ML is not None and ema50 > 0:
         try:
@@ -437,15 +437,15 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 motivo_reset += " ⚡[ML High Vol]"
         except: pass
 
-    # Dynamic Profit Progression
-    if rsi >= 65 and volume_ratio >= 1.5:
-        grid_dist_sell = max(grid_dist_sell_base * 2.0, 0.025)
-        label_profit = f" 🚀[Dynamic Profit HIGH: +{grid_dist_sell*100:.1f}%]"
-    elif rsi >= 55:
-        grid_dist_sell = grid_dist_sell_base * 1.3
-        label_profit = f" 📈[Dynamic Profit MED: +{grid_dist_sell*100:.1f}%]"
+    # 2. TAKE PROFIT PARABOLICO DINAMICO: Allarga i target nei pump verticali
+    if rsi >= 75 and volume_ratio >= 2.0:
+        grid_dist_sell = max(grid_dist_sell_base * 2.5, 0.040) # +4.0% o superiore
+        label_profit = f" 🚀[Parabolic Momentum TOP: +{grid_dist_sell*100:.1f}%]"
+    elif rsi >= 65 and volume_ratio >= 1.5:
+        grid_dist_sell = max(grid_dist_sell_base * 1.8, 0.030)
+        label_profit = f" 📈[Dynamic Profit HIGH: +{grid_dist_sell*100:.1f}%]"
     elif rsi <= 40:
-        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020)
+        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020) # Presa profitto veloce
         label_profit = f" 🎯[Dynamic Profit FAST: +{grid_dist_sell*100:.1f}%]"
     else:
         grid_dist_sell = max(grid_dist_sell_base, 0.020)
@@ -458,13 +458,10 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
     crypto_posseduta_disp = dict_cripto_disp.get(symbol_crypto, 0.0)
 
-    # Filtro Dust (< 0.50 EUR)
     if (crypto_posseduta_disp * prezzo_rif) < 0.50:
         crypto_posseduta_disp = 0.0
 
-    # -------------------------------------------------------------
-    # SIZING DINAMICO GEN AI A BANDE FLESSIBILI
-    # -------------------------------------------------------------
+    # Sizing Dinamico a Bande Flessibili
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
     budget_buy_raw = budget_totale_asset * 0.20 * buy_conviction
 
@@ -480,7 +477,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     buy_eseguito_ok = False
     sell_eseguito_ok = False
 
-    # A. PIAZZAMENTO ORDINE BUY (Solo se conviction > 0)
+    # A. ORDINE BUY (Solo con cassa e conviction > 0)
     if autorizza_buy and buy_conviction > 0 and saldo_eur_disp >= min_order_eur and budget_buy_protetto >= min_order_eur:
         try:
             id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
@@ -492,9 +489,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         except Exception as e:
             print(f"⚠️ Errore ordine BUY limite ({pair}): {e}", flush=True)
 
-    # -------------------------------------------------------------
-    # B. PIAZZAMENTO ORDINE SELL DINAMICO GEN AI (CON ONE-SHOT RESET)
-    # -------------------------------------------------------------
+    # B. ORDINE SELL (Con One-Shot Reset)
     valore_crypto_disp = crypto_posseduta_disp * prezzo_sell
     if valore_crypto_disp >= min_order_eur:
         molt = 10 ** dec
@@ -529,7 +524,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             except Exception as e:
                 print(f"⚠️ Errore ordine SELL limite ({pair}): {e}", flush=True)
 
-    # Notifica Telegram e Diario
     if buy_eseguito_ok or sell_eseguito_ok:
         dettagli_ordini = []
         if buy_eseguito_ok: dettagli_ordini.append(f"🟢 BUY @ {prezzo_buy_grid:.2f} EUR (Conviction: {buy_conviction}x)")
@@ -595,7 +589,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     if (crypto_posseduta_disp * prezzo_attuale) < 0.50:
         crypto_posseduta_disp = 0.0
 
-    # 1. Market Sell
+    # 1. Exit Strategy Market Sell
     if exit_strategy == "market_sell":
         cancella_ordini_pair(pair)
         if (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur:
@@ -630,13 +624,20 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
 
     print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Saldo Disp EUR: {saldo_eur_disp:.2f} | Conviction: {buy_conviction}", flush=True)
 
-    # 3. AUTO-CLEANUP ORDINI OBSOLETI: Se buy_conviction è 0.0, cancelliamo subito eventuali ordini BUY rimasti aperti
+    # 3. AUTO-CLEANUP: Cancella ordini BUY se la convinzione è zero
     if buy_conviction == 0.0 and id_buy is not None:
         print(f"🧹 [CLEANUP {pair}] buy_conviction è 0.0: cancello ordine BUY pendente {id_buy}", flush=True)
         cancella_ordini_pair(pair, cancella_solo_buy=True)
         id_buy = None
 
-    # 4. OVERRIDE IMMEDIATO PER SCALE-OUT / LIQUIDATE-ALL
+    # 4. CLIMAX PROFIT TAKE SENTINEL (Monetizzazione Rapida su Spike Parabolico)
+    # Se l'RSI a 1h è sopra 80 (ipercomprato estremo) e il prezzo è salito del 15% sopra EMA50
+    dist_ema_pct = (prezzo_attuale - ema50) / ema50 if ema50 > 0 else 0.0
+    if rsi >= 80.0 and dist_ema_pct >= 0.15 and ha_crypto_per_sell and sell_action == "tranche":
+        print(f"🚨 [CLIMAX TAKE-PROFIT {pair}] Rilevato picco parabolico (RSI: {rsi:.1f}, Dist EMA: +{dist_ema_pct*100:.1f}%): forzo SCALE-OUT 50%!", flush=True)
+        sell_action = "scale_out"
+
+    # 5. OVERRIDE IMMEDIATO SCALE-OUT / LIQUIDATE-ALL
     if sell_action in ["scale_out", "liquidate_all"] and ha_crypto_per_sell:
         print(f"⚡ [OVERRIDE {pair}] Richiesta azione speciale '{sell_action}': aggiornamento forzato della griglia...", flush=True)
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, 
@@ -646,21 +647,21 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 5. Inizializzazione
+    # 6. Inizializzazione griglia completa
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Griglia", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 6. Circuit breaker
+    # 7. Circuit breaker attivo con BUY aperto
     if not trend_ok and id_buy is not None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, True
 
-    # 7. Manca BUY
+    # 8. Manca BUY (Riallineamento)
     if id_buy is None and id_sell is not None:
         if saldo_eur_disp >= min_order_eur and buy_conviction > 0:
             print(f"⚠️ [DEBUG {pair}] Manca BUY. Riallineamento griglia...", flush=True)
@@ -669,7 +670,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                                  valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 8. Manca SELL con crypto
+    # 9. Manca SELL con crypto posseduta
     if id_buy is not None and id_sell is None:
         if ha_crypto_per_sell:
             print(f"⚠️ [DEBUG {pair}] Manca SELL con crypto in carico. Riallineamento...", flush=True)
@@ -681,7 +682,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     return prezzo_attuale, not trend_ok
 
 def main():
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Bande Flessibili & Auto-Cleanup)...", flush=True)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Climax Take-Profit & Parabolic Ladder)...", flush=True)
     carica_e_sincronizza_config()
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
