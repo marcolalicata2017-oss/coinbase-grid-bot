@@ -63,9 +63,8 @@ def scansiona_radar_altcoin_con_volumi(lista_pairs):
                     px_att = prezzi.iloc[-1]
                     var_24h = ((px_att - prezzi.iloc[-24]) / prezzi.iloc[-24] * 100.0)
                     
-                    # Calcolo Volume Anomaly Index (VAI): ultime 24 ore vs media storica disponibile
                     vol_24h_tot = volumi.tail(24).sum()
-                    finestra_totale = min(len(volumi), 168) # Fino a 7 giorni (168 ore)
+                    finestra_totale = min(len(volumi), 168)
                     vol_medio_24h = (volumi.tail(finestra_totale).sum() / (finestra_totale / 24.0)) if finestra_totale >= 24 else vol_24h_tot
                     vai_ratio = round(vol_24h_tot / vol_medio_24h, 2) if vol_medio_24h > 0 else 1.0
 
@@ -76,7 +75,6 @@ def scansiona_radar_altcoin_con_volumi(lista_pairs):
                     rsi = 100 - (100 / (1 + rs))
                     rsi_val = float(rsi.iloc[-1]) if not pd.isna(rsi.iloc[-1]) else 50.0
 
-                    # Stato della pressione (Verde se il prezzo regge, Rosso se distribuzione)
                     pressione = "ACCUMULO" if (var_24h >= -1.5 and vai_ratio >= 1.8) else ("DISTRIBUZIONE" if vai_ratio >= 2.0 and var_24h < -4.0 else "NORMALE")
                     
                     radar[pair] = {
@@ -129,7 +127,7 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Aggiornamento tattico radar, volumi & memoria"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Fast Harvesting, Market Radar & Memoria"], check=True)
             subprocess.run(["git", "push"], check=True)
             print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
             return True
@@ -254,7 +252,16 @@ def esegui_audit():
     Parte 3: Scheda di memoria JSON con i campi: data, tipo_audit, regime_rilevato, decisione, ipotesi_e_aspettativa, esito_decisione_precedente, lezione_appresa.
     """
 
-    modelli = ['gemini-3.5-flash', 'gemini-3.6-flash']
+    # Nuovi modelli di punta in testa, seguiti dai modelli flash consolidati e dalla linea Lite per failover
+    modelli = [
+        'gemini-3.8-flash',
+        'gemini-3.7-flash',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite'
+    ]
     testo_risposta = None
 
     for modello in modelli:
@@ -265,9 +272,19 @@ def esegui_audit():
                 testo_risposta = response.text
                 break
             except Exception as e:
-                print(f"⚠️ Errore con {modello}: {e}", flush=True)
-                time.sleep(3)
+                errore_str = str(e)
+                print(f"⚠️ Errore con {modello}: {errore_str}", flush=True)
+                
+                # Backoff progressivo in caso di sovraccarico 503
+                if "503" in errore_str or "high demand" in errore_str.lower():
+                    attesa = (tentativo + 1) * 8  # 8s, 16s, 24s
+                    print(f"⏳ Sovraccarico server (503). Attesa decongestione: {attesa}s...", flush=True)
+                    time.sleep(attesa)
+                else:
+                    time.sleep(2)
+                    
         if testo_risposta:
+            print(f"✅ Risposta generata con successo usando: {modello}", flush=True)
             break
 
     if not testo_risposta:
