@@ -252,15 +252,13 @@ def esegui_audit():
     Parte 3: Scheda di memoria JSON con i campi: data, tipo_audit, regime_rilevato, decisione, ipotesi_e_aspettativa, esito_decisione_precedente, lezione_appresa.
     """
 
-    # Nuovi modelli di punta in testa, seguiti dai modelli flash consolidati e dalla linea Lite per failover
     modelli = [
         'gemini-3.8-flash',
         'gemini-3.7-flash',
         'gemini-3.6-flash',
         'gemini-3.5-flash',
-        'gemini-3.1-flash-lite',
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-lite'
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
     ]
     testo_risposta = None
 
@@ -275,9 +273,14 @@ def esegui_audit():
                 errore_str = str(e)
                 print(f"⚠️ Errore con {modello}: {errore_str}", flush=True)
                 
-                # Backoff progressivo in caso di sovraccarico 503
+                # Se il modello è deprecato o inesistente (404), passa subito al modello successivo
+                if "404" in errore_str or "not_found" in errore_str.lower():
+                    print(f"⏩ Modello {modello} non disponibile (404). Salto al prossimo...", flush=True)
+                    break
+
+                # Backoff progressivo solo per sovraccarico temporaneo (503)
                 if "503" in errore_str or "high demand" in errore_str.lower():
-                    attesa = (tentativo + 1) * 8  # 8s, 16s, 24s
+                    attesa = (tentativo + 1) * 8
                     print(f"⏳ Sovraccarico server (503). Attesa decongestione: {attesa}s...", flush=True)
                     time.sleep(attesa)
                 else:
