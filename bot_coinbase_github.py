@@ -28,6 +28,7 @@ EMOJI_MAP = {
     "BTC": "🪙",
     "ETH": "🔷",
     "SOL": "🟣",
+    "DOGE": "🐕",
     "LINK": "🔗",
     "ADA": "🔵",
     "AVAX": "🔺",
@@ -136,7 +137,7 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
         print(f"⚠️ Errore scrittura diario ({pair}): {e}", flush=True)
 
 # ==========================================
-# ONE-SHOT AUTO-RESET DI SELL_ACTION
+# GESTIONE AUTO-RESET ONE-SHOT AZIONI SPECIALI
 # ==========================================
 def resetta_sell_action_in_config(pair):
     """Resetta sell_action a 'tranche' in config.json ed esegue il commit su GitHub per evitare vendite a cascata."""
@@ -422,7 +423,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     
     # Parametri Dinamici AI
     target_weight_pct = cfg.get("target_weight_pct", 25.0)
-    buy_conviction = max(0.5, min(2.0, cfg.get("buy_conviction", 1.0)))
+    buy_conviction = max(0.0, min(2.0, cfg.get("buy_conviction", 1.0)))
     sell_action = cfg.get("sell_action", "tranche")
 
     # 1. Spaziatura Dinamica ML / Dynamic Profit Target
@@ -457,7 +458,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
     crypto_posseduta_disp = dict_cripto_disp.get(symbol_crypto, 0.0)
 
-    # Filtro Residui Dust (< 0.50 EUR)
+    # Filtro Dust (< 0.50 EUR)
     if (crypto_posseduta_disp * prezzo_rif) < 0.50:
         crypto_posseduta_disp = 0.0
 
@@ -467,23 +468,20 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
     budget_buy_raw = budget_totale_asset * 0.20 * buy_conviction
 
-    # Guardrail di sicurezza deterministici
-    budget_buy_protetto = max(budget_buy_raw, min_order_eur)
-    if saldo_eur_disp > 0:
-        # Massimo il 25% della cassa libera per singola operazione
+    budget_buy_protetto = max(budget_buy_raw, min_order_eur) if buy_conviction > 0 else 0.0
+    if saldo_eur_disp > 0 and budget_buy_protetto > 0:
         budget_buy_protetto = min(budget_buy_protetto, max(min_order_eur, saldo_eur_disp * 0.25))
 
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
 
-    # Quantità di token comprata (Modo B standard)
-    quantita_token_tranche = budget_buy_protetto / prezzo_buy_grid
+    quantita_token_tranche = (budget_buy_protetto / prezzo_buy_grid) if budget_buy_protetto > 0 else 0.0
 
     buy_eseguito_ok = False
     sell_eseguito_ok = False
 
-    # A. PIAZZAMENTO ORDINE BUY
-    if autorizza_buy and saldo_eur_disp >= min_order_eur:
+    # A. PIAZZAMENTO ORDINE BUY (Solo se conviction > 0)
+    if autorizza_buy and buy_conviction > 0 and saldo_eur_disp >= min_order_eur and budget_buy_protetto >= min_order_eur:
         try:
             id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
             client.create_order(
@@ -508,9 +506,8 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             quantita_sell = math.floor((crypto_posseduta_disp * 0.50) * molt) / molt
             motivo_reset += " [AI: Scale-Out 50%]"
         else:
-            quantita_sell = min(quantita_token_tranche, crypto_posseduta_disp)
+            quantita_sell = min(quantita_token_tranche, crypto_posseduta_disp) if quantita_token_tranche > 0 else crypto_posseduta_disp
 
-        # Clausola Anti-Dust Deterministica
         rimanente = crypto_posseduta_disp - quantita_sell
         if (quantita_sell * prezzo_sell < min_order_eur) or (rimanente * prezzo_sell < min_order_eur):
             quantita_sell = math.floor(crypto_posseduta_disp * molt) / molt
@@ -525,7 +522,6 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 )
                 sell_eseguito_ok = True
                 
-                # Consumazione immediata del comando speciale (One-Shot Reset)
                 if sell_action in ["scale_out", "liquidate_all"]:
                     resetta_sell_action_in_config(pair)
                     CONFIG_ASSETS[pair]["sell_action"] = "tranche"
@@ -554,7 +550,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         )
         return True
     else:
-        print(f"ℹ️ [{pair}] Nessun ordine piazzato (Fondi liberi sotto la soglia di 5 EUR).", flush=True)
+        print(f"ℹ️ [{pair}] Nessun ordine piazzato (Fondi insufficienti o buy congelato).", flush=True)
         return False
 
 def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
@@ -588,6 +584,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     is_active = cfg.get("is_active", True)
     min_order_eur = cfg["min_order_eur"]
     sell_action = cfg.get("sell_action", "tranche")
+    buy_conviction = cfg.get("buy_conviction", 1.0)
 
     prezzo_attuale, ema50, returns_24h, vol_24h, rsi, volume_ratio = ottieni_dati_mercato_avanzati(pair)
     if not prezzo_attuale or not ema50: return None, False
@@ -595,11 +592,10 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
     crypto_posseduta_disp = dict_cripto_disp.get(symbol_crypto, 0.0)
 
-    # Filtro Residui Dust (< 0.50 EUR)
     if (crypto_posseduta_disp * prezzo_attuale) < 0.50:
         crypto_posseduta_disp = 0.0
 
-    # 1. GESTIONE EXIT STRATEGY ESTERNA (Market Sell immediato)
+    # 1. Market Sell
     if exit_strategy == "market_sell":
         cancella_ordini_pair(pair)
         if (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur:
@@ -621,7 +617,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
             carica_e_sincronizza_config()
         return prezzo_attuale, False
 
-    # 2. GESTIONE SOFT EXIT O ASSET INATTIVO
+    # 2. Soft exit o asset disattivato
     if exit_strategy == "soft_exit" or not is_active:
         cancella_ordini_pair(pair, cancella_solo_buy=True)
         return prezzo_attuale, False
@@ -632,11 +628,15 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     id_buy, id_sell = recupera_ordini_pair(pair)
     ha_crypto_per_sell = (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Saldo Disp EUR: {saldo_eur_disp:.2f} | Action: {sell_action}", flush=True)
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Saldo Disp EUR: {saldo_eur_disp:.2f} | Conviction: {buy_conviction}", flush=True)
 
-    # 3. PRIORITÀ AZIONI SPECIALI AI (SCALE-OUT / LIQUIDATE-ALL)
-    # Se l'Auditor richiede uno scarico d'emergenza o realizzo liquidità, cancelliamo 
-    # subito il vecchio sell (anche se presente) per piazzare l'ordine sulla quota maggiorata
+    # 3. AUTO-CLEANUP ORDINI OBSOLETI: Se buy_conviction è 0.0, cancelliamo subito eventuali ordini BUY rimasti aperti
+    if buy_conviction == 0.0 and id_buy is not None:
+        print(f"🧹 [CLEANUP {pair}] buy_conviction è 0.0: cancello ordine BUY pendente {id_buy}", flush=True)
+        cancella_ordini_pair(pair, cancella_solo_buy=True)
+        id_buy = None
+
+    # 4. OVERRIDE IMMEDIATO PER SCALE-OUT / LIQUIDATE-ALL
     if sell_action in ["scale_out", "liquidate_all"] and ha_crypto_per_sell:
         print(f"⚡ [OVERRIDE {pair}] Richiesta azione speciale '{sell_action}': aggiornamento forzato della griglia...", flush=True)
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, 
@@ -646,30 +646,30 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 4. STATO: ENTRAMBI GLI ORDINI ASSENTI (Nuova Griglia)
+    # 5. Inizializzazione
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Griglia", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 5. STATO: CIRCUIT BREAKER ATTIVO CON BUY ANCORA PRESENTE
+    # 6. Circuit breaker
     if not trend_ok and id_buy is not None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", 
                              ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, True
 
-    # 6. STATO: MANCA BUY (Riallineamento)
+    # 7. Manca BUY
     if id_buy is None and id_sell is not None:
-        if saldo_eur_disp >= min_order_eur:
+        if saldo_eur_disp >= min_order_eur and buy_conviction > 0:
             print(f"⚠️ [DEBUG {pair}] Manca BUY. Riallineamento griglia...", flush=True)
             piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Ordine BUY", 
                                  ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                                  valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 7. STATO: MANCA SELL CON CRYPTO IN CARICO (Riallineamento)
+    # 8. Manca SELL con crypto
     if id_buy is not None and id_sell is None:
         if ha_crypto_per_sell:
             print(f"⚠️ [DEBUG {pair}] Manca SELL con crypto in carico. Riallineamento...", flush=True)
@@ -681,7 +681,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     return prezzo_attuale, not trend_ok
 
 def main():
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Bande Flessibili)...", flush=True)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Bande Flessibili & Auto-Cleanup)...", flush=True)
     carica_e_sincronizza_config()
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
