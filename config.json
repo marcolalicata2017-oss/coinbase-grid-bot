@@ -5,7 +5,7 @@
   },
   "assets": {
     "BTC-EUR": {
-      "target_weight_pct": 45.0,
+      "target_weight_pct": 40.0,
       "grid_dist_buy": 0.032,
       "grid_dist_sell": 0.022,
       "buy_conviction": 1.0,
@@ -34,15 +34,25 @@
       "is_active": true,
       "exit_strategy": "none"
     },
+    "AVAX-EUR": {
+      "target_weight_pct": 10.0,
+      "grid_dist_buy": 0.04,
+      "grid_dist_sell": 0.022,
+      "buy_conviction": 0.8,
+      "sell_action": "tranche",
+      "max_active_levels": 2,
+      "is_active": true,
+      "exit_strategy": "none"
+    },
     "DOGE-EUR": {
-      "target_weight_pct": 5.0,
+      "target_weight_pct": 0.0,
       "grid_dist_buy": 0.045,
       "grid_dist_sell": 0.02,
-      "buy_conviction": 0.3,
+      "buy_conviction": 0.0,
       "sell_action": "tranche",
       "max_active_levels": 1,
       "is_active": true,
-      "exit_strategy": "none"
+      "exit_strategy": "soft_exit"
     }
   }
 }

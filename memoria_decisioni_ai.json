@@ -415,5 +415,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la persistenza della struttura a griglia stretta consenta l'intercettazione dei micro-ritracciamenti giornalieri, riducendo gradualmente la cassa in eccesso non appena i mercati registreranno una normale espansione della volatilità.",
     "esito_decisione_precedente": "Successo difensivo: il portafoglio ha mantenuto la stabilità (+0.12% a 3G) e preservato il capitale a 372.28 EUR, confermando la validità della riserva di cassa elevata in assenza di trend direzionali forti.",
     "lezione_appresa": "In presenza di picchi di volume su singole altcoin in forte rally (LINK), inseguire il movimento viola i principi di risk management quantitativo; è preferibile mantenere la disciplina sulle Blue Chips e attendere configurazioni di accumulo pulite."
+  },
+  {
+    "data": "2026-09-29",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS & LATERAL CONSOLIDATION WITH LOCALIZED VOLATILITY",
+    "decisione": "Esecuzione del Protocollo Caccia Volumi Anomali: allocazione tattica del 10% su AVAX-EUR (buy_conviction 0.8, grid_dist_buy 4.0%) finanziata azzerando il target di DOGE-EUR (soft_exit, buy_conviction 0.0) e riducendo BTC-EUR al 40.0%. Mantenimento di griglie di acquisto strette (3.2%) su BTC/ETH per sfruttare il surplus di cassa al 70.1%.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la rotazione da DOGE (inattivo) ad AVAX (VAI 2.14 in Accumulo) consenta di catturare l'espansione di volatilità di AVAX posizionando ordini limite sui ritracciamenti (-4.0% dal pivot). Al contempo, il mantenimento delle griglie strette sulle Blue Chips genererà nuove esecuzioni ad alta frequenza come quella appena registrata su ETH.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: l'ordine limit di vendita impostato su ETH-EUR è stato eseguito portando profitto reale in cassa. Inoltre, la scelta disciplinata di non inseguire LINK in breakout si è rivelata esatta, visti i ribassi odierni (-2.99%). Drawdown limitato a -0.19% a 3G.",
+    "lezione_appresa": "Il 'Fast Harvesting' con griglie di vendita a ridosso del limite minimo regolamentare (2.2%) funziona in modo eccellente per monetizzare i micro-rimbalzi in mercati laterali. Quando la cassa supera il 70%, l'attivazione di canali d'acquisto su asset ad alto VAI (AVAX) deve essere eseguita con spread d'acquisto prudenziali (4.0%) per scongiurare acquisti impulsivi sui massimi."
   }
 ]
