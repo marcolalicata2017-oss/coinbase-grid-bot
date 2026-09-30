@@ -424,5 +424,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la rotazione da DOGE (inattivo) ad AVAX (VAI 2.14 in Accumulo) consenta di catturare l'espansione di volatilità di AVAX posizionando ordini limite sui ritracciamenti (-4.0% dal pivot). Al contempo, il mantenimento delle griglie strette sulle Blue Chips genererà nuove esecuzioni ad alta frequenza come quella appena registrata su ETH.",
     "esito_decisione_precedente": "Pieno successo quantitativo: l'ordine limit di vendita impostato su ETH-EUR è stato eseguito portando profitto reale in cassa. Inoltre, la scelta disciplinata di non inseguire LINK in breakout si è rivelata esatta, visti i ribassi odierni (-2.99%). Drawdown limitato a -0.19% a 3G.",
     "lezione_appresa": "Il 'Fast Harvesting' con griglie di vendita a ridosso del limite minimo regolamentare (2.2%) funziona in modo eccellente per monetizzare i micro-rimbalzi in mercati laterali. Quando la cassa supera il 70%, l'attivazione di canali d'acquisto su asset ad alto VAI (AVAX) deve essere eseguita con spread d'acquisto prudenziali (4.0%) per scongiurare acquisti impulsivi sui massimi."
+  },
+  {
+    "data": "2026-09-30",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS & LOW-VOLATILITY LATERAL DRIFT",
+    "decisione": "Compressione generalizzata delle griglie di vendita (grid_dist_sell a 0.020, minimo net spread consentito) su tutti gli asset a portafoglio (BTC, ETH, SOL, AVAX) per forzare il protocollo di Fast Harvesting. Mantenimento delle impostazioni di buy limit e della struttura di cassa protettiva.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che la riduzione sistematica del take-profit al 2.0% consenta di liquidare e monetizzare rapidamente gli ordini parziali eseguiti sui minimi (come AVAX a 9.56 EUR) non appena si verificheranno micro-rimbalzi intraday, aumentando la frequenza di turnover della cassa (attualmente al 76.7%) senza incorrere in rischi direzionali.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: l'attivazione della griglia d'acquisto su AVAX-EUR ha permesso l'esecuzione perfetta di un buy limit sui minimi a 9.56 EUR (coincidente con un ipervenduto RSI intraday di 25.4), confermando la precisione dei canali d'ingresso impostati e mantenendo il drawdown a 3G bloccato allo 0.00%.",
+    "lezione_appresa": "Nelle fasi di alta liquidità e bassa volatilità generale, l'unico modo per estrarre alfa costante è restringere la griglia di profitto al limite del tollerabile (2.0% netto dopo le fee di Coinbase Advanced). Questo approccio garantisce l'immediata conversione del rischio in profitto reale sui movimenti secondari del mercato."
   }
 ]
