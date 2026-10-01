@@ -433,5 +433,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che la riduzione sistematica del take-profit al 2.0% consenta di liquidare e monetizzare rapidamente gli ordini parziali eseguiti sui minimi (come AVAX a 9.56 EUR) non appena si verificheranno micro-rimbalzi intraday, aumentando la frequenza di turnover della cassa (attualmente al 76.7%) senza incorrere in rischi direzionali.",
     "esito_decisione_precedente": "Pieno successo quantitativo: l'attivazione della griglia d'acquisto su AVAX-EUR ha permesso l'esecuzione perfetta di un buy limit sui minimi a 9.56 EUR (coincidente con un ipervenduto RSI intraday di 25.4), confermando la precisione dei canali d'ingresso impostati e mantenendo il drawdown a 3G bloccato allo 0.00%.",
     "lezione_appresa": "Nelle fasi di alta liquidità e bassa volatilità generale, l'unico modo per estrarre alfa costante è restringere la griglia di profitto al limite del tollerabile (2.0% netto dopo le fee di Coinbase Advanced). Questo approccio garantisce l'immediata conversione del rischio in profitto reale sui movimenti secondari del mercato."
+  },
+  {
+    "data": "2026-10-01",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "LOW-VOLATILITY LATERAL DRIFT WITH HIGH CASH SURPLUS",
+    "decisione": "Mantenimento rigoroso dei parametri operativi impostati il 2026-09-30 (grid_dist_sell a 0.020 su tutti gli asset) senza assecondare l'ipervenduto di DOT-EUR a causa del basso indicatore volumetrico VAI (0.68). Attesa di esecuzione del limit sell su AVAX-EUR impostato a 9.75 EUR.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il micro-rimbalzo in corso porti al fill definitivo del target sell su AVAX-EUR a 9.75 EUR, monetizzando il trade aperto a 9.56 EUR e dimostrando la validità del Fast Harvesting a spread minimo (2.0%) in fasi laterali. La cassa rimarrà solida sopra il 75% pronta a intercettare reali anomalie volumetriche.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: l'acquisto automatico di AVAX-EUR a 9.56 EUR ha catturato perfettamente il bottom locale guidato dall'RSI a 25.4. Il portafoglio è salito a 372.46 EUR (+0.25% a 3G) con drawdown azzerato, convalidando l'efficacia del setup protettivo e reattivo.",
+    "lezione_appresa": "Quando si opera in condizioni di mercato laterale e bassa volatilità, l'attivazione dei canali di acquisto deve basarsi rigorosamente sulla convergenza tra RSI scarico e canali di prezzo prestabiliti, mentre l'uscita deve essere posizionata sul limite minimo regolamentare del net spread (2.0% incluse fee) per massimizzare il tasso di rotazione del capitale."
   }
 ]
