@@ -442,5 +442,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il micro-rimbalzo in corso porti al fill definitivo del target sell su AVAX-EUR a 9.75 EUR, monetizzando il trade aperto a 9.56 EUR e dimostrando la validità del Fast Harvesting a spread minimo (2.0%) in fasi laterali. La cassa rimarrà solida sopra il 75% pronta a intercettare reali anomalie volumetriche.",
     "esito_decisione_precedente": "Pieno successo quantitativo: l'acquisto automatico di AVAX-EUR a 9.56 EUR ha catturato perfettamente il bottom locale guidato dall'RSI a 25.4. Il portafoglio è salito a 372.46 EUR (+0.25% a 3G) con drawdown azzerato, convalidando l'efficacia del setup protettivo e reattivo.",
     "lezione_appresa": "Quando si opera in condizioni di mercato laterale e bassa volatilità, l'attivazione dei canali di acquisto deve basarsi rigorosamente sulla convergenza tra RSI scarico e canali di prezzo prestabiliti, mentre l'uscita deve essere posizionata sul limite minimo regolamentare del net spread (2.0% incluse fee) per massimizzare il tasso di rotazione del capitale."
+  },
+  {
+    "data": "2026-10-05",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS WITH LOCALIZED VOLUME ANOMALY (ADA ACCUMULATION)",
+    "decisione": "Attivazione tattica di ADA-EUR con target weight al 10.0% sfruttando il forte segnale di accumulo volumetrico (VAI 2.75). Ribilanciamento marginale dei pesi sulle Blue Chips per accogliere il nuovo asset, mantenendo la cassa complessiva solida sopra l'80% e confermando il Fast Harvesting con grid_dist_sell a 0.020 su tutti i pair.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che l'ingresso su ADA-EUR in concomitanza con l'anomalia volumetrica consenta di catturare l'espansione direzionale del trend rialzista di breve termine, mentre il mantenimento di griglie di vendita strette (2.0%) su tutto il portafoglio continuerà a garantire una monetizzazione efficiente dei micro-movimenti e la protezione del capitale.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: il portafoglio ha consolidato un rendimento a 3 giorni del +0.40% e a 7 giorni del +1.19%, azzerando il drawdown e confermando la perfetta efficacia del setup difensivo e reattivo basato sul Fast Harvesting.",
+    "lezione_appresa": "La combinazione di un'elevata riserva di cassa e di rigorosi protocolli di caccia ai volumi anomali (VAI >= 1.8x) permette di cogliere tempestivamente le opportunità di breakout o accumulo sulle altcoin senza compromettere la stabilità strutturale del portafoglio."
   }
 ]
