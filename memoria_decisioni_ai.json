@@ -451,5 +451,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che l'ingresso su ADA-EUR in concomitanza con l'anomalia volumetrica consenta di catturare l'espansione direzionale del trend rialzista di breve termine, mentre il mantenimento di griglie di vendita strette (2.0%) su tutto il portafoglio continuerà a garantire una monetizzazione efficiente dei micro-movimenti e la protezione del capitale.",
     "esito_decisione_precedente": "Pieno successo quantitativo: il portafoglio ha consolidato un rendimento a 3 giorni del +0.40% e a 7 giorni del +1.19%, azzerando il drawdown e confermando la perfetta efficacia del setup difensivo e reattivo basato sul Fast Harvesting.",
     "lezione_appresa": "La combinazione di un'elevata riserva di cassa e di rigorosi protocolli di caccia ai volumi anomali (VAI >= 1.8x) permette di cogliere tempestivamente le opportunità di breakout o accumulo sulle altcoin senza compromettere la stabilità strutturale del portafoglio."
+  },
+  {
+    "data": "2026-10-06",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS & NORMALIZED VOLUMETRIC CONSOLIDATION",
+    "decisione": "Mantenimento integrale dei parametri operativi e della struttura a griglia esistente (grid_dist_sell a 0.020 su tutti i pair). Nessuna nuova rotazione avviata in assenza di segnali estremi di accumulo volumetrico (VAI >= 1.8x) nel radar odierno.",
+    "ipotesi_e_aspettativa": "Ci aspettiamo che il mantenimento della riserva di cassa all'82.2% e delle griglie di vendita strette (2.0%) continui a garantire la protezione del capitale e la monetizzazione efficiente dei micro-movimenti laterali, capitalizzando sui recenti progressi tecnici di asset come AVAX e ADA.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: il portafoglio ha consolidato un rendimento a 3 giorni del +0.26% e a 7 giorni del +0.91%, mantenendo la cassa protetta e confermando la validità della strategia di Fast Harvesting.",
+    "lezione_appresa": "Quando il mercato attraversa una fase di normalizzazione volumetrica senza segnali di breakout o anomalie marcate, la scelta migliore è la difesa attiva: preservare l'alta liquidità e mantenere rigide le griglie di take-profit minimo evita sovraesposizioni e garantisce flessibilità strategica."
   }
 ]
