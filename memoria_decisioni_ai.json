@@ -460,5 +460,14 @@
     "ipotesi_e_aspettativa": "Ci aspettiamo che il mantenimento della riserva di cassa all'82.2% e delle griglie di vendita strette (2.0%) continui a garantire la protezione del capitale e la monetizzazione efficiente dei micro-movimenti laterali, capitalizzando sui recenti progressi tecnici di asset come AVAX e ADA.",
     "esito_decisione_precedente": "Pieno successo quantitativo: il portafoglio ha consolidato un rendimento a 3 giorni del +0.26% e a 7 giorni del +0.91%, mantenendo la cassa protetta e confermando la validità della strategia di Fast Harvesting.",
     "lezione_appresa": "Quando il mercato attraversa una fase di normalizzazione volumetrica senza segnali di breakout o anomalie marcate, la scelta migliore è la difesa attiva: preservare l'alta liquidità e mantenere rigide le griglie di take-profit minimo evita sovraesposizioni e garantisce flessibilità strategica."
+  },
+  {
+    "data": "2026-10-07",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "GENERALIZED SHORT-TERM FLUSH & EXTREME RSI OVERSOLD WITH HIGH CASH SHIELD",
+    "decisione": "Mantenimento integrale della struttura di portafoglio esistente con riserva di cassa all'82.3% e parametro grid_dist_sell bloccato al minimo regolamentare (0.020 / +2.0% netto) su tutti gli asset attivi. Nessuna nuova rotazione avviata poiché nessun asset nel radar mostra VAI >= 1.8x.",
+    "ipotesi_e_aspettativa": "L'elevata liquidità disponibile e l'ipervenduto estremo su RSI 1H (BTC 17.4, ETH 10.3, ADA 10.0) innescheranno un rimbalzo tecnico intraday. Le griglie strette di vendita a +2.0% consentiranno il Fast Harvesting immediato dei fill d'acquisto eseguiti durante lo storno odierno, convertendo la volatilità in profitto monetizzato senza rischi direzionali.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: il mantenimento di un'elevata liquidità (82.2%) ha protetto il portafoglio da storni marcati del mercato (fino a -9.25% su DOT e -5.31% su ADA), limitando il drawdown a 3 giorni a un irrilevante -0.18% e preservando un rendimento a 7 giorni del +0.75%.",
+    "lezione_appresa": "Nelle fasi di flush generalizzato prive di volumi anomali istituzionali (VAI < 1.8x), la miglior difesa è l'invarianza tattica: conservare la cassa intatta consente di lasciar lavorare le griglie di acquisto automatiche sui minimi locali per poi liquidare velocemente sul primo spike di rimbalzo."
   }
 ]
