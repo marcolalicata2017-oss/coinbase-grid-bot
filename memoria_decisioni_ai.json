@@ -469,5 +469,14 @@
     "ipotesi_e_aspettativa": "L'elevata liquidità disponibile e l'ipervenduto estremo su RSI 1H (BTC 17.4, ETH 10.3, ADA 10.0) innescheranno un rimbalzo tecnico intraday. Le griglie strette di vendita a +2.0% consentiranno il Fast Harvesting immediato dei fill d'acquisto eseguiti durante lo storno odierno, convertendo la volatilità in profitto monetizzato senza rischi direzionali.",
     "esito_decisione_precedente": "Pieno successo quantitativo: il mantenimento di un'elevata liquidità (82.2%) ha protetto il portafoglio da storni marcati del mercato (fino a -9.25% su DOT e -5.31% su ADA), limitando il drawdown a 3 giorni a un irrilevante -0.18% e preservando un rendimento a 7 giorni del +0.75%.",
     "lezione_appresa": "Nelle fasi di flush generalizzato prive di volumi anomali istituzionali (VAI < 1.8x), la miglior difesa è l'invarianza tattica: conservare la cassa intatta consente di lasciar lavorare le griglie di acquisto automatiche sui minimi locali per poi liquidare velocemente sul primo spike di rimbalzo."
+  },
+  {
+    "data": "2026-10-08",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "DEEP OVER-SOLD SHORT-TERM FLUSH WITH NORMALIZED VOLUMES",
+    "decisione": "Mantenimento rigoroso della configurazione tattica con scudo di cassa al 75.7% e parametri di grid_dist_sell bloccati al minimo regolamentare del 2.0% (0.020) su tutti i pair attivi. Nessuna rotazione d'emergenza avviata e nessun incremento manuale dell'esposizione in assenza di anomalie volumetriche (VAI < 1.8x).",
+    "ipotesi_e_aspettativa": "L'estensione dell'ipervenduto orario su altcoin chiave (SOL RSI 17.6, ADA RSI 19.5, ETH RSI 21.3) genererà un violento rimbalzo tecnico di riflesso non appena la pressione passiva si esaurirà. Con le griglie di vendita impostate a +2.0% (grid_dist_sell: 0.020), ci aspettiamo un rapido fill-out e harvesting delle posizioni caricate sui minimi odierni (es. ETH e AVAX), scaricando il rischio e ripristinando la cassa sopra l'80% senza esposizione direzionale prolungata.",
+    "esito_decisione_precedente": "Successo parziale sul piano del contenimento del rischio: il mantenimento di un elevato livello di cassa ha evitato perdite rilevanti (-0.62% di drawdown a 3G a fronte di ribassi di mercato superiori al -9%). Tuttavia, l'aspettativa di un rimbalzo immediato formulata ieri è stata smentita dal prolungamento temporale della fase di storno passivo senza volumi.",
+    "lezione_appresa": "Nelle fasi di svalutazione guidate da volumi piatti (VAI basso) e assenza di compratori, l'RSI può rimanere in area di ipervenduto estremo più a lungo del previsto. In questi contesti non bisogna mai forzare gli acquisti abbassando le griglie di buy, ma occorre lasciare che gli ordini limite larghi vengano eseguiti passivamente, proteggendo la cassa ed esigendo un take profit minimo ed efficiente (+2.0% netto) per massimizzare la rotazione monetaria."
   }
 ]
