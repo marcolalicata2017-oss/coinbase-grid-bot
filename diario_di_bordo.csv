@@ -320,3 +320,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-10-13 00:10:40,SOL-EUR,93.46,98.02,330.13,0.06400,True,14.8,1.44,88.55,95.33,5.25,2.00,"Inizializzazione Griglia ⚡[ML High Vol] 🎯[Dynamic Profit FAST: +2.0%]"
 2026-10-13 00:31:07,SOL-EUR,93.00,98.00,330.13,0.06400,False,14.1,1.81,88.12,94.86,5.25,2.00,"Inizializzazione Griglia ⚡[ML High Vol] 🎯[Dynamic Profit FAST: +2.0%]"
 2026-10-13 00:40:49,SOL-EUR,93.14,98.00,330.13,0.00000,True,14.3,2.00,88.25,95.00,5.25,2.00,"Ripristino Ordine BUY ⚡[ML High Vol] 🎯[Dynamic Profit FAST: +2.0%]"
+2026-10-13 00:50:48,SOL-EUR,92.50,97.98,330.13,0.06400,False,13.4,2.23,87.64,94.35,5.25,2.00,"Attivazione Circuit Breaker ⚡[ML High Vol] 🎯[Dynamic Profit FAST: +2.0%]"
