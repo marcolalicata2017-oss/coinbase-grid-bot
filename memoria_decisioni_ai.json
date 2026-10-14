@@ -478,5 +478,14 @@
     "ipotesi_e_aspettativa": "L'estensione dell'ipervenduto orario su altcoin chiave (SOL RSI 17.6, ADA RSI 19.5, ETH RSI 21.3) genererà un violento rimbalzo tecnico di riflesso non appena la pressione passiva si esaurirà. Con le griglie di vendita impostate a +2.0% (grid_dist_sell: 0.020), ci aspettiamo un rapido fill-out e harvesting delle posizioni caricate sui minimi odierni (es. ETH e AVAX), scaricando il rischio e ripristinando la cassa sopra l'80% senza esposizione direzionale prolungata.",
     "esito_decisione_precedente": "Successo parziale sul piano del contenimento del rischio: il mantenimento di un elevato livello di cassa ha evitato perdite rilevanti (-0.62% di drawdown a 3G a fronte di ribassi di mercato superiori al -9%). Tuttavia, l'aspettativa di un rimbalzo immediato formulata ieri è stata smentita dal prolungamento temporale della fase di storno passivo senza volumi.",
     "lezione_appresa": "Nelle fasi di svalutazione guidate da volumi piatti (VAI basso) e assenza di compratori, l'RSI può rimanere in area di ipervenduto estremo più a lungo del previsto. In questi contesti non bisogna mai forzare gli acquisti abbassando le griglie di buy, ma occorre lasciare che gli ordini limite larghi vengano eseguiti passivamente, proteggendo la cassa ed esigendo un take profit minimo ed efficiente (+2.0% netto) per massimizzare la rotazione monetaria."
+  },
+  {
+    "data": "2026-10-14",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "EXTREME RSI OVERSOLD WITH LOW-VOLUME DRIFT AND HIGH CASH SURPLUS",
+    "decisione": "Mantenimento integrale della struttura di portafoglio con cassa al 90.0% e parametro grid_dist_sell bloccato al minimo regolamentare (0.020 / +2.0% netto) su tutti gli asset. Nessuna nuova rotazione avviata in quanto i valori VAI (< 1.4x) non soddisfano la soglia di accumulo anomalo (VAI >= 1.8x).",
+    "ipotesi_e_aspettativa": "L'ipervenduto generalizzato su base oraria (RSI < 30) in assenza di volumi di distribuzione anomali favorirà una compressione temporanea seguita da un graduale rimbalzo tecnico. Le griglie di vendita ravvicinate (+2.0% netto) permetteranno di monetizzare rapidamente i fill passivi sui minimi, preservando la cassa e mantenendo il drawdown prossimo allo zero.",
+    "esito_decisione_precedente": "Pieno successo quantitativo: il mantenimento di un'elevata riserva di cassa ha neutralizzato la pressione ribassista di mercato, azzerando il drawdown a 3 giorni (-0.00%) e consolidando un rendimento a 7 giorni positivo (+0.10%).",
+    "lezione_appresa": "In contesti di mercato caratterizzati da RSI fortemente scarichi ma privi di volumi istituzionali anomali (VAI basso), la strategia ottimale consiste nel preservare l'elevata liquidità e mantenere rigide le griglie di take-profit minimo, evitando forzature direzionali e capitalizzando esclusivamente sui micro-movimenti di rimbalzo."
   }
 ]
