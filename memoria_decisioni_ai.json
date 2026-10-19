@@ -496,5 +496,14 @@
     "ipotesi_e_aspettativa": "L'avvicinamento misurato delle griglie su BTC ed ETH consentirà l'esecuzione passiva degli ordini sui fisiologici pullback orari all'interno del canale laterale, incrementando il tasso di impiego della liquidità senza incorrere in acquisti a mercato affrettati, per poi monetizzare a +2.0% sui successivi rimbalzi.",
     "esito_decisione_precedente": "Successo pieno nella preservazione del capitale: drawdown azzerato e rendimenti a 3 e 7 giorni positivi (+0.09% e +0.20%), con un Alpha complessivo consolidato a +2.79% rispetto al Benchmark B&H. Tuttavia, la liquidità eccedente richiede una riattivazione controllata per non sacrificare performance relativa.",
     "lezione_appresa": "Quando la cassa supera il 90% in regimi a bassa volatilità e volumi normalizzati (VAI < 1.0), non bisogna rincorrere i prezzi al rialzo, ma calibrare le griglie di acquisto limite leggermente più vicine sui leader di mercato (BTC/ETH), massimizzando la probabilità di fill sui pull-back e preservando l'edge di commissioni Maker."
+  },
+  {
+    "data": "2026-10-19",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS WITH LOW-VOLUME OVERSOLD COMPRESSION",
+    "decisione": "Attivazione decisa del protocollo anti-inazione: elevata la buy_conviction a 1.2 su BTC-EUR e mantenuta a 1.0 su ETH-EUR, affinando le grid_dist_buy al 2.6% (0.026) per intercettare i micro-pullback intraday con RSI 1H scarico (< 35). Mantenute griglie sell al 2.0% (grid_dist_sell 0.020) per Fast Harvesting su tutti i pair e confermato soft_exit su DOGE.",
+    "ipotesi_e_aspettativa": "La combinazione di un RSI orario compresso in area 33-35 su BTC/ETH e griglie limite a -2.6% consentirà l'esecuzione passiva degli ordini sui primi movimenti di ritracciamento, incrementando l'impiego della cassa dal 9.7% verso il 20-30% senza incorrere in slippage o fee da Taker, per poi monetizzare rapidamente sul consueto rimbalzo tecnico a +2.0%.",
+    "esito_decisione_precedente": "Piena protezione del capitale e mantenimento dell'Alpha (+3.87% vs Buy & Hold con rendimento a 7 giorni a +0.20%). Tuttavia, la liquidità al 90.3% ha confermato la necessità di rendere leggermente più reattive le soglie di acquisto per evitare inazione prolungata.",
+    "lezione_appresa": "In presenza di eccesso di cassa (>90%) e indicatori orari di momentum scarichi (RSI < 35), non serve rincorrere i breakout con ordini market; è sufficiente restringere misuratamente il distanziamento limite di buy (dal 2.8% al 2.6%) e premiare l'asset con maggior dominanza e VAI (BTC), massimizzando il fill rate con commissioni Maker protette."
   }
 ]
