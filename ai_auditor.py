@@ -43,6 +43,17 @@ def invia_telegram(messaggio):
     except Exception as e:
         print(f"❌ Errore invio Telegram: {e}", flush=True)
 
+def ottieni_prezzo_corrente(pair):
+    try:
+        url = f"https://api.exchange.coinbase.com/products/{pair}/ticker"
+        headers = {"User-Agent": "Python-Bot"}
+        resp = requests.get(url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            return float(resp.json().get("price", 0.0))
+    except Exception:
+        pass
+    return 0.0
+
 def scansiona_radar_altcoin_con_volumi(lista_pairs):
     """Scansiona Prezzo, Delta 24h, RSI 1h e VAI (Volume Anomaly Index vs media 7 giorni)."""
     radar = {}
@@ -91,6 +102,41 @@ def scansiona_radar_altcoin_con_volumi(lista_pairs):
     print(f"✅ [RADAR] Scansionati {len(radar)} asset con analisi volumetrica.", flush=True)
     return radar
 
+def calcola_benchmark_buy_and_hold(df_portafoglio):
+    """Calcola rendimento cumulativo del bot vs un portafoglio passivo 50% BTC / 50% ETH."""
+    if df_portafoglio.empty or len(df_portafoglio) < 2:
+        return 0.0, 0.0, 0.0
+    
+    valore_iniziale = float(df_portafoglio.iloc[0].get("Valore_Totale_EUR", 1.0))
+    valore_attuale = float(df_portafoglio.iloc[-1].get("Valore_Totale_EUR", 1.0))
+    rendimento_bot_pct = ((valore_attuale - valore_iniziale) / valore_iniziale) * 100.0
+
+    giorni_storico = len(df_portafoglio)
+    px_btc_now = ottieni_prezzo_corrente("BTC-EUR")
+    px_eth_now = ottieni_prezzo_corrente("ETH-EUR")
+    
+    # Stima variazione BTC ed ETH sull'intervallo temporale dello storico
+    rendimento_bh_pct = 0.0
+    try:
+        url_btc = f"https://api.exchange.coinbase.com/products/BTC-EUR/candles?granularity=86400"
+        url_eth = f"https://api.exchange.coinbase.com/products/ETH-EUR/candles?granularity=86400"
+        headers = {"User-Agent": "Python-Bot"}
+        r_b = requests.get(url_btc, headers=headers, timeout=5).json()
+        r_e = requests.get(url_eth, headers=headers, timeout=5).json()
+        
+        idx = min(giorni_storico, len(r_b) - 1, len(r_e) - 1)
+        if idx > 0 and px_btc_now > 0 and px_eth_now > 0:
+            px_btc_start = float(r_b[idx][4])
+            px_eth_start = float(r_e[idx][4])
+            ret_btc = ((px_btc_now - px_btc_start) / px_btc_start) * 100.0
+            ret_eth = ((px_eth_now - px_eth_start) / px_eth_start) * 100.0
+            rendimento_bh_pct = (ret_btc * 0.5) + (ret_eth * 0.5)
+    except Exception as e:
+        print(f"⚠️ Avviso calcolo B&H: {e}", flush=True)
+
+    alpha_pct = rendimento_bot_pct - rendimento_bh_pct
+    return round(rendimento_bot_pct, 2), round(rendimento_bh_pct, 2), round(alpha_pct, 2)
+
 def carica_memoria_storica():
     if os.path.exists(FILE_MEMORIA):
         try:
@@ -111,6 +157,9 @@ def salva_memoria_storica(memoria):
 
 def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
     try:
+        # Inietta sempre il flag per forzare il riallineamento immediato nel bot esecutore
+        nuovo_config["force_grid_realign"] = True
+        
         with open(FILE_CONFIG, "w", encoding="utf-8") as f:
             json.dump(nuovo_config, f, indent=2)
         
@@ -127,9 +176,9 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
-            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Fast Harvesting, Market Radar & Memoria"], check=True)
+            subprocess.run(["git", "commit", "-m", "🤖 AI Auditor: Allineamento Tattico, Anti-Inazione & Reset Griglie"], check=True)
             subprocess.run(["git", "push"], check=True)
-            print("✅ config.json e memoria_decisioni_ai.json committati su GitHub!", flush=True)
+            print("✅ config.json e memoria_decisioni_ai.json committati su GitHub con force_grid_realign=True!", flush=True)
             return True
         else:
             print("ℹ️ Nessuna modifica sostanziale da committare.", flush=True)
@@ -149,6 +198,7 @@ def esegui_audit():
     memoria_storica = carica_memoria_storica()
     
     radar_mercato = scansiona_radar_altcoin_con_volumi(ALTCOIN_CANDIDATE_RADAR)
+    ret_bot, ret_bh, alpha = calcola_benchmark_buy_and_hold(df_portafoglio)
 
     config_attuale = {}
     if os.path.exists(FILE_CONFIG):
@@ -191,18 +241,20 @@ def esegui_audit():
     stato_liquidita_alert = "NORMALE"
     if pct_cassa_eur < 15.0 or saldo_eur_effettivo < 35.0:
         stato_liquidita_alert = "ALLERTA CRITICA LIQUIDITÀ"
+    elif pct_cassa_eur >= 50.0:
+        stato_liquidita_alert = "ALLERTA ECCESSO LIQUIDITÀ / RISCHIO INAZIONE"
 
     prompt = f"""
     Sei il Direttore Investimenti e Risk Manager Quantitativo di un Hedge Fund Crypto su Coinbase Advanced.
-    Gestisci un portafoglio a BANDE FLESSIBILI SENZA DISTINZIONE FISSA CORE/SATELLITE.
+    Gestisci un portafoglio a BANDE FLESSIBILI.
 
     Data Corrente: {data_odierna_str}
-    Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Scouting Volumi & Fast Harvesting)"}
+    Tipo Esecuzione: {"SETTIMANALE STRATEGICO (Ribilanciamento Macro Pesi & Memoria)" if is_domenica else "GIORNALIERO TATTICO (Riallocazione Pesi, Scouting Volumi & Benchmark)"}
 
-    ⚡ COMMISSIONI COINBASE ADVANCED: Maker 0.35%, Taker 0.75%.
-    🎯 REGOLE NET SPREAD: Con fee totali a 0.70%, 'grid_dist_sell' NON deve mai scendere sotto 0.020 (2.0%).
+    ⚡ COMMISSIONI COINBASE ADVANCED (Livello Intro): Maker 0.25%, Taker 0.50%.
+    🎯 REGOLE NET SPREAD: Con fee totali a 0.50% (Maker+Maker), 'grid_dist_sell' NON deve mai scendere sotto 0.018 (1.8% lordo = +1.30% netto).
 
-    💰 STATO REALE PORTAFOGLIO, LIQUIDITÀ & DRAWDOWN:
+    💰 STATO REALE PORTAFOGLIO, LIQUIDITÀ & BENCHMARK:
     - Valore Totale: {valore_totale_portafoglio:.2f} EUR
     - Cassa EUR Libera: {saldo_eur_effettivo:.2f} EUR ({pct_cassa_eur:.1f}% del portafoglio)
     - Totale Crypto in Carico: {valore_crypto_totale:.2f} EUR
@@ -210,27 +262,26 @@ def esegui_audit():
     - 📉 Traiettoria Capitale (Portfolio Drawdown):
       * Rendimento/Drawdown 3 Giorni: {dd_3gg_pct:+.2f}%
       * Rendimento/Drawdown 7 Giorni: {dd_7gg_pct:+.2f}%
+    - ⚖️ CONFRONTO STRATEGICO VS BUY & HOLD (50% BTC / 50% ETH):
+      * Rendimento Totale Bot: {ret_bot:+.2f}%
+      * Rendimento Benchmark B&H: {ret_bh:+.2f}%
+      * Alpha Generato: {alpha:+.2f}% (Se negativo, stiamo sotto-performando il mercato passivo per eccesso di prudenza/inazione!)
 
     🔭 RADAR TECNICO MERCATO & VOLUMI ANOMALI (VAI = Volume Anomaly Index):
     {json.dumps(radar_mercato, indent=2)}
 
     🧠 VALUTAZIONE MEMORIA DECISIONALE (COSA HA FUNZIONATO E COSA NO):
     {json.dumps(memoria_storica[-5:], indent=2) if memoria_storica else "Nessuna memoria registrata."}
-    * Confronta l'aspettativa dell'ultimo audit con i dati reali del diario recente.
 
-    🌊 PROTOCOLLO CACCIA VOLUMI ANOMALI & FAST HARVESTING:
-    1. Se un asset nel Radar mostra 'pressione_rilevata': 'ACCUMULO' (volume_anomaly_vai >= 1.8x con prezzo stabile o in ipervenduto RSI < 40):
-       - Consideralo candidato ad alta priorità per catturare un'impennata di volatilità.
-       - Puoi assegnargli un target weight del 10.0% - 15.0% dismettendo asset fermi con 'buy_conviction': 0.0 (come DOGE).
-    2. Se un asset mostra 'pressione_rilevata': 'DISTRIBUZIONE' (volumi record su candele fortemente negative):
-       - EVITALO! È un falso positivo da scarico whale.
-    3. Su tutti gli asset in downtrend o laterale, mantieni 'grid_dist_sell': 0.020 per incassare velocemente sui rimbalzi.
+    🛑 REGOLA FERREA ANTI-INAZIONE (CASSA > 50%):
+    Se Cassa EUR è al {pct_cassa_eur:.1f}% (> 50%), TI È SEVERAMENTE VIETATO impostare 'buy_conviction': 0.0 su tutti gli asset!
+    - Devi obbligatoriamente allocare liquidità e impostare 'buy_conviction': 1.0 (o 1.2) su almeno 1 o 2 asset:
+      * Preferisci asset del Radar in 'ACCUMULO' (VAI >= 1.8x) o large-cap con RSI scarico (RSI < 45).
+    - Imposta 'grid_dist_buy' più larga (es. 0.025 - 0.035) per catturare storni senza subire drawdown.
+    - Se ci sono asset zombie con ordini bloccati senza volumi (come DOGE), metti 'exit_strategy': 'soft_exit' e ruota il capitale verso le opportunità scoperte dal radar.
 
     🚨 PROTOCOLLO LIQUIDITY CRUNCH & NO-LOSS RULE:
-    - Se Cassa EUR < 15% (o < 40 EUR) o un asset supera di molto il target weight:
-      * NON VENDERE MAI IN PERDITA RISPETTO AL CARICO MEDIO!
-      * Se l'asset è in profitto: applica 'sell_action': 'scale_out' (vende il 50%) per liberare cassa.
-      * Se l'asset è in perdita: tieni 'sell_action': 'tranche' e metti 'buy_conviction': 0.5 o 0.0.
+    - Se Cassa EUR < 15%: NON VENDERE MAI IN PERDITA RISPETTO AL CARICO MEDIO! Se in profitto, 'sell_action': 'scale_out' (50%).
 
     CONFIGURAZIONE ATTUALE (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
@@ -242,10 +293,10 @@ def esegui_audit():
     Separa rigorosamente le 3 parti con '---JSON_CONFIG---' e '---JSON_MEMORIA---':
 
     Parte 1: Report per Telegram (Markdown) contenente OBBLIGATORIAMENTE:
-    - 💧 Quadro Cassa & Drawdown ({dd_3gg_pct:+.2f}% 3G)
-    - 🔭 RADAR OPPORTUNITÀ & VOLUMI ANOMALI: commenta cosa emerge dall'analisi volumetrica (VAI, RSI, accumuli sospetti). Se proponi una rotazione (es. dismettere DOGE in soft_exit per un'opportunità), indicalo esplicitamente. Se non ruoti nulla, spiega perché.
-    - 🔍 Verifica della Memoria: esame critico delle decisioni precedenti
-    - 🎯 Decisioni operative sui singoli pair
+    - 💧 Quadro Cassa & Alpha vs Buy & Hold (Bot: {ret_bot:+.2f}% vs B&H: {ret_bh:+.2f}% | Alpha: {alpha:+.2f}%)
+    - 🔭 RADAR OPPORTUNITÀ & VOLUMI ANOMALI: analisi delle coin scansionate e giustificazione delle rotazioni.
+    - ⚡ Strategia di Impiego Cassa: come attiviamo o difendiamo la liquidità nelle condizioni odierne.
+    - 🎯 Decisioni operative sui singoli pair.
     ---JSON_CONFIG---
     Parte 2: JSON completo e valido per config.json (o 'NO_CHANGE').
     ---JSON_MEMORIA---
@@ -273,12 +324,10 @@ def esegui_audit():
                 errore_str = str(e)
                 print(f"⚠️ Errore con {modello}: {errore_str}", flush=True)
                 
-                # Se il modello è deprecato o inesistente (404), passa subito al modello successivo
                 if "404" in errore_str or "not_found" in errore_str.lower():
                     print(f"⏩ Modello {modello} non disponibile (404). Salto al prossimo...", flush=True)
                     break
 
-                # Backoff progressivo solo per sovraccarico temporaneo (503)
                 if "503" in errore_str or "high demand" in errore_str.lower():
                     attesa = (tentativo + 1) * 8
                     print(f"⏳ Sovraccarico server (503). Attesa decongestione: {attesa}s...", flush=True)
@@ -320,9 +369,9 @@ def esegui_audit():
         except Exception as e:
             print(f"⚠️ Errore parsing JSON da Gemini: {e}", flush=True)
 
-    intestazione = "🧠 *[AI AUDITOR - SETTIMANALE STRATEGICO]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - RADAR VOLUMI & HARVESTING]*\n\n"
+    intestazione = "🧠 *[AI AUDITOR - SETTIMANALE STRATEGICO]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - BENCHMARK, RADAR & HARVESTING]*\n\n"
     if modificato:
-        report_telegram += "\n\n🚀 *[PARAMETRI & MEMORIA AGGIORNATI SU GITHUB]*"
+        report_telegram += "\n\n🚀 *[PARAMETRI AGGIORNATI & RESET GRIGLIE ATTIVATO SU GITHUB]*"
 
     invia_telegram(intestazione + report_telegram)
     print("✅ Audit completato con successo!", flush=True)
