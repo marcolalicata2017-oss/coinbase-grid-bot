@@ -354,3 +354,8 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-10-15 15:01:27,BTC-EUR,73027.46,73231.45,314.85,0.00050,True,51.1,4.29,70690.58,74488.01,3.20,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
 2026-10-18 19:30:57,ADA-EUR,0.19,0.20,331.50,31.33000,True,30.7,0.57,0.18,0.19,5.25,2.00,"Inizializzazione Griglia ⚡[ML High Vol] 🎯[Dynamic Profit FAST: +2.0%]"
 2026-10-18 19:50:46,SOL-EUR,90.09,92.23,331.41,0.06700,True,23.8,3.00,85.36,91.89,5.25,2.00,"Inizializzazione Griglia ⚡[ML High Vol] 🎯[Dynamic Profit FAST: +2.0%]"
+2026-10-19 01:20:41,BTC-EUR,73381.02,72644.59,337.55,0.00013,True,57.8,0.06,71326.35,74848.64,2.80,2.00,"Riallineamento Totale Post-Audit"
+2026-10-19 01:20:42,ETH-EUR,2154.70,2140.52,337.55,0.00000,True,51.3,0.23,2094.37,2197.79,2.80,2.00,"Riallineamento Totale Post-Audit"
+2026-10-19 01:20:43,SOL-EUR,93.30,92.21,337.55,0.00000,True,56.1,0.11,90.03,95.17,3.50,2.00,"Riallineamento Totale Post-Audit"
+2026-10-19 01:20:45,AVAX-EUR,8.69,8.69,337.55,0.00000,True,50.4,0.23,8.34,8.86,4.00,2.00,"Riallineamento Totale Post-Audit"
+2026-10-19 01:20:46,ADA-EUR,0.20,0.20,337.55,0.00000,True,53.0,0.01,0.19,0.20,3.50,2.00,"Riallineamento Totale Post-Audit"
