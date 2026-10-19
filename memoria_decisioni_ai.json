@@ -487,5 +487,14 @@
     "ipotesi_e_aspettativa": "L'ipervenduto generalizzato su base oraria (RSI < 30) in assenza di volumi di distribuzione anomali favorirà una compressione temporanea seguita da un graduale rimbalzo tecnico. Le griglie di vendita ravvicinate (+2.0% netto) permetteranno di monetizzare rapidamente i fill passivi sui minimi, preservando la cassa e mantenendo il drawdown prossimo allo zero.",
     "esito_decisione_precedente": "Pieno successo quantitativo: il mantenimento di un'elevata riserva di cassa ha neutralizzato la pressione ribassista di mercato, azzerando il drawdown a 3 giorni (-0.00%) e consolidando un rendimento a 7 giorni positivo (+0.10%).",
     "lezione_appresa": "In contesti di mercato caratterizzati da RSI fortemente scarichi ma privi di volumi istituzionali anomali (VAI basso), la strategia ottimale consiste nel preservare l'elevata liquidità e mantenere rigide le griglie di take-profit minimo, evitando forzature direzionali e capitalizzando esclusivamente sui micro-movimenti di rimbalzo."
+  },
+  {
+    "data": "2026-10-19",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS WITH LOW-VOLUME SIDEWAYS CONSOLIDATION",
+    "decisione": "Attuazione del protocollo anti-inazione su Cassa al 90.3%: mantenimento di buy_conviction a 1.0 su BTC ed ETH con leggero avvicinamento delle griglie d'acquisto (grid_dist_buy a 0.028) per intercettare storni intraday; conferma di griglie conservative su SOL, ADA e AVAX (0.035-0.040) e mantenimento di DOGE in soft_exit. Rigido rispetto della regola Fast Harvesting con grid_dist_sell a 0.020 su tutti i pair.",
+    "ipotesi_e_aspettativa": "L'avvicinamento misurato delle griglie su BTC ed ETH consentirà l'esecuzione passiva degli ordini sui fisiologici pullback orari all'interno del canale laterale, incrementando il tasso di impiego della liquidità senza incorrere in acquisti a mercato affrettati, per poi monetizzare a +2.0% sui successivi rimbalzi.",
+    "esito_decisione_precedente": "Successo pieno nella preservazione del capitale: drawdown azzerato e rendimenti a 3 e 7 giorni positivi (+0.09% e +0.20%), con un Alpha complessivo consolidato a +2.79% rispetto al Benchmark B&H. Tuttavia, la liquidità eccedente richiede una riattivazione controllata per non sacrificare performance relativa.",
+    "lezione_appresa": "Quando la cassa supera il 90% in regimi a bassa volatilità e volumi normalizzati (VAI < 1.0), non bisogna rincorrere i prezzi al rialzo, ma calibrare le griglie di acquisto limite leggermente più vicine sui leader di mercato (BTC/ETH), massimizzando la probabilità di fill sui pull-back e preservando l'edge di commissioni Maker."
   }
 ]
