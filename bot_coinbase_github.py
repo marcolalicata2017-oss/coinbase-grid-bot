@@ -38,6 +38,7 @@ EMOJI_MAP = {
 }
 
 CONFIG_ASSETS = {}
+FORCE_GRID_REALIGN = False
 
 def ottieni_decimali_asset(pair):
     try:
@@ -55,12 +56,13 @@ def ottieni_decimali_asset(pair):
     return fallback_map.get(pair, 2)
     
 def carica_e_sincronizza_config():
-    global CONFIG_ASSETS
+    global CONFIG_ASSETS, FORCE_GRID_REALIGN
     if os.path.exists(FILE_CONFIG):
         try:
             with open(FILE_CONFIG, "r", encoding="utf-8") as f:
                 cfg_json = json.load(f)
             
+            FORCE_GRID_REALIGN = cfg_json.get("force_grid_realign", False)
             assets_json = cfg_json.get("assets", {})
             nuovo_config = {}
             
@@ -90,7 +92,6 @@ def carica_e_sincronizza_config():
 
 carica_e_sincronizza_config()
 
-SOGLIA_EMA_TOLLERANZA = 0.95
 client = RESTClient(api_key=COINBASE_KEY_NAME, api_secret=COINBASE_KEY_SECRET, timeout=10)
 ULTIMO_STATO_CB = {}
 
@@ -138,10 +139,9 @@ def registra_su_diario_di_bordo(pair, prezzo_pivot, ema50, saldo_eur, crypto_pos
         print(f"⚠️ Errore scrittura diario ({pair}): {e}", flush=True)
 
 # ==========================================
-# GESTIONE AUTO-RESET ONE-SHOT AZIONI SPECIALI
+# GESTIONE AUTO-RESET ONE-SHOT & REALIGN
 # ==========================================
 def resetta_sell_action_in_config(pair):
-    """Resetta sell_action a 'tranche' in config.json ed esegue il commit su GitHub per evitare vendite a cascata."""
     try:
         if os.path.exists(FILE_CONFIG):
             with open(FILE_CONFIG, "r", encoding="utf-8") as f:
@@ -149,7 +149,6 @@ def resetta_sell_action_in_config(pair):
             
             if pair in cfg.get("assets", {}):
                 cfg["assets"][pair]["sell_action"] = "tranche"
-                
                 with open(FILE_CONFIG, "w", encoding="utf-8") as f:
                     json.dump(cfg, f, indent=2)
                 
@@ -159,11 +158,32 @@ def resetta_sell_action_in_config(pair):
                 
                 result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
                 if result.stdout.strip():
-                    subprocess.run(["git", "commit", "-m", f"⚡ [ONE-SHOT] Azione speciale completata per {pair}: ripristinato a 'tranche'"], check=True)
+                    subprocess.run(["git", "commit", "-m", f"⚡ [ONE-SHOT] {pair} ripristinato a 'tranche'"], check=True)
                     subprocess.run(["git", "push"], check=True)
                     print(f"✅ [ONE-SHOT RESET] {pair} ripristinato a 'tranche' su GitHub!", flush=True)
     except Exception as e:
         print(f"⚠️ Errore durante il reset di sell_action per {pair}: {e}", flush=True)
+
+def resetta_flag_force_realign():
+    try:
+        if os.path.exists(FILE_CONFIG):
+            with open(FILE_CONFIG, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            
+            cfg["force_grid_realign"] = False
+            with open(FILE_CONFIG, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2)
+            
+            subprocess.run(["git", "config", "user.name", "Trading-Bot-Realign"], check=True)
+            subprocess.run(["git", "config", "user.email", "bot@local.realign"], check=True)
+            subprocess.run(["git", "add", FILE_CONFIG], check=True)
+            result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            if result.stdout.strip():
+                subprocess.run(["git", "commit", "-m", "🔄 [AUDIT RESET] force_grid_realign completato e resettato"], check=True)
+                subprocess.run(["git", "push"], check=True)
+                print("✅ [REALIGN RESET] Flag force_grid_realign impostato a false su GitHub!", flush=True)
+    except Exception as e:
+        print(f"⚠️ Errore disattivazione flag force_grid_realign: {e}", flush=True)
 
 # ==========================================
 # TRACCIAMENTO PORTAFOGLIO
@@ -225,7 +245,6 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except: pass
 
     if is_domenica and is_sera and not gia_inviato_domenica:
-        print("📊 [TELEGRAM] Generazione Report Visivo Settimanale della Domenica...", flush=True)
         valore_7_gg_fa = valore_totale
         valore_iniziale = valore_totale
         
@@ -273,7 +292,7 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
         except: pass
 
 # ==========================================
-# API COINBASE & MERCATO
+# API COINBASE & MERCATO (CON CALCOLO ATR)
 # ==========================================
 def ottieni_dati_mercato_avanzati(product_id):
     url = f"https://api.exchange.coinbase.com/products/{product_id}/candles?granularity=3600"
@@ -283,36 +302,47 @@ def ottieni_dati_mercato_avanzati(product_id):
             resp = requests.get(url, headers=headers, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
-                if isinstance(data, list) and len(data) >= 12:
+                if isinstance(data, list) and len(data) >= 20:
                     candele = list(reversed(data))
-                    prezzi_chiusura = [float(c[4]) for c in candele]
-                    volumi = [float(c[5]) for c in candele]
+                    highs = pd.Series([float(c[2]) for c in candele])
+                    lows = pd.Series([float(c[1]) for c in candele])
+                    prezzi_chiusura = pd.Series([float(c[4]) for c in candele])
+                    volumi = pd.Series([float(c[5]) for c in candele])
 
-                    s_prezzi = pd.Series(prezzi_chiusura)
-                    s_volumi = pd.Series(volumi)
+                    prezzo_attuale = prezzi_chiusura.iloc[-1]
+                    span_ema = min(50, len(prezzi_chiusura))
+                    ema50 = prezzi_chiusura.ewm(span=span_ema, adjust=False).mean().iloc[-1]
 
-                    prezzo_attuale = prezzi_chiusura[-1]
-                    span_ema = min(50, len(s_prezzi))
-                    ema50 = s_prezzi.ewm(span=span_ema, adjust=False).mean().iloc[-1]
+                    # CALCOLO ATR (Average True Range a 14 periodi)
+                    prev_close = prezzi_chiusura.shift(1)
+                    tr1 = highs - lows
+                    tr2 = (highs - prev_close).abs()
+                    tr3 = (lows - prev_close).abs()
+                    true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+                    atr = true_range.rolling(14).mean().iloc[-1]
+                    if pd.isna(atr) or atr <= 0:
+                        atr = prezzo_attuale * 0.02  # Fallback al 2%
 
-                    delta = s_prezzi.diff()
-                    window_rsi = min(14, len(s_prezzi) - 1)
+                    # RSI
+                    delta = prezzi_chiusura.diff()
+                    window_rsi = min(14, len(prezzi_chiusura) - 1)
                     gain = (delta.where(delta > 0, 0)).rolling(window=max(1, window_rsi)).mean()
                     loss = (-delta.where(delta < 0, 0)).rolling(window=max(1, window_rsi)).mean()
                     rs = gain / loss
                     rsi_series = 100 - (100 / (1 + rs))
                     rsi_attuale = rsi_series.iloc[-1] if not pd.isna(rsi_series.iloc[-1]) else 50.0
 
-                    vol_ora_attuale = s_volumi.iloc[-1]
-                    vol_medio = s_volumi.tail(min(24, len(s_volumi))).mean()
+                    # Volumi
+                    vol_ora_attuale = volumi.iloc[-1]
+                    vol_medio = volumi.tail(min(24, len(volumi))).mean()
                     volume_ratio = (vol_ora_attuale / vol_medio) if vol_medio > 0 else 1.0
 
-                    returns = s_prezzi.pct_change()
+                    returns = prezzi_chiusura.pct_change()
                     returns_ultimo = returns.iloc[-1] if not pd.isna(returns.iloc[-1]) else 0.0
                     vol_24h = returns.tail(min(24, len(returns))).std()
                     vol_24h = 0.0 if pd.isna(vol_24h) else vol_24h
 
-                    return prezzo_attuale, ema50, returns_ultimo, vol_24h, rsi_attuale, volume_ratio
+                    return prezzo_attuale, ema50, atr, returns_ultimo, vol_24h, rsi_attuale, volume_ratio
         except Exception as e:
             print(f"⚠️ Errore API candele ({product_id}): {e}", flush=True)
         time.sleep(1)
@@ -322,11 +352,11 @@ def ottieni_dati_mercato_avanzati(product_id):
         resp_t = requests.get(url_ticker, headers=headers, timeout=5)
         if resp_t.status_code == 200:
             px = float(resp_t.json().get('price', 0.0))
-            if px > 0: return px, px, 0.0, 0.0, 50.0, 1.0
+            if px > 0: return px, px, px * 0.02, 0.0, 0.0, 50.0, 1.0
     except Exception as e:
         print(f"❌ Fallito recupero ticker per {product_id}: {e}", flush=True)
 
-    return None, None, 0.0, 0.0, 50.0, 1.0
+    return None, None, 0.0, 0.0, 0.0, 50.0, 1.0
 
 def controlla_saldi_globali():
     saldo_eur_totale = 0.0
@@ -408,15 +438,15 @@ def cancella_ordini_pair(product_id, cancella_solo_buy=False):
         print(f"⚠️ Errore cancellazione ordini {product_id}: {e}", flush=True)
 
 # ==========================================
-# LOGICA DI PIAZZAMENTO GRIGLIA PARABOLICA
+# LOGICA DI PIAZZAMENTO GRIGLIA CON BANDA ATR
 # ==========================================
 def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Reset", 
-                         ema50=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0,
+                         ema50=0.0, atr=0.0, returns_24h=0.0, vol_24h=0.0, rsi=50.0, volume_ratio=1.0,
                          valore_totale_portafoglio=0.0):
     global ULTIMO_STATO_CB
     cfg = CONFIG_ASSETS[pair]
     symbol_crypto = pair.split("-")[0]
-    grid_dist_base = cfg.get("grid_dist", 0.012)
+    grid_dist_base = cfg.get("grid_dist", 0.015)
     grid_dist_sell_base = cfg.get("grid_dist_sell", 0.020)
     min_order_eur = cfg["min_order_eur"]
     dec = cfg["decimals"]
@@ -426,33 +456,38 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     buy_conviction = max(0.0, min(2.0, cfg.get("buy_conviction", 1.0)))
     sell_action = cfg.get("sell_action", "tranche")
 
-    # 1. Spaziatura Dinamica ML
+    # 1. Spaziatura Dinamica Buy basata su ATR e Downtrend
     grid_dist_buy = grid_dist_base
+    if prezzo_rif < ema50 and ema50 > 0:
+        # Se siamo sotto la media mobile, allarghiamo lo spread per comprare solo sui veri minimi
+        distanza_ema_pct = (ema50 - prezzo_rif) / ema50
+        grid_dist_buy = max(grid_dist_base * 1.5, min(0.045, distanza_ema_pct * 1.2))
+        motivo_reset += " 🌊[Downtrend Buy Ladder]"
+
     if MODELLO_ML is not None and ema50 > 0:
         try:
             dist_ema50 = (prezzo_rif - ema50) / ema50
             input_ml = [[returns_24h, vol_24h, dist_ema50]]
             if MODELLO_ML.predict(input_ml)[0] == 1:
-                grid_dist_buy = grid_dist_base * 1.5
+                grid_dist_buy = max(grid_dist_buy, grid_dist_base * 1.5)
                 motivo_reset += " ⚡[ML High Vol]"
         except: pass
 
-    # 2. TAKE PROFIT PARABOLICO DINAMICO: Allarga i target nei pump verticali
+    # 2. Dynamic Profit Progression (Adattato alle nuove fee 0.25% maker / 0.50% taker)
     if rsi >= 75 and volume_ratio >= 2.0:
-        grid_dist_sell = max(grid_dist_sell_base * 2.5, 0.040) # +4.0% o superiore
-        label_profit = f" 🚀[Parabolic Momentum TOP: +{grid_dist_sell*100:.1f}%]"
+        grid_dist_sell = max(grid_dist_sell_base * 2.2, 0.038)
+        label_profit = f" 🚀[Parabolic Momentum: +{grid_dist_sell*100:.1f}%]"
     elif rsi >= 65 and volume_ratio >= 1.5:
-        grid_dist_sell = max(grid_dist_sell_base * 1.8, 0.030)
+        grid_dist_sell = max(grid_dist_sell_base * 1.5, 0.028)
         label_profit = f" 📈[Dynamic Profit HIGH: +{grid_dist_sell*100:.1f}%]"
     elif rsi <= 40:
-        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.020) # Presa profitto veloce
-        label_profit = f" 🎯[Dynamic Profit FAST: +{grid_dist_sell*100:.1f}%]"
+        grid_dist_sell = max(grid_dist_sell_base * 0.75, 0.018)  # Minimo 1.80% (+1.30% netto)
+        label_profit = f" 🎯[Fast Harvesting: +{grid_dist_sell*100:.1f}%]"
     else:
-        grid_dist_sell = max(grid_dist_sell_base, 0.020)
+        grid_dist_sell = max(grid_dist_sell_base, 0.018)
         label_profit = ""
 
     motivo_reset += label_profit
-
     cancella_ordini_pair(pair)
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
@@ -477,7 +512,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     buy_eseguito_ok = False
     sell_eseguito_ok = False
 
-    # A. ORDINE BUY (Solo con cassa e conviction > 0)
+    # A. ORDINE BUY (Autorizzato se cassa sufficiente e conviction > 0)
     if autorizza_buy and buy_conviction > 0 and saldo_eur_disp >= min_order_eur and budget_buy_protetto >= min_order_eur:
         try:
             id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
@@ -489,7 +524,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         except Exception as e:
             print(f"⚠️ Errore ordine BUY limite ({pair}): {e}", flush=True)
 
-    # B. ORDINE SELL (Con One-Shot Reset)
+    # B. ORDINE SELL
     valore_crypto_disp = crypto_posseduta_disp * prezzo_sell
     if valore_crypto_disp >= min_order_eur:
         molt = 10 ** dec
@@ -571,7 +606,7 @@ def rimuovi_asset_dismesso_da_config(pair_da_rimuovere):
 # ==========================================
 # ESECUZIONE CICLO PRINCIPALE
 # ==========================================
-def esegui_gestione_asset(pair, valore_totale_portafoglio):
+def esegui_gestione_asset(pair, valore_totale_portafoglio, forza_realign=False):
     cfg = CONFIG_ASSETS[pair]
     symbol_crypto = pair.split("-")[0]
     exit_strategy = cfg.get("exit_strategy", "none")
@@ -580,7 +615,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     sell_action = cfg.get("sell_action", "tranche")
     buy_conviction = cfg.get("buy_conviction", 1.0)
 
-    prezzo_attuale, ema50, returns_24h, vol_24h, rsi, volume_ratio = ottieni_dati_mercato_avanzati(pair)
+    prezzo_attuale, ema50, atr, returns_24h, vol_24h, rsi, volume_ratio = ottieni_dati_mercato_avanzati(pair)
     if not prezzo_attuale or not ema50: return None, False
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
@@ -589,7 +624,7 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
     if (crypto_posseduta_disp * prezzo_attuale) < 0.50:
         crypto_posseduta_disp = 0.0
 
-    # 1. Exit Strategy Market Sell
+    # 1. Market Sell
     if exit_strategy == "market_sell":
         cancella_ordini_pair(pair)
         if (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur:
@@ -616,73 +651,83 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio):
         cancella_ordini_pair(pair, cancella_solo_buy=True)
         return prezzo_attuale, False
 
-    soglia_protezione = ema50 * SOGLIA_EMA_TOLLERANZA
-    trend_ok = (prezzo_attuale >= soglia_protezione)
+    # 3. BANDA DINAMICA ATR: Tolleranza basata sull'escursione media (EMA50 - 2*ATR)
+    soglia_protezione_atr = ema50 - (2.0 * atr)
+    trend_ok = (prezzo_attuale >= soglia_protezione_atr)
     
     id_buy, id_sell = recupera_ordini_pair(pair)
     ha_crypto_per_sell = (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur
 
-    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | BUY: {bool(id_buy)} | SELL: {bool(id_sell)} | Saldo Disp EUR: {saldo_eur_disp:.2f} | Conviction: {buy_conviction}", flush=True)
+    print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | ATR: {atr:.2f} | Floor ATR: {soglia_protezione_atr:.2f} | TrendOK: {trend_ok}", flush=True)
 
-    # 3. AUTO-CLEANUP: Cancella ordini BUY se la convinzione è zero
+    # 4. RESET FORZATO POST-AUDIT: Spazza e ripiazza sempre se richiesto
+    if forza_realign:
+        print(f"🔄 [FORCE REALIGN {pair}] Richiesto riallineamento totale ordini dall'Audit...", flush=True)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, 
+                             motivo_reset="Riallineamento Totale Post-Audit", 
+                             ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, 
+                             rsi=rsi, volume_ratio=volume_ratio, 
+                             valore_totale_portafoglio=valore_totale_portafoglio)
+        return prezzo_attuale, not trend_ok
+
+    # 5. AUTO-CLEANUP: Cancella ordini BUY se la convinzione è zero
     if buy_conviction == 0.0 and id_buy is not None:
         print(f"🧹 [CLEANUP {pair}] buy_conviction è 0.0: cancello ordine BUY pendente {id_buy}", flush=True)
         cancella_ordini_pair(pair, cancella_solo_buy=True)
         id_buy = None
 
-    # 4. CLIMAX PROFIT TAKE SENTINEL (Monetizzazione Rapida su Spike Parabolico)
-    # Se l'RSI a 1h è sopra 80 (ipercomprato estremo) e il prezzo è salito del 15% sopra EMA50
+    # 6. CLIMAX TAKE PROFIT SENTINEL
     dist_ema_pct = (prezzo_attuale - ema50) / ema50 if ema50 > 0 else 0.0
     if rsi >= 80.0 and dist_ema_pct >= 0.15 and ha_crypto_per_sell and sell_action == "tranche":
         print(f"🚨 [CLIMAX TAKE-PROFIT {pair}] Rilevato picco parabolico (RSI: {rsi:.1f}, Dist EMA: +{dist_ema_pct*100:.1f}%): forzo SCALE-OUT 50%!", flush=True)
         sell_action = "scale_out"
 
-    # 5. OVERRIDE IMMEDIATO SCALE-OUT / LIQUIDATE-ALL
+    # 7. OVERRIDE SCALE-OUT / LIQUIDATE-ALL
     if sell_action in ["scale_out", "liquidate_all"] and ha_crypto_per_sell:
         print(f"⚡ [OVERRIDE {pair}] Richiesta azione speciale '{sell_action}': aggiornamento forzato della griglia...", flush=True)
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, 
                              motivo_reset=f"Esecuzione Speciale AI ({sell_action.upper()})", 
-                             ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, 
+                             ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, 
                              rsi=rsi, volume_ratio=volume_ratio, 
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 6. Inizializzazione griglia completa
+    # 8. Inizializzazione griglia
     if id_buy is None and id_sell is None:
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Inizializzazione Griglia", 
-                             ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
+                             ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 7. Circuit breaker attivo con BUY aperto
+    # 9. Circuit Breaker su rottura della banda ATR
     if not trend_ok and id_buy is not None:
-        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker", 
-                             ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=False, motivo_reset="Attivazione Circuit Breaker (Rottura ATR Floor)", 
+                             ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, True
 
-    # 8. Manca BUY (Riallineamento)
+    # 10. Manca BUY (Riallineamento)
     if id_buy is None and id_sell is not None:
         if saldo_eur_disp >= min_order_eur and buy_conviction > 0:
             print(f"⚠️ [DEBUG {pair}] Manca BUY. Riallineamento griglia...", flush=True)
             piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Ordine BUY", 
-                                 ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
+                                 ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                                  valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
-    # 9. Manca SELL con crypto posseduta
+    # 11. Manca SELL con crypto posseduta
     if id_buy is not None and id_sell is None:
         if ha_crypto_per_sell:
             print(f"⚠️ [DEBUG {pair}] Manca SELL con crypto in carico. Riallineamento...", flush=True)
             piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento Ordine SELL", 
-                                 ema50=ema50, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
+                                 ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
                                  valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, not trend_ok
 
     return prezzo_attuale, not trend_ok
 
 def main():
-    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Climax Take-Profit & Parabolic Ladder)...", flush=True)
+    print("🚀 [DEBUG] Avvio Bot Multi-Asset (Banda Dinamica ATR & Realign Support)...", flush=True)
     carica_e_sincronizza_config()
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
@@ -691,7 +736,7 @@ def main():
 
     valore_crypto_stimato = 0.0
     for pair in list(CONFIG_ASSETS.keys()):
-        p, _, _, _, _, _ = ottieni_dati_mercato_avanzati(pair)
+        p, _, _, _, _, _, _ = ottieni_dati_mercato_avanzati(pair)
         if p:
             prezzi_attuali[pair] = p
             sym = pair.split("-")[0]
@@ -700,13 +745,19 @@ def main():
     valore_totale_portafoglio = saldo_eur_totale + valore_crypto_stimato
     print(f"💰 Valore Totale Portafoglio: {valore_totale_portafoglio:.2f} EUR (EUR liberi: {saldo_eur_disp:.2f} EUR)", flush=True)
 
+    realign_eseguito = False
     for pair in list(CONFIG_ASSETS.keys()):
         try:
-            prezzo, cb_attivo = esegui_gestione_asset(pair, valore_totale_portafoglio)
+            prezzo, cb_attivo = esegui_gestione_asset(pair, valore_totale_portafoglio, forza_realign=FORCE_GRID_REALIGN)
             if prezzo: prezzi_attuali[pair] = prezzo
             stati_cb[pair] = cb_attivo
+            if FORCE_GRID_REALIGN:
+                realign_eseguito = True
         except Exception as e:
             print(f"❌ Errore su {pair}: {e}", flush=True)
+
+    if realign_eseguito:
+        resetta_flag_force_realign()
     
     try:
         saldo_eur_totale, _, dict_cripto_totale, _ = controlla_saldi_globali()
