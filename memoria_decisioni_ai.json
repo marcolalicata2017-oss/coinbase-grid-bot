@@ -514,5 +514,14 @@
     "ipotesi_e_aspettativa": "La collocazione di ordini limite a -2.6% su BTC ed ETH all'interno di un canale a volumi normalizzati (VAI BTC 0.98) consentirà l'assorbimento passivo della volatilità oraria senza pagare commissioni Taker, convertendo gradualmente la liquidità in carico ad alto valore atteso per poi monetizzare rapidamente sui rimbalzi verso la resistenza del canale.",
     "esito_decisione_precedente": "Stabilità strutturale eccellente: rendimento a 3 e 7 giorni positivo (+0.09% e +0.02%), drawdown nullo e Alpha solido a +3.69% rispetto al Buy & Hold. Tuttavia, la liquidità eccedente richiede la prosecuzione del piano di cattura passiva controllata per contrastare il cash drag.",
     "lezione_appresa": "In regimi di bassa volatilità e assenza di anomalie volumetriche (nessun VAI >= 1.8x), l'antidoto all'inazione non è l'acquisto a mercato, ma il posizionamento chirurgico delle griglie d'acquisto Maker attorno al 2.5-2.8% dai prezzi correnti sui soli asset primari (BTC/ETH), preservando il netto positivo delle commissioni e scaricando immediatamente a +2.0% lordo."
+  },
+  {
+    "data": "2026-10-20",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "MILD TECHNICAL BOUNCE WITH NORMALIZED VOLUMES AND HIGH CASH DRAG",
+    "decisione": "Mantenimento dell'architettura anti-inazione con buy_conviction a 1.2 su BTC-EUR e 1.0 su ETH-EUR, presidiando i ritracciamenti con ordini limite a -2.6% (grid_dist_buy 0.026). Griglie difensive ampie confermate su SOL, ADA e AVAX (0.035-0.040) e mantenimento di DOGE in soft_exit. Tutte le soglie grid_dist_sell rigidamente ancorate a 0.020 (+2.0% lordo / +1.50% netto).",
+    "ipotesi_e_aspettativa": "Dato il rimbalzo orario con RSI salito verso 56-58 senza anomalie volumetriche (VAI < 1.0x), rincorrere i prezzi causerebbe drawdown da buy-high. Mantenendo ordini limite a -2.6% sui leader (BTC/ETH), intercetteremo i pullback orari intraday in modalità Maker, ricaricando l'esposizione a prezzi vantaggiosi per monetizzare rapidamente sul successivo recupero a +2.0%.",
+    "esito_decisione_precedente": "Drawdown nullo e capitale preservato a 373.81 EUR (+0.09% a 3 giorni), ma l'Alpha vs B&H ha subito una contrazione a +2.34% a causa della mancata partecipazione al rimbalzo intraday con il 90.3% di cassa non impiegata.",
+    "lezione_appresa": "Nelle giornate in cui il mercato rimbalza con volumi ordinari dopo una fase di compressione, il cash drag erode temporaneamente l'Alpha. Non bisogna reagire con acquisti a mercato (Taker), ma persistere nella cattura passiva Maker a -2.5%/-2.6% sui pullback fisiologici, mantenendo la disciplina di take-profit al 2.0% per proteggere il rendimento netto."
   }
 ]
