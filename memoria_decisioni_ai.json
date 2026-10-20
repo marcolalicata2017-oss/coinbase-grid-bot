@@ -505,5 +505,14 @@
     "ipotesi_e_aspettativa": "La combinazione di un RSI orario compresso in area 33-35 su BTC/ETH e griglie limite a -2.6% consentirà l'esecuzione passiva degli ordini sui primi movimenti di ritracciamento, incrementando l'impiego della cassa dal 9.7% verso il 20-30% senza incorrere in slippage o fee da Taker, per poi monetizzare rapidamente sul consueto rimbalzo tecnico a +2.0%.",
     "esito_decisione_precedente": "Piena protezione del capitale e mantenimento dell'Alpha (+3.87% vs Buy & Hold con rendimento a 7 giorni a +0.20%). Tuttavia, la liquidità al 90.3% ha confermato la necessità di rendere leggermente più reattive le soglie di acquisto per evitare inazione prolungata.",
     "lezione_appresa": "In presenza di eccesso di cassa (>90%) e indicatori orari di momentum scarichi (RSI < 35), non serve rincorrere i breakout con ordini market; è sufficiente restringere misuratamente il distanziamento limite di buy (dal 2.8% al 2.6%) e premiare l'asset con maggior dominanza e VAI (BTC), massimizzando il fill rate con commissioni Maker protette."
+  },
+  {
+    "data": "2026-10-20",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "SIDEWAYS CONSOLIDATION WITH LOW VOLATILITY AND HIGH CASH SURPLUS",
+    "decisione": "Rigorosa applicazione della regola anti-inazione su Cassa al 90.3%: confermata buy_conviction a 1.2 su BTC-EUR e a 1.0 su ETH-EUR con griglie di acquisto limite calibrate a -2.6% (0.026). Mantenimento delle maglie difensive larghe su altcoin (SOL, ADA, AVAX tra 0.035 e 0.040) e mantenimento di DOGE in soft_exit. Tutti i parametri grid_dist_sell vincolati al 2.0% per garantire Fast Harvesting a +1.50% netto.",
+    "ipotesi_e_aspettativa": "La collocazione di ordini limite a -2.6% su BTC ed ETH all'interno di un canale a volumi normalizzati (VAI BTC 0.98) consentirà l'assorbimento passivo della volatilità oraria senza pagare commissioni Taker, convertendo gradualmente la liquidità in carico ad alto valore atteso per poi monetizzare rapidamente sui rimbalzi verso la resistenza del canale.",
+    "esito_decisione_precedente": "Stabilità strutturale eccellente: rendimento a 3 e 7 giorni positivo (+0.09% e +0.02%), drawdown nullo e Alpha solido a +3.69% rispetto al Buy & Hold. Tuttavia, la liquidità eccedente richiede la prosecuzione del piano di cattura passiva controllata per contrastare il cash drag.",
+    "lezione_appresa": "In regimi di bassa volatilità e assenza di anomalie volumetriche (nessun VAI >= 1.8x), l'antidoto all'inazione non è l'acquisto a mercato, ma il posizionamento chirurgico delle griglie d'acquisto Maker attorno al 2.5-2.8% dai prezzi correnti sui soli asset primari (BTC/ETH), preservando il netto positivo delle commissioni e scaricando immediatamente a +2.0% lordo."
   }
 ]
