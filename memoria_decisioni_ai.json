@@ -523,5 +523,14 @@
     "ipotesi_e_aspettativa": "Dato il rimbalzo orario con RSI salito verso 56-58 senza anomalie volumetriche (VAI < 1.0x), rincorrere i prezzi causerebbe drawdown da buy-high. Mantenendo ordini limite a -2.6% sui leader (BTC/ETH), intercetteremo i pullback orari intraday in modalità Maker, ricaricando l'esposizione a prezzi vantaggiosi per monetizzare rapidamente sul successivo recupero a +2.0%.",
     "esito_decisione_precedente": "Drawdown nullo e capitale preservato a 373.81 EUR (+0.09% a 3 giorni), ma l'Alpha vs B&H ha subito una contrazione a +2.34% a causa della mancata partecipazione al rimbalzo intraday con il 90.3% di cassa non impiegata.",
     "lezione_appresa": "Nelle giornate in cui il mercato rimbalza con volumi ordinari dopo una fase di compressione, il cash drag erode temporaneamente l'Alpha. Non bisogna reagire con acquisti a mercato (Taker), ma persistere nella cattura passiva Maker a -2.5%/-2.6% sui pullback fisiologici, mantenendo la disciplina di take-profit al 2.0% per proteggere il rendimento netto."
+  },
+  {
+    "data": "2026-10-21",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS WITH SHORT-TERM OVERBOUGHT MOMENTUM (RSI > 80)",
+    "decisione": "Applicazione del protocollo anti-inazione su Cassa al 90.2% a seguito dell'esecuzione dell'ordine di vendita su BTC-EUR. Mantenimento di buy_conviction a 1.2 su BTC ed ETH a 1.0 con calibrazione del distanziamento di acquisto (grid_dist_buy) al 2.8% (0.028) per intercettare i ritracciamenti da ipercomprato orario (RSI > 84). Mantenute griglie sell al 2.0% su tutti i pair (Fast Harvesting) e confermato soft_exit su DOGE.",
+    "ipotesi_e_aspettativa": "L'estensione dell'RSI orario sopra quota 80 rende rischiosi gli acquisti a mercato. Il riposizionamento delle griglie d'acquisto limite a -2.8% su BTC ed ETH permetterà di assorbire passivamente (Maker) il fisiologico scarico di ipercomprato intraday, convertendo la cassa libera in posizioni a prezzo di sconto per poi liquidare a +2.0% sul rimbalzo successivo.",
+    "esito_decisione_precedente": "La strategia ha eseguito con successo il take-profit su BTC-EUR a €74,739.60, preservando integralmente il capitale (+0.32% a 7gg). Tuttavia, la forte spinta del mercato con cassa al 90.2% ha provocato un temporaneo drag sull'Alpha (-1.49% vs B&H), confermando l'esigenza di posizionare ordini limite d'acquisto più vicini per catturare la volatilità intraday.",
+    "lezione_appresa": "Quando la cassa torna elevata (>90%) a seguito di vendite in profitto e il mercato entra in una fase di estensione rialzista (RSI 1H > 80), il modo corretto di ricuperare Alpha non è rincorrere il prezzo (Taker), ma distanziare la griglia limite di acquisto Maker al 2.8% per farsi eseguire durante le inevitabili prese di beneficio orarie."
   }
 ]
