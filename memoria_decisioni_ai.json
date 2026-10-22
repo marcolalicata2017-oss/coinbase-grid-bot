@@ -532,5 +532,14 @@
     "ipotesi_e_aspettativa": "L'estensione dell'RSI orario sopra quota 80 rende rischiosi gli acquisti a mercato. Il riposizionamento delle griglie d'acquisto limite a -2.8% su BTC ed ETH permetterà di assorbire passivamente (Maker) il fisiologico scarico di ipercomprato intraday, convertendo la cassa libera in posizioni a prezzo di sconto per poi liquidare a +2.0% sul rimbalzo successivo.",
     "esito_decisione_precedente": "La strategia ha eseguito con successo il take-profit su BTC-EUR a €74,739.60, preservando integralmente il capitale (+0.32% a 7gg). Tuttavia, la forte spinta del mercato con cassa al 90.2% ha provocato un temporaneo drag sull'Alpha (-1.49% vs B&H), confermando l'esigenza di posizionare ordini limite d'acquisto più vicini per catturare la volatilità intraday.",
     "lezione_appresa": "Quando la cassa torna elevata (>90%) a seguito di vendite in profitto e il mercato entra in una fase di estensione rialzista (RSI 1H > 80), il modo corretto di ricuperare Alpha non è rincorrere il prezzo (Taker), ma distanziare la griglia limite di acquisto Maker al 2.8% per farsi eseguire durante le inevitabili prese di beneficio orarie."
+  },
+  {
+    "data": "2026-10-22",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "EXTREME OVERSOLD CORRECTION WITH HIGH VOLUME ANOMALY (BTC VAI 1.92, RSI < 25)",
+    "decisione": "Attivazione intensiva del protocollo anti-inazione su Cassa al 97.5%: aumento della buy_conviction a 1.2 su BTC-EUR e a 1.1 su ETH-EUR, affinando le grid_dist_buy al 2.6% (0.026) per catturare l'eccesso ribassista orario (RSI BTC 22.0, ETH 17.6) tramite ordini limite passivi Maker. Riduzione difensiva della conviction su ADA (0.5) con griglia allargata a 0.040 per contrastare forte segnale di distribuzione (VAI 2.83). Confermato Fast Harvesting (grid_dist_sell a 0.020) su tutti gli asset.",
+    "ipotesi_e_aspettativa": "La convergenza di RSI orari compressi in territorio di ipervenduto estremo e volumi elevati su BTC (VAI 1.92) indica l'esaurimento delle vendite da liquidazione. Posizionando ordini limite a -2.6%, il bot assorbirà passivamente la fase terminale dello storno senza pagare spread/fee Taker, garantendo l'impiego del capitale libero per un rapido scarico al +2.0% lordo (+1.50% netto) sul primo rimbalzo tecnico medio.",
+    "esito_decisione_precedente": "La liquidazione ai massimi delle tranche precedenti ha massimizzato la cassa libera a 365.19 EUR (97.5%), preservando il capitale e portando l'Alpha a +5.31% rispetto al Benchmark Buy & Hold durante l'attuale storno di mercato (-4% medio).",
+    "lezione_appresa": "Avere il 97% di liquidità durante un flash storno con volumi anomali è il massimo vantaggio competitivo: non bisogna anticipare a mercato con fee Taker, ma stringere chirurgicamente la griglia d'acquisto limite a -2.6% sui leader ad alto VAI (BTC), difendendosi invece dalle altcoin che mostrano volumi di pura distribuzione senza assorbimento (ADA)."
   }
 ]
