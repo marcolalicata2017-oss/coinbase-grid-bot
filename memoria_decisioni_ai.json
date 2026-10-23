@@ -541,5 +541,14 @@
     "ipotesi_e_aspettativa": "La convergenza di RSI orari compressi in territorio di ipervenduto estremo e volumi elevati su BTC (VAI 1.92) indica l'esaurimento delle vendite da liquidazione. Posizionando ordini limite a -2.6%, il bot assorbirà passivamente la fase terminale dello storno senza pagare spread/fee Taker, garantendo l'impiego del capitale libero per un rapido scarico al +2.0% lordo (+1.50% netto) sul primo rimbalzo tecnico medio.",
     "esito_decisione_precedente": "La liquidazione ai massimi delle tranche precedenti ha massimizzato la cassa libera a 365.19 EUR (97.5%), preservando il capitale e portando l'Alpha a +5.31% rispetto al Benchmark Buy & Hold durante l'attuale storno di mercato (-4% medio).",
     "lezione_appresa": "Avere il 97% di liquidità durante un flash storno con volumi anomali è il massimo vantaggio competitivo: non bisogna anticipare a mercato con fee Taker, ma stringere chirurgicamente la griglia d'acquisto limite a -2.6% sui leader ad alto VAI (BTC), difendendosi invece dalle altcoin che mostrano volumi di pura distribuzione senza assorbimento (ADA)."
+  },
+  {
+    "data": "2026-10-23",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS WITH CONSOLIDATION AND LOCAL OVERSOLD ON SELECT ALTCOINS",
+    "decisione": "Conferma del protocollo anti-inazione sulla cassa al 96.3%: mantenuta buy_conviction a 1.2 su BTC-EUR e 1.1 su ETH-EUR con griglie d'acquisto limite a -2.6%. Affinata la griglia su AVAX-EUR (grid_dist_buy a 0.030, buy_conviction a 0.9, target_weight al 10%) per sfruttare l'RSI 1H scarico (33.7) e riequilibrato il peso di ADA al 5%. Mantenuti tutti i target sell al 2.0% per garantire il Fast Harvesting (+1.50% netto).",
+    "ipotesi_e_aspettativa": "La combinazione di stasi sui leader e ipervenduto orario su AVAX permetterà l'esecuzione di ordini limite Maker durante le micro-oscillazioni intraday, incrementando l'impiego della cassa senza subire slippage né fee Taker, per poi monetizzare rapidamente sul primo rimbalzo tecnico a +2.0% lordo.",
+    "esito_decisione_precedente": "Alpha eccellente mantenuto a +3.80% rispetto al Benchmark Buy & Hold con drawdown contenuto (-0.03% a 3gg). La cassa al 96.3% garantisce massima protezione ma richiede un posizionamento d'acquisto chirurgico per contrastare il cash drag.",
+    "lezione_appresa": "Nelle fasi di consolidamento con cassa elevata (>95%), il valore atteso risiede nella sintonizzazione delle griglie limite sugli asset che mostrano RSI orario compresso (AVAX < 35), mantenendo immutata la disciplina di take-profit al 2.0% per evitare un'esposizione prolungata in un mercato laterale."
   }
 ]
