@@ -550,5 +550,14 @@
     "ipotesi_e_aspettativa": "La combinazione di stasi sui leader e ipervenduto orario su AVAX permetterà l'esecuzione di ordini limite Maker durante le micro-oscillazioni intraday, incrementando l'impiego della cassa senza subire slippage né fee Taker, per poi monetizzare rapidamente sul primo rimbalzo tecnico a +2.0% lordo.",
     "esito_decisione_precedente": "Alpha eccellente mantenuto a +3.80% rispetto al Benchmark Buy & Hold con drawdown contenuto (-0.03% a 3gg). La cassa al 96.3% garantisce massima protezione ma richiede un posizionamento d'acquisto chirurgico per contrastare il cash drag.",
     "lezione_appresa": "Nelle fasi di consolidamento con cassa elevata (>95%), il valore atteso risiede nella sintonizzazione delle griglie limite sugli asset che mostrano RSI orario compresso (AVAX < 35), mantenendo immutata la disciplina di take-profit al 2.0% per evitare un'esposizione prolungata in un mercato laterale."
+  },
+  {
+    "data": "2026-10-24",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "MARKET-WIDE FLASH DIP WITH LOCAL OVERSOLD (ETH RSI 28.3) AND EXCESS CASH RESERVES (96.3%)",
+    "decisione": "Rigorosa applicazione della regola anti-inazione su Cassa al 96.3%: confermata buy_conviction a 1.2 su BTC-EUR e portata a 1.2 su ETH-EUR per catturare l'ipervenduto orario estremo (RSI 28.3) con griglie d'acquisto limite calibrate a -2.6% (0.026). Ricalibrata la griglia di AVAX a 0.032 con buy_conviction a 0.8. Mantenute le maglie larghe su SOL (0.035) e ADA (0.040) e confermato soft_exit su DOGE. Tutti i parametri grid_dist_sell vincolati al 2.0% per Fast Harvesting a +1.50% netto.",
+    "ipotesi_e_aspettativa": "La presenza di RSI fortemente scarichi sui leader di mercato (ETH < 30) all'interno di un sell-off orario privo di panico sistemico offre un profilo rischio/rendimento asimmetrico favorevole. Il posizionamento passivo Maker a -2.6% consentirà di assorbire l'eventuale seconda gamba ribassista a sconto, avviando l'accumulo di liquidità per una rapida monetizzazione a +2.0% sul primo rimbalzo tecnico medio.",
+    "esito_decisione_precedente": "La preservazione della liquidità al 96.3% durante lo storno odierno ha incrementato l'Alpha a +6.55% vs Benchmark Buy & Hold, mantenendo il drawdown a 3 giorni a un trascurabile -0.16% e confermando la solidità dell'approccio a bande flessibili.",
+    "lezione_appresa": "Quando il mercato stagna o stona moderatamente e la cassa supera il 95%, l'eccedenza di liquidità espande l'Alpha nel breve periodo ma espone al rischio di ripartenza senza esposizione. L'allocazione corretta consiste nel premiare gli asset a maggior liquidità che raggiungono RSI orari compressi (<30, come ETH), incrementando la conviction di acquisto limite passivo senza rincorrere il prezzo a mercato."
   }
 ]
