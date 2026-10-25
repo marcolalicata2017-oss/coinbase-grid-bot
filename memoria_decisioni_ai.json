@@ -559,5 +559,14 @@
     "ipotesi_e_aspettativa": "La presenza di RSI fortemente scarichi sui leader di mercato (ETH < 30) all'interno di un sell-off orario privo di panico sistemico offre un profilo rischio/rendimento asimmetrico favorevole. Il posizionamento passivo Maker a -2.6% consentirà di assorbire l'eventuale seconda gamba ribassista a sconto, avviando l'accumulo di liquidità per una rapida monetizzazione a +2.0% sul primo rimbalzo tecnico medio.",
     "esito_decisione_precedente": "La preservazione della liquidità al 96.3% durante lo storno odierno ha incrementato l'Alpha a +6.55% vs Benchmark Buy & Hold, mantenendo il drawdown a 3 giorni a un trascurabile -0.16% e confermando la solidità dell'approccio a bande flessibili.",
     "lezione_appresa": "Quando il mercato stagna o stona moderatamente e la cassa supera il 95%, l'eccedenza di liquidità espande l'Alpha nel breve periodo ma espone al rischio di ripartenza senza esposizione. L'allocazione corretta consiste nel premiare gli asset a maggior liquidità che raggiungono RSI orari compressi (<30, come ETH), incrementando la conviction di acquisto limite passivo senza rincorrere il prezzo a mercato."
+  },
+  {
+    "data": "2026-10-25",
+    "tipo_audit": "WEEKLY STRATEGIC",
+    "regime_rilevato": "VOLATILITY COMPRESSION AND CASH DRAG DEFENSE WITH NORMALIZED VAI",
+    "decisione": "Ribilanciamento strategico settimanale con applicazione del protocollo anti-inazione su Cassa al 96.3%. Mantenimento macro pesi 35% BTC ed 30% ETH con buy_conviction a 1.2 e grid_dist_buy a 0.026. Consolidamento pesi tattici su SOL (10%, grid_dist_buy affinata a 0.032), AVAX (10%, grid_dist_buy 0.032) e ADA (5%, griglia 0.040). Confermato target sell al 2.0% (+1.50% netto) su tutti gli asset e mantenimento soft_exit a peso zero su DOGE.",
+    "ipotesi_e_aspettativa": "La stasi oraria con RSI neutrali (46-56) e volumi standard anticipa una nuova espansione di volatilità. Il posizionamento passivo Maker a -2.6% sui leader consentirà di assorbire eventuali flessioni intraday senza pagare costi di spread o commissioni Taker, garantendo l'iniezione progressiva della cassa per monetizzare al target fissato del +2.0% lordo.",
+    "esito_decisione_precedente": "Preservazione totale del capitale (+0.05% a 7gg) ed eccellente sovraperformance relativa: Alpha consolidato a +6.05% rispetto al Benchmark Buy & Hold, confermando l'efficacia del disimpegno durante la correzione infra-settimanale.",
+    "lezione_appresa": "Nelle sessioni strategiche settimanali con cassa estrema (>95%), proteggere l'Alpha non significa rimanere inerti, bensì sintonizzare le maglie d'acquisto limite a ridosso dei range di oscillazione tipici (-2.6% / -3.2%) sui tier-1 per ricaricare l'inventario ed evitare il rischio di opportunity cost in caso di rimbalzo impulsivo."
   }
 ]
