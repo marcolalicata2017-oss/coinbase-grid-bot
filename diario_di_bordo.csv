@@ -563,3 +563,5 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-10-25 07:01:18,BTC-EUR,71802.73,72251.96,360.18,0.00013,False,57.1,0.20,69002.42,73238.78,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-10-25 07:10:46,BTC-EUR,71910.81,72238.97,360.18,0.00000,True,59.5,0.03,69106.29,73349.03,3.90,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder]"
 2026-10-25 07:10:47,SOL-EUR,90.61,91.45,360.18,0.00000,True,62.0,0.03,85.85,92.42,5.25,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-10-25 07:20:52,BTC-EUR,71924.06,72239.49,360.18,0.00013,True,59.9,0.05,69119.02,73362.54,3.90,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
+2026-10-25 07:20:53,ETH-EUR,2095.48,2114.49,360.18,0.00000,True,63.0,0.16,2013.76,2137.39,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
