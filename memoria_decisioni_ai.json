@@ -568,5 +568,14 @@
     "ipotesi_e_aspettativa": "La stasi oraria con RSI neutrali (46-56) e volumi standard anticipa una nuova espansione di volatilità. Il posizionamento passivo Maker a -2.6% sui leader consentirà di assorbire eventuali flessioni intraday senza pagare costi di spread o commissioni Taker, garantendo l'iniezione progressiva della cassa per monetizzare al target fissato del +2.0% lordo.",
     "esito_decisione_precedente": "Preservazione totale del capitale (+0.05% a 7gg) ed eccellente sovraperformance relativa: Alpha consolidato a +6.05% rispetto al Benchmark Buy & Hold, confermando l'efficacia del disimpegno durante la correzione infra-settimanale.",
     "lezione_appresa": "Nelle sessioni strategiche settimanali con cassa estrema (>95%), proteggere l'Alpha non significa rimanere inerti, bensì sintonizzare le maglie d'acquisto limite a ridosso dei range di oscillazione tipici (-2.6% / -3.2%) sui tier-1 per ricaricare l'inventario ed evitare il rischio di opportunity cost in caso di rimbalzo impulsivo."
+  },
+  {
+    "data": "2026-10-26",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "HIGH CASH SURPLUS (96.3%) WITH CONSOLIDATION NEUTRAL RSI AND STABLE ALPHA (+7.32%)",
+    "decisione": "Rigorosa esecuzione del protocollo anti-inazione su Cassa al 96.3%. Mantenute le conviction elevate sui leader BTC (1.2) ed ETH (1.2) con griglie d'acquisto limite a -2.6%. Aumentata la conviction su SOL-EUR a 0.9 affinando la griglia d'acquisto allo 0.030 per intercettare l'RSI orario compresso (44.9). Mantenute le posizioni difensive su AVAX (0.032) e ADA (0.040). Confermato il Fast Harvesting con target di vendita al 2.0% lordo (+1.50% netto) su tutti i pair per garantire uscite rapide e azzerare il rischio d'incaglio.",
+    "ipotesi_e_aspettativa": "In una fase di consolidamento con RSI orari compressi e volumi stabili, il posizionamento di ordini limite Maker passivi tra -2.6% e -3.0% consente di catturare i micro-storni intraday senza pagare commissioni Taker. Il successivo scarico al +2.0% alimenterà costantemente il flusso di cassa e preserverà l'Alpha positivo vs Benchmark.",
+    "esito_decisione_precedente": "La strategia ha preservato il capitale e continuato a monetizzare sulle oscillazioni (esecuzioni multiple di vendita registrate nel diario), portando l'Alpha a +7.32% rispetto al Benchmark Buy & Hold, mantenendo il drawdown a 3 giorni a un irrisorio -0.06%.",
+    "lezione_appresa": "Nelle fasi di stasi con cassa vicina al 100%, l'Alpha si protegge ponendo ordini Maker a rete sottile sugli asset con RSI orario più debole (SOL < 45) o con presenza di volumi anomali (ETH VAI 1.31), evitando la tentazione di entrare a mercato Taker e garantendo l'esecuzione passiva."
   }
 ]

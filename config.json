@@ -26,9 +26,9 @@
     },
     "SOL-EUR": {
       "target_weight_pct": 10.0,
-      "grid_dist_buy": 0.032,
+      "grid_dist_buy": 0.03,
       "grid_dist_sell": 0.02,
-      "buy_conviction": 0.8,
+      "buy_conviction": 0.9,
       "sell_action": "tranche",
       "max_active_levels": 2,
       "is_active": true,
@@ -65,5 +65,5 @@
       "exit_strategy": "soft_exit"
     }
   },
-  "force_grid_realign": false
+  "force_grid_realign": true
 }
