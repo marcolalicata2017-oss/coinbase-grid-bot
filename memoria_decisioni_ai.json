@@ -577,5 +577,14 @@
     "ipotesi_e_aspettativa": "In una fase di consolidamento con RSI orari compressi e volumi stabili, il posizionamento di ordini limite Maker passivi tra -2.6% e -3.0% consente di catturare i micro-storni intraday senza pagare commissioni Taker. Il successivo scarico al +2.0% alimenterà costantemente il flusso di cassa e preserverà l'Alpha positivo vs Benchmark.",
     "esito_decisione_precedente": "La strategia ha preservato il capitale e continuato a monetizzare sulle oscillazioni (esecuzioni multiple di vendita registrate nel diario), portando l'Alpha a +7.32% rispetto al Benchmark Buy & Hold, mantenendo il drawdown a 3 giorni a un irrisorio -0.06%.",
     "lezione_appresa": "Nelle fasi di stasi con cassa vicina al 100%, l'Alpha si protegge ponendo ordini Maker a rete sottile sugli asset con RSI orario più debole (SOL < 45) o con presenza di volumi anomali (ETH VAI 1.31), evitando la tentazione di entrare a mercato Taker e garantendo l'esecuzione passiva."
+  },
+  {
+    "data": "2026-10-27",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "LOCAL REBOUND WITH HIGH INTRADAY BTC RSI (70.5) AND EXCESS CASH RESERVES (96.3%)",
+    "decisione": "Applicazione del protocollo anti-inazione su cassa al 96.3%. Mantenuta buy_conviction elevata su BTC (1.2) ed ETH (1.2). Ricalibrata la griglia d'acquisto limite su BTC-EUR a 0.028 (-2.8%) per proteggere gli ordini Maker dall'ipercomprato orario (RSI 70.5). Confermati i parametri su ETH (0.026), SOL (0.030), AVAX (0.032) e ADA (0.040). Mantenuto il target Fast Harvesting a 0.020 (+1.50% netto) su tutti i pair.",
+    "ipotesi_e_aspettativa": "In una fase di estensione rialzista oraria priva di volumi anomali (VAI BTC 0.67), allargare leggermente la griglia limite su BTC a -2.8% evita l'inseguimento del prezzo sui massimi locali, garantendo l'esecuzione passiva solo sui fisiologici pullback intraday per monetizzare rapidamente al +2.0% lordo.",
+    "esito_decisione_precedente": "La strategia di incasso rapido ha consolidato l'Alpha a +5.48% vs Benchmark Buy & Hold, mantenendo il drawdown ultra-confinato (-0.03% a 3 giorni) e garantendo cassa sufficiente a catturare la successiva rotazione di volatilità.",
+    "lezione_appresa": "Quando l'RSI orario dei benchmark supera soglia 70 con cassa abbondante, non bisogna ridurre la conviction bensì distanziare leggermente la griglia di acquisto passiva Maker (da 2.6% a 2.8%), consentendo al bot di entrare a sconto senza incorrere nel rischio di top-buying intraday."
   }
 ]
