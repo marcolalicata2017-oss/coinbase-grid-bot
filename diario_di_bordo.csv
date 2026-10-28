@@ -666,3 +666,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-10-28 19:50:57,SOL-EUR,91.84,90.93,360.18,0.00000,True,54.9,1.40,89.08,93.68,3.00,2.00,"Riallineamento Totale Post-Audit"
 2026-10-28 19:50:58,AVAX-EUR,8.07,7.99,360.18,0.58400,True,46.6,1.59,7.82,8.23,3.00,2.00,"Riallineamento Totale Post-Audit"
 2026-10-28 19:50:59,ADA-EUR,0.19,0.18,360.18,0.00000,True,50.5,0.75,0.18,0.19,4.00,2.00,"Riallineamento Totale Post-Audit"
+2026-10-28 20:01:26,BTC-EUR,73173.26,72340.98,360.18,0.00013,True,61.1,0.10,71270.76,74636.73,2.60,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
