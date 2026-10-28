@@ -586,5 +586,14 @@
     "ipotesi_e_aspettativa": "In una fase di estensione rialzista oraria priva di volumi anomali (VAI BTC 0.67), allargare leggermente la griglia limite su BTC a -2.8% evita l'inseguimento del prezzo sui massimi locali, garantendo l'esecuzione passiva solo sui fisiologici pullback intraday per monetizzare rapidamente al +2.0% lordo.",
     "esito_decisione_precedente": "La strategia di incasso rapido ha consolidato l'Alpha a +5.48% vs Benchmark Buy & Hold, mantenendo il drawdown ultra-confinato (-0.03% a 3 giorni) e garantendo cassa sufficiente a catturare la successiva rotazione di volatilità.",
     "lezione_appresa": "Quando l'RSI orario dei benchmark supera soglia 70 con cassa abbondante, non bisogna ridurre la conviction bensì distanziare leggermente la griglia di acquisto passiva Maker (da 2.6% a 2.8%), consentendo al bot di entrare a sconto senza incorrere nel rischio di top-buying intraday."
+  },
+  {
+    "data": "2026-10-28",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "POST-PUMP NEUTRALIZATION WITH HIGH CASH SURPLUS (96.3%) AND DEPRESSED ALT RSI",
+    "decisione": "Rigorosa applicazione del protocollo anti-inazione sulla cassa al 96.3%: riportata la grid_dist_buy su BTC-EUR a 0.026 (-2.6%) contestualmente alla normalizzazione dell'RSI orario a 51.0 (da 70.5). Aumentata la buy_conviction su AVAX-EUR a 0.9 con affinamento griglia a 0.030 per catturare l'ipervenduto orario locale (RSI 40.5). Confermati i parametri su ETH (0.026), SOL (0.030) e ADA (0.040). Mantenuti tutti i target sell al 2.0% per Fast Harvesting (+1.50% netto) e soft_exit su DOGE.",
+    "ipotesi_e_aspettativa": "Il rientro degli indicatori d'impulso sui benchmark verso livelli neutrali (RSI ~50) unito alla debolezza relativa delle altcoin secondarie (AVAX RSI 40.5) offre l'opportunita' di riposizionare ordini limite Maker passivi a maglie strette (-2.6% / -3.0%). Cio' consentira' di assorbire i micro-pullback intraday senza costi Taker, avviando il graduale impiego della cassa per monetizzare rapidamente al +2.0% lordo sul primo rimbalzo tecnico.",
+    "esito_decisione_precedente": "L'Alpha vs Benchmark Buy & Hold e' stabilizzato a +4.77% (+35.57% vs +30.79%), con la strategia di Take-Profit rapido che ha chiuso le posizioni BTC in gain e garantito la totale protezione del capitale durante la contrazione oraria (drawdown a 3 giorni confinato a +0.06%).",
+    "lezione_appresa": "Quando gli indicatori di forza relativa (RSI) sui benchmark tornano in zona neutrale dopo uno spunto rialzista, e' necessario riavvicinare tempestivamente la griglia limite di acquisto (da 2.8% a 2.6%) ed elevare la conviction sugli asset a RSI piu' basso (AVAX < 41), impedendo che la liquidita' rimanga inattiva durante la formazione dei minimi relativi intraday."
   }
 ]
