@@ -604,5 +604,14 @@
     "ipotesi_e_aspettativa": "La combinazione di volumi anomali (VAI BTC 2.90x) e indicatori di momentum scarichi sui tier-1 segnala una dislocazione intraday matura per un'inversione media. L'allocazione passiva con ordini limite a sconto permetterà di schierare la liquidità dormiente a prezzi depressi, evitando costi Taker e posizionando il book per rapide monetizzazioni (+2.0%) durante il rimbalzo.",
     "esito_decisione_precedente": "La tenuta della liquidità durante la discesa ha spinto l'Alpha a +12.38% vs Benchmark Buy & Hold (+35.58% bot vs +23.21% B&H), preservando interamente il capitale (+0.01% a 3 e 7 giorni) e azzerando le perdite di inventario.",
     "lezione_appresa": "Con la cassa vicina al 100%, l'Alpha accumulato va difeso capitalizzando sui sell-off: quando i large cap (BTC, SOL) mostrano RSI orari inferiori a 30 con anomalie volumetriche elevate (VAI > 2.5x), è imperativo aumentare peso e conviction stringendo le maglie degli ordini passivi, impedendo che la prudenza si trasformi in costo opportunità."
+  },
+  {
+    "data": "2026-10-31",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "MEAN REVERSION STABILIZATION POST-DIP WITH HIGH CASH DRAG RISK (98.8%) AND STRONG ALPHA (+10.69%)",
+    "decisione": "Rigida applicazione del protocollo anti-inazione su Cassa al 98.8%. Riconfermati target weight per BTC (40%) ed ETH (30%) con buy_conviction a 1.2 e maglie d'acquisto limite calibrate a -2.6% Maker. Confermato peso tattico su SOL al 15% (conviction 1.1, griglia -2.8%) per sfruttare la neutralizzazione del momentum (RSI 50.8) e volumi sopra la media (VAI 1.11). Confermate quote ridotte su AVAX (5%) e ADA (5%) con griglie difensive (-3.5% e -4.0%). Mantenuto target Fast Harvesting su tutti gli asset al 2.0% lordo (+1.50% netto) e soft_exit su DOGE.",
+    "ipotesi_e_aspettativa": "A seguito dell'assorbimento dell'ipervenduto estremo registrato nella sessione precedente, i tier-1 si stanno consolidando in un range stretto. Mantenere ordini limite Maker passivi tra -2.6% e -2.8% consente di capitalizzare sui fisiologici micro-pullback intraday senza pagare fee Taker, iniettando la liquidità eccedente a sconto per liquidarla rapidamente al target prefissato del +2.0% lordo.",
+    "esito_decisione_precedente": "La tenuta tattica della liquidità e la difesa del capitale hanno garantito una solida sovraperformance: Alpha a +10.69% rispetto al Benchmark Buy & Hold, con drawdown nullo (+0.04% a 3 giorni, +0.06% a 7 giorni) e totale integrità del portafoglio.",
+    "lezione_appresa": "Nelle giornate successive a violenti scarichi di volatilità in cui l'Alpha si espande a doppia cifra (>10%), non bisogna cedere all'inseguimento rialzista dei breakout privi di volumi esplosivi (es. LINK VAI 1.37 ma RSI 76), bensì mantenere una presenza passiva disciplinata sui tier-1 (BTC, ETH, SOL) a sconto controllato, garantendo l'esecuzione Maker e azzerando i costi di attrito."
   }
 ]

@@ -6,7 +6,7 @@
   "assets": {
     "BTC-EUR": {
       "target_weight_pct": 40.0,
-      "grid_dist_buy": 0.025,
+      "grid_dist_buy": 0.026,
       "grid_dist_sell": 0.02,
       "buy_conviction": 1.2,
       "sell_action": "tranche",
@@ -65,5 +65,5 @@
       "exit_strategy": "soft_exit"
     }
   },
-  "force_grid_realign": false
+  "force_grid_realign": true
 }
