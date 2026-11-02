@@ -65,5 +65,5 @@
       "exit_strategy": "soft_exit"
     }
   },
-  "force_grid_realign": true
+  "force_grid_realign": false
 }
