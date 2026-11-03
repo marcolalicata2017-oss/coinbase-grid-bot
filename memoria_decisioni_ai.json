@@ -631,5 +631,16 @@
     "ipotesi_e_aspettativa": "L'azzeramento dell'RSI orario sui benchmark (< 20) combinato con volumi in accumulo su ETH (VAI 1.81x) preannuncia una matura dislocazione per mean-reversion. La calibrazione di ordini limite Maker passivi a maglie strette (-2.3% / -2.5%) permettera' di convertire rapidamente la cassa inattiva in inventory a sconto, catturando il successivo spunto rialzista senza pagare fee Taker e protraendo l'espansione dell'Alpha.",
     "esito_decisione_precedente": "La rigida disciplina di accumulo passivo e protezione del capitale ha difeso integralmente il portafoglio (+0.02% a 3 giorni, +0.12% a 7 giorni), portando l'Alpha a +11.73% vs Benchmark Buy & Hold (+35.66% bot vs +23.94% B&H) senza generare incagli o sofferenze di drawdown.",
     "lezione_appresa": "Quando gli indicatori di momentum orari scendono su livelli estremi (RSI BTC < 10, ETH < 20) in presenza di anomalie volumetriche d'accumulo su asset primari, la prudenza non deve trasformarsi in paralisi: e' necessario stringere la griglia di acquisto limite Maker e attivare 'force_grid_realign' per ancorare i livelli di acquisto ai minimi correnti, garantendo l'assorbimento passivo delle vendite prima del rimbalzo."
-  }
+  },
+  [
+    {
+      "data": "2026-11-03",
+      "tipo_audit": "DAILY TACTICAL",
+      "regime_rilevato": "V-SHAPE BOUNCE RECOVERY TO OVERBOUGHT (ETH RSI 80.0, BTC RSI 74.0) WITH HIGH CASH SURPLUS (98.8%) AND SOLID ALPHA (+10.07%)",
+      "decisione": "Attivato force_grid_realign per aggiornare i pivot ai prezzi correnti rialzati. In stretta osservanza del protocollo anti-inazione su Cassa al 98.8%, riconfermati target weight per BTC (40%), ETH (30%) e SOL (20%) con conviction 1.2. Widened distanze d'acquisto limite a -2.7% (BTC), -2.8% (ETH) e -2.9% (SOL) per evitare di acquistare l'ipercomprato orario (RSI 74-80) e intercettare il fisiologico rintracciamento intraday. Mantenuto Fast Harvesting a 0.020 (+1.50% netto) su tutti i pair.",
+      "ipotesi_e_aspettativa": "La rapida escursione dell'RSI orario verso livelli di ipercomprato dopo lo scarico di ieri segnala un picco di momentum di breve periodo destinato a raffreddarsi. Posizionare ordini limite Maker passivi a sconto leggermente maggiorato (-2.7% / -2.9%) permette di assorbire i micro-pullback intraday senza rincorrere il mercato, garantendo l'esecuzione Maker e la conversione efficiente della cassa in inventory a prezzi controllati.",
+      "esito_decisione_precedente": "La tenuta tattica della cassa ha difeso il capitale dal rumore di fondo (drawdown confinato a -0.03% a 3gg), preservando un Alpha di eccellenza (+10.07% vs Benchmark Buy & Hold) e azzerando le perdite di inventario.",
+      "lezione_appresa": "Quando gli indicatori d'impulso orari schizzano in forte ipercomprato (RSI > 75) a valle di un rimbalzo violento, il vincolo anti-inazione non deve spingere all'acquisto impulsivo sui massimi locali: occorre attivare 'force_grid_realign' e ricalibrare la griglia di acquisto Maker a una distanza di sicurezza adeguata (-2.7% / -2.9%), captando il successivo pullback a sconto senza subire drawdown immediati."
+    }
+  ]
 ]
