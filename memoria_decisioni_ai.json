@@ -642,5 +642,14 @@
       "esito_decisione_precedente": "La tenuta tattica della cassa ha difeso il capitale dal rumore di fondo (drawdown confinato a -0.03% a 3gg), preservando un Alpha di eccellenza (+10.07% vs Benchmark Buy & Hold) e azzerando le perdite di inventario.",
       "lezione_appresa": "Quando gli indicatori d'impulso orari schizzano in forte ipercomprato (RSI > 75) a valle di un rimbalzo violento, il vincolo anti-inazione non deve spingere all'acquisto impulsivo sui massimi locali: occorre attivare 'force_grid_realign' e ricalibrare la griglia di acquisto Maker a una distanza di sicurezza adeguata (-2.7% / -2.9%), captando il successivo pullback a sconto senza subire drawdown immediati."
     }
-  ]
+  ],
+  {
+    "data": "2026-11-04",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "BULLISH MOMENTUM EXTENSION TO OVERBOUGHT (ETH RSI 82.5, BTC RSI 79.3) WITH SEVERE CASH DRAG (98.8% CASH, ALPHA COMPRESSION TO +4.45%)",
+    "decisione": "Attivato vincolante force_grid_realign per aggiornare i pivot d'acquisto ai nuovi massimi intraday. In ossequio alla Regola Anti-Inazione (Cassa 98.8%), confermati target weight e buy_conviction a 1.2 sui Tier-1 (BTC, ETH, SOL) e incrementata la conviction su AVAX a 1.0 (VAI 1.67). Widened le maglie di buy limite a -2.8% (BTC), -3.0% (ETH), -3.0% (SOL) e -3.0% (AVAX) per evitare di comprare sui picchi d'ipercomprato orario (RSI 79-82) e posizionare il book Maker su pullback fisiologici.",
+    "ipotesi_e_aspettativa": "Il rally violento del Benchmark ha compresso l'Alpha a causa della giacenza quasi totale di cassa libera. La riattivazione dei pivot tramite 'force_grid_realign' unita a una griglia d'acquisto limite sufficientemente distanziata (-2.8% / -3.0%) permettera' di catturare le prese di beneficio intraday a sconto senza pagare fee Taker, convertendo l'eccedenza di liquidita' in inventory produttiva a protezione dell'Alpha.",
+    "esito_decisione_precedente": "La cassa al 98.8% ha protetto totalmente il capitale da perdite nominali (-0.02% a 3 giorni), ma la gamba rialzista del mercato ha ridotto l'Alpha da +10.07% a +4.45% vs Benchmark Buy & Hold, confermando la necessita' di velocizzare l'impiego passivo del capitale.",
+    "lezione_appresa": "Nelle fasi in cui il mercato estende violentemente al rialzo lasciando la cassa prevalentemente inattiva, la semplice conservazione del capitale distrugge l'Alpha relativo. Occorre forzare il refresh delle griglie (`force_grid_realign: true`) ed espandere moderatamente i buffer d'acquisto passivi per garantire l'entrata sui rintracciamenti senza rimanere tagliati fuori dal Trend."
+  }
 ]
