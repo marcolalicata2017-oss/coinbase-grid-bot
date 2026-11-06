@@ -941,3 +941,6 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-06 08:40:56,ADA-EUR,0.16,0.17,338.27,30.26000,False,54.6,0.16,0.16,0.17,5.25,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] ⚡[ML High Vol]"
 2026-11-06 08:50:49,ETH-EUR,1989.73,2049.09,338.27,0.01313,False,42.2,1.08,1900.19,2029.52,4.50,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] ⚡[ML High Vol]"
 2026-11-06 09:01:29,ADA-EUR,0.16,0.17,338.27,30.26000,False,55.4,0.41,0.16,0.17,5.25,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] ⚡[ML High Vol]"
+2026-11-06 09:10:49,ETH-EUR,1995.03,2046.97,338.27,0.01313,False,38.6,0.23,1905.25,2030.94,4.50,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] ⚡[ML High Vol] 🎯[Fast Harvesting: +1.8%]"
+2026-11-06 09:10:51,AVAX-EUR,7.42,7.56,338.27,0.58400,True,59.5,0.01,7.09,7.57,4.50,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] ⚡[ML High Vol]"
+2026-11-06 09:10:53,ADA-EUR,0.17,0.17,338.27,0.00000,True,51.7,0.00,0.16,0.17,5.25,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder] ⚡[ML High Vol]"
