@@ -998,3 +998,5 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-06 22:10:48,ETH-EUR,2009.60,2029.10,343.40,0.01313,True,62.8,0.35,1919.17,2049.79,4.50,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
 2026-11-07 05:40:42,AVAX-EUR,7.48,7.53,343.40,0.58400,True,48.7,1.33,7.14,7.63,4.50,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-07 10:10:50,AVAX-EUR,7.45,7.52,343.40,0.58400,True,37.0,0.09,7.12,7.59,4.50,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
+2026-11-07 10:50:44,BTC-EUR,68135.20,68432.65,343.40,0.00000,True,56.6,0.68,65273.52,69497.90,4.20,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-07 10:50:45,SOL-EUR,80.62,81.33,343.40,0.00000,True,50.0,0.52,76.99,82.23,4.50,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
