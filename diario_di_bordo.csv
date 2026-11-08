@@ -1068,3 +1068,7 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-08 18:01:15,ETH-EUR,2000.48,2010.95,343.40,0.01313,True,40.2,0.92,1922.46,2040.49,3.90,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
 2026-11-08 18:31:06,ADA-EUR,0.16,0.16,343.40,0.00000,True,47.7,0.63,0.15,0.16,4.20,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-08 18:50:44,AVAX-EUR,7.37,7.41,343.40,0.58400,True,54.7,0.00,7.06,7.52,4.20,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-08 19:40:53,BTC-EUR,68036.99,68146.15,343.40,0.00000,True,52.4,0.48,65383.55,69397.73,3.90,2.00,"Riallineamento Totale Post-Audit 🌊[Downtrend Buy Ladder]"
+2026-11-08 19:40:54,ETH-EUR,2001.11,2010.28,343.40,0.00000,True,45.9,1.91,1923.07,2041.13,3.90,2.00,"Riallineamento Totale Post-Audit 🌊[Downtrend Buy Ladder]"
+2026-11-08 19:40:55,SOL-EUR,80.33,80.49,343.40,0.00000,True,56.0,1.80,77.08,81.94,4.05,2.00,"Riallineamento Totale Post-Audit 🌊[Downtrend Buy Ladder]"
+2026-11-08 19:40:57,ADA-EUR,0.16,0.16,343.40,0.00000,True,51.4,0.94,0.15,0.16,4.20,2.00,"Riallineamento Totale Post-Audit 🌊[Downtrend Buy Ladder]"
