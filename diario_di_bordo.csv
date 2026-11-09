@@ -1155,3 +1155,7 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-09 10:50:48,BTC-EUR,66180.24,67536.30,325.39,0.00000,True,32.2,0.99,63599.21,67371.48,3.90,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
 2026-11-09 11:01:26,ETH-EUR,1881.62,1960.43,325.39,0.01313,False,36.0,0.00,1796.95,1915.49,4.50,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
 2026-11-09 11:01:27,SOL-EUR,76.72,79.25,325.39,0.23300,False,32.5,0.73,73.61,78.10,4.05,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
+2026-11-09 11:20:54,BTC-EUR,66452.96,67493.91,325.39,0.00000,True,49.5,0.70,63861.29,67782.02,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-09 11:20:55,ETH-EUR,1901.32,1961.21,325.39,0.01313,False,44.9,1.22,1827.17,1939.35,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-09 11:20:57,SOL-EUR,77.74,79.19,325.39,0.23300,True,53.8,0.91,74.59,79.29,4.05,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-09 11:20:58,ADA-EUR,0.16,0.16,325.39,0.00000,True,54.7,1.68,0.15,0.16,4.20,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
