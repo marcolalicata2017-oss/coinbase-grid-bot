@@ -1168,3 +1168,5 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-09 12:31:08,SOL-EUR,77.31,79.08,325.39,0.23300,True,47.2,0.69,74.18,78.86,4.05,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
 2026-11-09 12:40:51,ETH-EUR,1898.89,1958.18,325.39,0.01313,False,46.0,0.57,1824.83,1936.87,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-09 13:01:24,ETH-EUR,1896.46,1955.63,325.39,0.01313,False,45.9,0.00,1822.50,1934.39,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-09 13:20:52,ETH-EUR,1893.29,1955.50,325.39,0.01313,False,44.7,0.26,1819.45,1931.16,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-09 13:20:53,SOL-EUR,77.25,79.01,325.39,0.23300,False,47.7,0.15,74.12,78.80,4.05,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
