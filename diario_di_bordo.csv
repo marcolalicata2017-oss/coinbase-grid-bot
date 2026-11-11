@@ -1407,3 +1407,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-11 12:10:42,ETH-EUR,1842.08,1868.80,325.39,0.01313,False,56.6,0.09,1770.24,1878.92,3.90,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-11 12:20:52,ETH-EUR,1845.65,1868.94,325.39,0.00000,True,59.7,0.16,1773.67,1882.56,3.90,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder]"
 2026-11-11 12:31:11,ETH-EUR,1842.98,1868.84,325.39,0.01313,False,57.4,0.32,1771.10,1879.84,3.90,2.00,"Attivazione Circuit Breaker (Rottura ATR Floor) 🌊[Downtrend Buy Ladder]"
+2026-11-11 12:40:45,ETH-EUR,1845.78,1868.95,325.39,0.00000,True,59.8,0.43,1773.79,1882.70,3.90,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder]"
