@@ -1395,3 +1395,5 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-11 09:01:21,SOL-EUR,74.35,75.81,325.39,0.23300,False,51.2,0.53,71.34,75.84,4.05,2.00,"Attivazione Circuit Breaker (Rottura ATR Floor) 🌊[Downtrend Buy Ladder]"
 2026-11-11 09:10:47,ETH-EUR,1847.36,1871.82,325.39,0.00000,True,60.0,0.10,1775.31,1884.31,3.90,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder]"
 2026-11-11 09:10:48,SOL-EUR,74.57,75.76,325.39,0.00000,True,53.7,0.04,71.55,76.06,4.05,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder]"
+2026-11-11 09:20:50,ETH-EUR,1841.03,1871.58,325.39,0.01313,False,56.2,0.26,1769.23,1877.85,3.90,2.00,"Attivazione Circuit Breaker (Rottura ATR Floor) 🌊[Downtrend Buy Ladder]"
+2026-11-11 09:20:51,SOL-EUR,74.35,75.76,325.39,0.23300,False,51.3,0.12,71.34,75.84,4.05,2.00,"Attivazione Circuit Breaker (Rottura ATR Floor) 🌊[Downtrend Buy Ladder]"
