@@ -1476,3 +1476,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-13 23:40:49,AVAX-EUR,7.40,7.57,363.19,1.20100,False,41.2,0.38,7.07,7.55,4.50,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-13 23:40:50,ADA-EUR,0.15,0.16,363.19,0.00000,True,42.2,0.47,0.14,0.16,4.80,2.00,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-13 23:50:40,AVAX-EUR,7.45,7.57,363.19,0.00000,True,44.3,0.38,7.12,7.60,4.50,2.00,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder]"
+2026-11-14 00:01:23,AVAX-EUR,7.47,7.57,363.19,1.20100,True,45.8,0.41,7.14,7.62,4.50,2.00,"SELL Eseguito su Exchange (Saldo Riallineato)"
