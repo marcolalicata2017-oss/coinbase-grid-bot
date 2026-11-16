@@ -696,5 +696,16 @@
     "ipotesi_e_aspettativa": "La combinazione di volumi anomali in acquisto su BTC durante la fase di debolezza intraday offre un punto di ingresso ad alta probabilita'. Il riallineamento forzato dei pivot impedira' alla cassa di rimanere inattiva al 96.4%, consentendo di catturare i micro-storni passivi sui Tier-1 ed espandere ulteriormente l'Alpha record generato (+23.90%).",
     "esito_decisione_precedente": "La strategia di presidio passivo e scarico a target ha monetizzato con successo l'operazione su AVAX a 7.41 EUR, espandendo l'Alpha vs Benchmark Buy & Hold al +23.90% e portando il capitale totale a 372.18 EUR, confermando la massima efficienza del Fast Harvesting a spread protetto.",
     "lezione_appresa": "Quando le vendite a target riportano la cassa a livelli estremi (>95%) e il mercato ritraccia con volumi anomali su BTC (VAI > 1.8x), occorre attivare immediatamente `force_grid_realign: true` per aggiornare le griglie limite ed evitare che l'eccesso di liquidita' generi cash drag durante le successive fasi di rimbalzo."
-  }
+  },
+  [
+    {
+      "data": "2026-11-16",
+      "tipo_audit": "DAILY TACTICAL",
+      "regime_rilevato": "NEUTRAL LATERAL CONSOLIDATION WITH COMPLETE CASH SURPLUS (100.0%, 371.12 EUR) POST PROFIT HARVESTING AND RECORD BENCHMARK ALPHA (+30.31%)",
+      "decisione": "In osservanza vincolante del Protocollo Anti-Inazione su cassa al 100%, attivato force_grid_realign: true per riallineare i pivot limite d'acquisto ai prezzi spot correnti. Riconfermate le metriche di conviction elevata (1.2) su BTC, ETH e AVAX con griglie d'acquisto Maker passive posizionate tra -2.8% e -3.0%. Mantenuto il target Fast Harvesting a 0.020 (+1.50% netto) su tutta la matrice attiva per preservare lo spread protetto ed evitare il rischio di inazione.",
+      "ipotesi_e_aspettativa": "Il riallineamento forzato delle griglie permette di ancorare immediatamente gli ordini limite d'acquisto a sconto calibrato (-2.8%/-3.0%) rispetto ai prezzi correnti, evitando che la cassa rimanga inerte al 100%. L'assorbimento passivo sui dip orari riattivera' la rotazione dell'inventory monetizzando rapidamente a +2.0% lordo per difendere ed espandere l'Alpha record generato (+30.31%).",
+      "esito_decisione_precedente": "La chiusura completa delle posizioni ha consolidato l'intero capitale in cassa libera (371.12 EUR), contenendo il drawdown (-0.46% a 7 giorni) e registrando il picco di sovraperformance vs Benchmark Buy & Hold (+30.31% di Alpha).",
+      "lezione_appresa": "Quando la liquida' raggiunge il 100% a seguito del Take Profit totale di tutte le posizioni crypto, l'attivazione immediata di 'force_grid_realign: true' e' conditio sine qua non per ristabilire la presenza passiva sul book a prezzi aggiornati, scongiurando il ritardo di esecuzione (cash drag) durante le successive fasi di storno intraday."
+    }
+  ]
 ]
