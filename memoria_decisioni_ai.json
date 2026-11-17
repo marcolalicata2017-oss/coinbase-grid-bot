@@ -707,5 +707,14 @@
       "esito_decisione_precedente": "La chiusura completa delle posizioni ha consolidato l'intero capitale in cassa libera (371.12 EUR), contenendo il drawdown (-0.46% a 7 giorni) e registrando il picco di sovraperformance vs Benchmark Buy & Hold (+30.31% di Alpha).",
       "lezione_appresa": "Quando la liquida' raggiunge il 100% a seguito del Take Profit totale di tutte le posizioni crypto, l'attivazione immediata di 'force_grid_realign: true' e' conditio sine qua non per ristabilire la presenza passiva sul book a prezzi aggiornati, scongiurando il ritardo di esecuzione (cash drag) durante le successive fasi di storno intraday."
     }
-  ]
+  ],
+  {
+    "data": "2026-11-17",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "INTRADAY PULLBACK WITH OVERSOLD BENCHMARKS (BTC RSI 36.3, ETH RSI 37.1), FULL CASH SURPLUS (100.0%, 371.12 EUR), AND RECORD ALPHA (+32.22%)",
+    "decisione": "Attivato vincolante force_grid_realign: true per sincronizzare i pivot limite d'acquisto ai prezzi spot ribassati (BTC a 57.8k, ETH a 1.62k). In stretta osservanza del Protocollo Anti-Inazione su cassa al 100%, confermata alta buy_conviction (1.2) su BTC, ETH e AVAX, e 1.0 su SOL e ADA. Mantenute distanze passive d'acquisto Maker tra -2.8% e -3.2% e target Fast Harvesting a 0.020 (+1.50% netto) su tutta la matrice attiva, con DOGE mantenuto in soft_exit.",
+    "ipotesi_e_aspettativa": "Il riallineamento forzato dei pivot impedisce che gli ordini limite d'acquisto rimangano agganciati ai prezzi superiori della sessione precedente, permettendo di convertire passivamente la liquidita' inerte in posizioni a sconto durante l'estensione del ritracciamento orario, monetizzando al rimbalzo (+2.0% lordo) per proteggere ed espandere l'Alpha generato (+32.22%).",
+    "esito_decisione_precedente": "La completa liquidazione delle posizioni ai target previsti ha preservato il capitale intatto a 371.12 EUR a drawdown nullo, permettendo all'Alpha vs Benchmark Buy & Hold di espandersi ulteriormente a +32.22% a fronte della debolezza del mercato passivo.",
+    "lezione_appresa": "In presenza di cassa al 100% durante una discesa graduale dei corsi con oscillatori orari in compressione (RSI < 40), l'attivazione quotidiana di 'force_grid_realign: true' e' indispensabile per riposizionare la rete d'acquisto a ridosso della liquidita' reale, trasformando l'eccesso di liquidita' difensiva in accumulo controllato a spread protetto."
+  }
 ]
