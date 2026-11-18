@@ -716,5 +716,14 @@
     "ipotesi_e_aspettativa": "Il riallineamento forzato dei pivot impedisce che gli ordini limite d'acquisto rimangano agganciati ai prezzi superiori della sessione precedente, permettendo di convertire passivamente la liquidita' inerte in posizioni a sconto durante l'estensione del ritracciamento orario, monetizzando al rimbalzo (+2.0% lordo) per proteggere ed espandere l'Alpha generato (+32.22%).",
     "esito_decisione_precedente": "La completa liquidazione delle posizioni ai target previsti ha preservato il capitale intatto a 371.12 EUR a drawdown nullo, permettendo all'Alpha vs Benchmark Buy & Hold di espandersi ulteriormente a +32.22% a fronte della debolezza del mercato passivo.",
     "lezione_appresa": "In presenza di cassa al 100% durante una discesa graduale dei corsi con oscillatori orari in compressione (RSI < 40), l'attivazione quotidiana di 'force_grid_realign: true' e' indispensabile per riposizionare la rete d'acquisto a ridosso della liquidita' reale, trasformando l'eccesso di liquidita' difensiva in accumulo controllato a spread protetto."
+  },
+  {
+    "data": "2026-11-18",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "EXTREME HOURLY OVERSOLD ON LARGE CAPS (BTC RSI 22.6, ETH RSI 26.6) WITH FULL CASH SURPLUS (100.0%, 371.12 EUR) AND EXPANDED BENCHMARK ALPHA (+33.23%)",
+    "decisione": "Attivato vincolante force_grid_realign: true per sincronizzare i pivot limite d'acquisto ai prezzi spot ribassati (BTC a 57.2k, ETH a 1.60k, AVAX a 6.35). In rigorosa osservanza del Protocollo Anti-Inazione su cassa al 100%, confermata alta buy_conviction (1.2) su BTC, ETH e AVAX, e 1.0 su SOL e ADA. Mantenute griglie d'acquisto Maker passive a sconto protetto (-2.8%/-3.2%) e target Fast Harvesting a 0.020 (+1.50% netto) su tutta la matrice attiva, con DOGE mantenuto in soft_exit.",
+    "ipotesi_e_aspettativa": "La combinazione di oscillatori orari in ipervenduto estremo (BTC RSI 22.6) e cassa al 100% richiede l'aggiornamento immediato dei pivot per posizionare gli ordini d'acquisto limite a sconto calibrato sul book reale. Ciò eviterà il cash drag, permettendo al bot di accumulare passivamente a sconto durante la compressione e monetizzare rapidamente al rimbalzo (+2.0% lordo) a tutela dell'Alpha record (+33.23%).",
+    "esito_decisione_precedente": "La tenuta della cassa difensiva durante la flessione dei corsi ha preservato il capitale intatto a 371.12 EUR a drawdown nullo, permettendo all'Alpha vs Benchmark Buy & Hold di salire a un nuovo massimo di +33.23% (+101 bps nelle ultime 24h).",
+    "lezione_appresa": "Quando il mercato amplia il ritracciamento spingendo gli indicatori orari su livelli di forte ipervenduto (RSI < 25) mentre il portafoglio è al 100% liquido, non riallineare i pivot con 'force_grid_realign: true' rischia di vanificare il vantaggio competitivo del bot, lasciando gli ordini d'acquisto passivi troppo distanti dalla liquidità effettiva."
   }
 ]
