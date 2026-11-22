@@ -24,8 +24,18 @@
       "is_active": true,
       "exit_strategy": "none"
     },
-    "SOL-EUR": {
+    "LINK-EUR": {
       "target_weight_pct": 15.0,
+      "grid_dist_buy": 0.035,
+      "grid_dist_sell": 0.02,
+      "buy_conviction": 1.2,
+      "sell_action": "tranche",
+      "max_active_levels": 2,
+      "is_active": true,
+      "exit_strategy": "none"
+    },
+    "SOL-EUR": {
+      "target_weight_pct": 10.0,
       "grid_dist_buy": 0.032,
       "grid_dist_sell": 0.02,
       "buy_conviction": 1.0,
@@ -34,18 +44,8 @@
       "is_active": true,
       "exit_strategy": "none"
     },
-    "LINK-EUR": {
-      "target_weight_pct": 10.0,
-      "grid_dist_buy": 0.032,
-      "grid_dist_sell": 0.02,
-      "buy_conviction": 1.2,
-      "sell_action": "tranche",
-      "max_active_levels": 2,
-      "is_active": true,
-      "exit_strategy": "none"
-    },
     "AVAX-EUR": {
-      "target_weight_pct": 10.0,
+      "target_weight_pct": 5.0,
       "grid_dist_buy": 0.032,
       "grid_dist_sell": 0.02,
       "buy_conviction": 1.0,
@@ -75,5 +75,5 @@
       "exit_strategy": "soft_exit"
     }
   },
-  "force_grid_realign": false
+  "force_grid_realign": true
 }
