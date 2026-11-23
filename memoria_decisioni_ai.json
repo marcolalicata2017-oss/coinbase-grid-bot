@@ -761,5 +761,16 @@
     "ipotesi_e_aspettativa": "L'aggiornamento dei pivot sincronizza la matrice di trading con l'attuale livello dei prezzi dopo la fase di capitulazione, mentre l'ampliamento prudenziale di `grid_dist_buy` (3.0%-3.5%) garantisce che la liquidita' libera venga impiegata esclusivamente su ritracciamenti tecnici di dip-buying Maker, proteggendo il capitale da trappole per tori (bull trap) e massimizzando i profitti di rotazione veloci a +2.0% lordo per preservare l'Alpha record generato (+36.59%).",
     "esito_decisione_precedente": "Il riallineamento precedente e la gestione disciplinata della cassa difensiva durante le fasi di picco e storno hanno protetto integralmente il portafoglio da perdite (NAV 371.91 EUR, drawdown 3D/7D a +0.21%), consolidando un Alpha massiccio di +36.59% rispetto al Benchmark Buy & Hold (-1.81%).",
     "lezione_appresa": "Nelle sessioni di audit settimanale con cassa quasi integrale (>95%) in presenza di oscillatori orari ipercomprati post-rimbalzo, occorre sempre forzare il riallineamento dei pivot (`force_grid_realign: true`) abbinando tuttavia una griglia di acquisto piu' distante (`grid_dist_buy` >= 3.0%). Questo garantisce la conformita' alla regola anti-inazione intercettando solo la liquidita' a sconto al primo storno fisiologico."
-  }
+  },
+  [
+    {
+      "data": "2026-11-23",
+      "tipo_audit": "DAILY TACTICAL",
+      "regime_rilevato": "HEALTHY CONSOLIDATION POST-REBOUND WITH NEUTRAL-TO-ELEVATED HOURLY OSCILLATORS (BTC RSI 52.9, ETH RSI 55.9, SOL RSI 60.0), EXCESS CASH SURPLUS (99.8%, 371.09 EUR), AND DOMINANT BENCHMARK ALPHA (+34.79%)",
+      "decisione": "Attivato il riallineamento vincolante delle griglie ('force_grid_realign: true') per risincronizzare i pivot d'acquisto limite sui prezzi spot aggiornati (BTC 56.3k, ETH 1.59k). In stretta osservanza del Protocollo Anti-Inazione con cassa al 99.8%, confermata alta buy_conviction (1.2) su BTC, ETH e LINK, e 1.0 su SOL, AVAX e ADA. Impostata distanza di acquisto prudenziale ('grid_dist_buy' tra 3.0% e 3.5%) per assorbire ritracciamenti passivi Maker senza inseguire l'ipercomprato, con Fast Harvesting a 0.020 (+1.50% netto) e DOGE confinato in soft_exit.",
+      "ipotesi_e_aspettativa": "Il riallineamento dei pivot posiziona gli ordini limite di acquisto nell'intorno immediato della liquidita' reale, prevenendo il cash drag prolungato. L'impiego di una griglia d'acquisto a sconto (-3.0%/-3.5%) consente di accumulare inventory a basso rischio durante micro-storni intraday, pronta a essere monetizzata al target del +2.0% lordo (+1.50% netto) per difendere ed espandere l'Alpha record generato (+34.79%).",
+      "esito_decisione_precedente": "La conservazione disciplinata del capitale ha protetto integralmente il NAV a 371.89 EUR (drawdown 3D/7D a +0.21%), consolidando la straordinaria sovraperformance rispetto al Benchmark passivo Buy & Hold (-0.02%), portando l'Alpha totale a +34.79%.",
+      "lezione_appresa": "In presenza di cassa quasi totale (>99%) durante fasi di consolidamento neutrale post-rimbalzo (RSI 50-65), forzare il riallineamento dei pivot ('force_grid_realign: true') con ordini limite sfasati a sconto (-3.0%) garantisce la perfetta aderenza al protocollo anti-inazione senza esporre il capitale a trappole da ipercomprato."
+    }
+  ]
 ]
