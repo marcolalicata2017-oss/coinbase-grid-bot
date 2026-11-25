@@ -772,5 +772,14 @@
       "esito_decisione_precedente": "La conservazione disciplinata del capitale ha protetto integralmente il NAV a 371.89 EUR (drawdown 3D/7D a +0.21%), consolidando la straordinaria sovraperformance rispetto al Benchmark passivo Buy & Hold (-0.02%), portando l'Alpha totale a +34.79%.",
       "lezione_appresa": "In presenza di cassa quasi totale (>99%) durante fasi di consolidamento neutrale post-rimbalzo (RSI 50-65), forzare il riallineamento dei pivot ('force_grid_realign: true') con ordini limite sfasati a sconto (-3.0%) garantisce la perfetta aderenza al protocollo anti-inazione senza esporre il capitale a trappole da ipercomprato."
     }
-  ]
+  ],
+  {
+    "data": "2026-11-25",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "CONSOLIDATION POST-STORNO WITH NEUTRAL-HIGH HOURLY RSI (57-67), HIGH CASH SURPLUS (98.5%, 366.99 EUR), AND OUTSTANDING BENCHMARK ALPHA (+38.33%)",
+    "decisione": "Attivato il riallineamento vincolante delle griglie ('force_grid_realign: true') per risincronizzare i pivot limite d'acquisto sui prezzi spot correnti (BTC 54.7k, ETH 1.53k). In rigorosa applicazione del Protocollo Anti-Inazione con cassa al 98.5%, confermata alta buy_conviction (1.2 su BTC, ETH, LINK; 1.0 su SOL, AVAX, ADA). Posizionate distanze d'acquisto prudenziali (grid_dist_buy tra 3.0% e 3.5%) per assorbire ritracciamenti passivi Maker senza inseguire l'ipercomprato orario, fissando il target Fast Harvesting a 0.020 (+1.50% netto) e DOGE confinato in soft_exit.",
+    "ipotesi_e_aspettativa": "La forzatura del riallineamento pivot elimina l'inerzia degli ordini rimasti arretrati, riagganciando il book della liquidita' reale. Con un distanziamento d'acquisto tra il 3.0% e il 3.5%, la liquidita' viene esposta esclusivamente su ritracciamenti tecnici di dip-buying a sconto, azzerando il rischio di acquisti FOMO sui massimi relativi e consentendo di catturare profitti rapidi di rotazione (+2.0% lordo) al primo micro-rimbalzo per difendere ed espandere l'Alpha record generato (+38.33%).",
+    "esito_decisione_precedente": "La disciplina nella gestione della cassa e il piazzamento selettivo degli ordini limite hanno immunizzato il portafoglio da perdite (NAV 372.71 EUR, rendimento 3D +0.22% e 7D +0.43%), incrementando ulteriormente l'Alpha vs Benchmark passivo Buy & Hold fino al valore record di +38.33%.",
+    "lezione_appresa": "Nelle giornate in cui l'oscillatore orario di mercato staziona su valori neutrali-alti (RSI 57-67) e la cassa e' quasi totale (>98%), l'azione combinata di 'force_grid_realign: true' e 'grid_dist_buy' ampliata (>= 3.0%) e' l'unico meccanismo quantitativo in grado di rispettare la regola ferrea anti-inazione garantendo al contempo che l'ingresso avvenga esclusivamente in ottica di accumulo a sconto (dip-buying passivo)."
+  }
 ]
