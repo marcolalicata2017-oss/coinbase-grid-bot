@@ -7,7 +7,7 @@
     "BTC-EUR": {
       "target_weight_pct": 35.0,
       "grid_dist_buy": 0.03,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 1.2,
       "sell_action": "tranche",
       "max_active_levels": 2,
@@ -17,7 +17,7 @@
     "ETH-EUR": {
       "target_weight_pct": 25.0,
       "grid_dist_buy": 0.03,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 1.2,
       "sell_action": "tranche",
       "max_active_levels": 2,
@@ -27,7 +27,7 @@
     "LINK-EUR": {
       "target_weight_pct": 15.0,
       "grid_dist_buy": 0.035,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 1.2,
       "sell_action": "tranche",
       "max_active_levels": 2,
@@ -37,7 +37,7 @@
     "SOL-EUR": {
       "target_weight_pct": 10.0,
       "grid_dist_buy": 0.032,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 1.0,
       "sell_action": "tranche",
       "max_active_levels": 2,
@@ -47,7 +47,7 @@
     "AVAX-EUR": {
       "target_weight_pct": 5.0,
       "grid_dist_buy": 0.032,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 1.0,
       "sell_action": "tranche",
       "max_active_levels": 2,
@@ -57,7 +57,7 @@
     "ADA-EUR": {
       "target_weight_pct": 5.0,
       "grid_dist_buy": 0.035,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 1.0,
       "sell_action": "tranche",
       "max_active_levels": 2,
@@ -67,7 +67,7 @@
     "DOGE-EUR": {
       "target_weight_pct": 0.0,
       "grid_dist_buy": 0.045,
-      "grid_dist_sell": 0.02,
+      "grid_dist_sell": 0.018,
       "buy_conviction": 0.0,
       "sell_action": "tranche",
       "max_active_levels": 1,
@@ -75,5 +75,5 @@
       "exit_strategy": "soft_exit"
     }
   },
-  "force_grid_realign": false
+  "force_grid_realign": true
 }
