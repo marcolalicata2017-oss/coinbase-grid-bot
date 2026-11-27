@@ -719,7 +719,8 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                        f"Prezzo Pivot: *{prezzo_rif:.2f} EUR*\n" \
                        f"Pool EUR: *{saldo_eur_totale:.2f} EUR* (Disp: *{saldo_eur_disp:.2f} EUR*)"
 
-        invia_telegram(msg_telegram)
+        # Telegram: nessuna notifica per ordini limite solo piazzati (non eseguiti). Il diario resta aggiornato.
+        print(f"📝 [{pair}] Griglia aggiornata (nessuna notifica Telegram): {', '.join(dettagli_ordini)}", flush=True)
         registra_su_diario_di_bordo(
             pair=pair, prezzo_pivot=prezzo_rif, ema50=ema50, saldo_eur=saldo_eur_totale, 
             crypto_posseduta=crypto_posseduta_disp, motivo=motivo_reset, trend_ok=autorizza_buy,
