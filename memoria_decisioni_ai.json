@@ -790,5 +790,14 @@
     "ipotesi_e_aspettativa": "Il riallineamento dei pivot elimina l'inerzia della cassa e posiziona gli ordini Maker sui livelli di prezzo attuali, mentre l'allargamento della griglia d'acquisto al 3.0%-3.5% protegge il capitale da acquisti impulsivi su oscillatori neutrali, intercettando selettivamente eventuali micro-storni per generare profitti di rotazione e difendere l'Alpha accumulato.",
     "esito_decisione_precedente": "La disciplina nella gestione della cassa e il posizionamento selettivo degli ordini limite hanno protetto integralmente il portafoglio (NAV 372.76 EUR, rendimento 3D +0.23% e 7D +0.44%), mantenendo un Alpha eccezionale del +37.37% rispetto al benchmark passivo Buy & Hold.",
     "lezione_appresa": "In presenza di cassa elevata (>98%) e mercato in fase di consolidamento neutrale, l'attivazione combinata di 'force_grid_realign: true' e di distanze d'acquisto calibrate (>= 3.0%) previene il cash drag senza esporre il portafoglio a rischi di drawdown per acquisti sui massimi."
+  },
+  {
+    "data": "2026-11-27",
+    "tipo_audit": "DAILY TACTICAL",
+    "regime_rilevato": "EXTREME CASH SURPLUS (99.8%, 372.02 EUR) WITH LARGE-CAP OVERSOLD HOURLY OSCILLATORS (BTC RSI 41.1, ETH RSI 39.6), STRONG RELATIVE MOMENTUM ON SOL/LINK, AND EXPANDED BENCHMARK ALPHA (+38.51%)",
+    "decisione": "Attivato il riallineamento forzato 'force_grid_realign: true' per aggiornare i pivot limite sui prezzi correnti ed eliminare il rischio di inazione. In rigorosa conformità al Protocollo Anti-Inazione (cassa > 50%), assegnata alta buy_conviction (1.2) sulle large cap con RSI scarico (BTC ed ETH) e conviction solida (1.0) sui leader di score SOL e LINK. Normalizzato grid_dist_buy nel range consentito [0.018, 0.020] e fissato grid_dist_sell a 0.018 (+1.30% netto). Confermato DOGE in soft_exit a peso 0%.",
+    "ipotesi_e_aspettativa": "Il riallineamento dei pivot combinato a griglie d'acquisto entro il limite consentito del 2% garantisce l'impiego graduale della cassa dormiente su micro-flessioni di prezzo, intercettando swing Maker ad alta probabilità senza rincorrere i massimi e monetizzando rapidamente a +1.8% lordo (+1.30% netto) per espandere l'Alpha generato (+38.51%).",
+    "esito_decisione_precedente": "La conservazione del capitale ha immunizzato il portafoglio da drawdown (NAV 372.86 EUR, 7D +0.47%), estendendo l'Alpha complessivo rispetto al Buy & Hold a un nuovo massimo di +38.51%.",
+    "lezione_appresa": "Con oltre il 99% di cassa disponibile, impostare grid_dist_buy oltre il limite massimo consentito dal sistema (0.02) genera inefficienze e clipping forzato; calibrare direttamente grid_dist_buy a 0.018-0.020 con force_grid_realign attivo garantisce la piena efficienza esecutiva del book Maker nel rispetto delle regole di rischio."
   }
 ]
