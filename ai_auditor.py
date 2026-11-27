@@ -54,53 +54,164 @@ def ottieni_prezzo_corrente(pair):
         pass
     return 0.0
 
+RADAR_ERRORI = []          # (pair, motivo) dell'ultima scansione
+FILE_RADAR_CSV = "radar_scansioni.csv"
+RADAR_CSV_COLONNE = ["Data_Ora", "Pair", "Prezzo", "Var24h_pct", "Ret7d_pct", "RSI_1h", "VAI", "Vol_EUR_24h",
+                     "ATR_pct", "Dist_EMA50_pct", "Dist_EMA200_pct", "Pressione", "Score", "Rank", "In_Config"]
+
+def _rsi_wilder(prezzi, periodo=14):
+    delta = prezzi.diff()
+    gain = delta.clip(lower=0).ewm(alpha=1.0 / periodo, adjust=False).mean()
+    loss = (-delta.clip(upper=0)).ewm(alpha=1.0 / periodo, adjust=False).mean()
+    rs = gain / loss.replace(0, float("nan"))
+    rsi = 100 - (100 / (1 + rs))
+    val = rsi.iloc[-1]
+    return 100.0 if (pd.isna(val) and loss.iloc[-1] == 0 and gain.iloc[-1] > 0) else (50.0 if pd.isna(val) else float(val))
+
+def calcola_score_radar(m):
+    """Punteggio deterministico 0-100 per asset del radar. Solo informativo: va nel prompt e nel CSV,
+    non cambia ordini ne' config. Componenti: momentum 7g, trend (EMA50/EMA200), RSI, volumi, liquidita', volatilita'."""
+    score = 50.0
+    r7 = m.get("ret_7d_pct")
+    if r7 is not None:
+        score += max(-15.0, min(15.0, r7)) * 0.8
+    score += 8.0 if m["dist_ema50_pct"] >= 0 else -8.0
+    if m.get("dist_ema200_pct") is not None:
+        score += 4.0 if m["dist_ema200_pct"] >= 0 else -4.0
+    rsi = m["rsi_1h"]
+    if rsi >= 75: score -= 10.0
+    elif rsi <= 25: score -= 5.0
+    elif 40 <= rsi <= 60: score += 6.0
+    if m["pressione_rilevata"] == "DISTRIBUZIONE": score -= 10.0
+    elif 1.2 <= m["volume_anomaly_vai"] <= 3.0 and m["var_24h_pct"] >= -1.5: score += 6.0
+    vol_eur = m["volume_eur_24h"]
+    if vol_eur < 200_000: score -= 15.0
+    elif vol_eur < 1_000_000: score -= 5.0
+    if m["atr_pct"] > 3.0: score -= 5.0
+    return round(max(0.0, min(100.0, score)), 1)
+
 def scansiona_radar_altcoin_con_volumi(lista_pairs):
-    """Scansiona Prezzo, Delta 24h, RSI 1h e VAI (Volume Anomaly Index vs media 7 giorni)."""
+    """Scansiona prezzo, variazioni 24h/7g, RSI 1h (Wilder), VAI (volume anomalo vs media 7 giorni), volume in EUR,
+    ATR%, distanza da EMA50/EMA200 orarie e calcola uno score deterministico con classifica.
+    Gli errori per coppia vengono registrati in RADAR_ERRORI e stampati."""
+    global RADAR_ERRORI
+    RADAR_ERRORI = []
     radar = {}
     headers = {"User-Agent": "Python-Bot"}
     print("🔭 [RADAR] Scansione tecnica e volumi anomali in corso...", flush=True)
-    
+
     for pair in lista_pairs:
         try:
             url = f"https://api.exchange.coinbase.com/products/{pair}/candles?granularity=3600"
             resp = requests.get(url, headers=headers, timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                if isinstance(data, list) and len(data) >= 24:
-                    candele = list(reversed(data))
-                    prezzi = pd.Series([float(c[4]) for c in candele])
-                    volumi = pd.Series([float(c[5]) for c in candele])
-                    
-                    px_att = prezzi.iloc[-1]
-                    var_24h = ((px_att - prezzi.iloc[-24]) / prezzi.iloc[-24] * 100.0)
-                    
-                    vol_24h_tot = volumi.tail(24).sum()
-                    finestra_totale = min(len(volumi), 168)
-                    vol_medio_24h = (volumi.tail(finestra_totale).sum() / (finestra_totale / 24.0)) if finestra_totale >= 24 else vol_24h_tot
-                    vai_ratio = round(vol_24h_tot / vol_medio_24h, 2) if vol_medio_24h > 0 else 1.0
+            if resp.status_code != 200:
+                raise RuntimeError(f"HTTP {resp.status_code}")
+            data = resp.json()
+            if not isinstance(data, list) or len(data) < 24:
+                raise RuntimeError(f"candele insufficienti ({len(data) if isinstance(data, list) else 'formato'})")
+            candele = list(reversed(data))
+            lows = pd.Series([float(c[1]) for c in candele])
+            highs = pd.Series([float(c[2]) for c in candele])
+            prezzi = pd.Series([float(c[4]) for c in candele])
+            volumi = pd.Series([float(c[5]) for c in candele])
 
-                    delta = prezzi.diff()
-                    gain = delta.where(delta > 0, 0).rolling(14).mean()
-                    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-                    rs = gain / loss
-                    rsi = 100 - (100 / (1 + rs))
-                    rsi_val = float(rsi.iloc[-1]) if not pd.isna(rsi.iloc[-1]) else 50.0
+            px_att = float(prezzi.iloc[-1])
+            var_24h = (px_att - prezzi.iloc[-24]) / prezzi.iloc[-24] * 100.0
+            ret_7d = ((px_att - prezzi.iloc[-168]) / prezzi.iloc[-168] * 100.0) if len(prezzi) >= 168 else None
 
-                    pressione = "ACCUMULO" if (var_24h >= -1.5 and vai_ratio >= 1.8) else ("DISTRIBUZIONE" if vai_ratio >= 2.0 and var_24h < -4.0 else "NORMALE")
-                    
-                    radar[pair] = {
-                        "prezzo": round(px_att, 4),
-                        "var_24h_pct": round(var_24h, 2),
-                        "rsi_1h": round(rsi_val, 1),
-                        "volume_anomaly_vai": vai_ratio,
-                        "pressione_rilevata": pressione
-                    }
-        except Exception:
-            pass
+            vol_24h_tot = float(volumi.tail(24).sum())
+            finestra_totale = min(len(volumi), 168)
+            vol_medio_24h = (volumi.tail(finestra_totale).sum() / (finestra_totale / 24.0)) if finestra_totale >= 24 else vol_24h_tot
+            vai_ratio = round(vol_24h_tot / vol_medio_24h, 2) if vol_medio_24h > 0 else 1.0
+            volume_eur_24h = float((volumi.tail(24) * prezzi.tail(24)).sum())
+
+            rsi_val = _rsi_wilder(prezzi)
+            ema50 = float(prezzi.ewm(span=min(50, len(prezzi)), adjust=False).mean().iloc[-1])
+            dist_ema50 = (px_att - ema50) / ema50 * 100.0
+            dist_ema200 = None
+            if len(prezzi) >= 200:
+                ema200 = float(prezzi.ewm(span=200, adjust=False).mean().iloc[-1])
+                dist_ema200 = (px_att - ema200) / ema200 * 100.0
+            prev_close = prezzi.shift(1)
+            tr = pd.concat([highs - lows, (highs - prev_close).abs(), (lows - prev_close).abs()], axis=1).max(axis=1)
+            atr = tr.rolling(14).mean().iloc[-1]
+            atr_pct = float(atr / px_att * 100.0) if not pd.isna(atr) and px_att > 0 else 0.0
+
+            pressione = "ACCUMULO" if (var_24h >= -1.5 and vai_ratio >= 1.8) else ("DISTRIBUZIONE" if vai_ratio >= 2.0 and var_24h < -4.0 else "NORMALE")
+
+            voce = {
+                "prezzo": round(px_att, 4),
+                "var_24h_pct": round(var_24h, 2),
+                "ret_7d_pct": round(ret_7d, 2) if ret_7d is not None else None,
+                "rsi_1h": round(rsi_val, 1),
+                "volume_anomaly_vai": vai_ratio,
+                "volume_eur_24h": round(volume_eur_24h, 0),
+                "atr_pct": round(atr_pct, 2),
+                "dist_ema50_pct": round(dist_ema50, 2),
+                "dist_ema200_pct": round(dist_ema200, 2) if dist_ema200 is not None else None,
+                "pressione_rilevata": pressione,
+            }
+            voce["score"] = calcola_score_radar(voce)
+            radar[pair] = voce
+        except Exception as e:
+            RADAR_ERRORI.append((pair, str(e)))
+            print(f"⚠️ [RADAR] {pair} non letto: {e}", flush=True)
         time.sleep(0.12)
-        
-    print(f"✅ [RADAR] Scansionati {len(radar)} asset con analisi volumetrica.", flush=True)
+
+    for i, (pair, _) in enumerate(sorted(radar.items(), key=lambda kv: kv[1]["score"], reverse=True), start=1):
+        radar[pair]["rank"] = i
+
+    print(f"✅ [RADAR] Scansionati {len(radar)}/{len(lista_pairs)} asset (errori: {len(RADAR_ERRORI)}).", flush=True)
     return radar
+
+def segna_asset_in_config(radar, config_attuale):
+    """Aggiunge 'in_config' a ogni voce: il bot opera solo sulle coppie gia' presenti in config.json."""
+    assets = (config_attuale or {}).get("assets", {})
+    for pair, voce in radar.items():
+        voce["in_config"] = pair in assets
+    return radar
+
+def salva_radar_csv(radar, quando=None):
+    """Accoda la scansione a radar_scansioni.csv (serve a verificare nel tempo se i segnali anticipano i rialzi)."""
+    import csv
+    if not radar:
+        return False
+    try:
+        nuovo = not os.path.exists(FILE_RADAR_CSV) or os.path.getsize(FILE_RADAR_CSV) == 0
+        ts = (quando or datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+        with open(FILE_RADAR_CSV, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            if nuovo:
+                w.writerow(RADAR_CSV_COLONNE)
+            for pair, v in radar.items():
+                w.writerow([ts, pair, v["prezzo"], v["var_24h_pct"], v.get("ret_7d_pct", ""), v["rsi_1h"],
+                            v["volume_anomaly_vai"], v["volume_eur_24h"], v["atr_pct"], v["dist_ema50_pct"],
+                            v.get("dist_ema200_pct", ""), v["pressione_rilevata"], v["score"], v["rank"],
+                            v.get("in_config", "")])
+        return True
+    except Exception as e:
+        print(f"⚠️ [RADAR] Salvataggio CSV fallito: {e}", flush=True)
+        return False
+
+def commit_radar_csv():
+    """Commit del solo CSV del radar. Mai bloccante: un errore git non ferma l'audit."""
+    try:
+        if not os.path.exists(FILE_RADAR_CSV):
+            return False
+        subprocess.run(["git", "config", "user.name", "AI-Auditor-Bot"], check=True)
+        subprocess.run(["git", "config", "user.email", "ai-auditor@bot.local"], check=True)
+        subprocess.run(["git", "add", FILE_RADAR_CSV], check=True)
+        r = subprocess.run(["git", "status", "--porcelain", "--", FILE_RADAR_CSV], capture_output=True, text=True)
+        if not r.stdout.strip():
+            return False
+        subprocess.run(["git", "commit", "-m", "📡 [AUTOMATION] Scansione radar", "--", FILE_RADAR_CSV], check=True)
+        subprocess.run(["git", "pull", "--rebase", "--autostash"], check=False)
+        subprocess.run(["git", "push"], check=True)
+        print("✅ [RADAR] CSV scansioni committato.", flush=True)
+        return True
+    except Exception as e:
+        print(f"⚠️ [RADAR] Commit CSV non riuscito (non blocca l'audit): {e}", flush=True)
+        return False
 
 def calcola_benchmark_buy_and_hold(df_portafoglio):
     """Calcola rendimento cumulativo del bot vs un portafoglio passivo 50% BTC / 50% ETH."""
@@ -230,6 +341,8 @@ def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
         subprocess.run(["git", "add", FILE_CONFIG], check=True)
         if os.path.exists(FILE_MEMORIA):
             subprocess.run(["git", "add", FILE_MEMORIA], check=True)
+        if os.path.exists(FILE_RADAR_CSV):
+            subprocess.run(["git", "add", FILE_RADAR_CSV], check=True)
 
         result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
         if result.stdout.strip():
@@ -264,6 +377,9 @@ def esegui_audit():
                 config_attuale = json.load(f)
         except Exception as e:
             print(f"⚠️ Errore lettura config.json: {e}", flush=True)
+
+    segna_asset_in_config(radar_mercato, config_attuale)
+    salva_radar_csv(radar_mercato)
 
     ora_dt = datetime.now()
     data_odierna_str = ora_dt.strftime('%Y-%m-%d')
@@ -325,6 +441,8 @@ def esegui_audit():
       * Alpha Generato: {alpha:+.2f}% (Se negativo, stiamo sotto-performando il mercato passivo per eccesso di prudenza/inazione!)
 
     🔭 RADAR TECNICO MERCATO & VOLUMI ANOMALI (VAI = Volume Anomaly Index):
+    Ogni asset ha uno 'score' deterministico 0-100 (momentum 7g, trend EMA50/EMA200, RSI, volumi, liquidità EUR, volatilità), un 'rank' e 'in_config'. 'ACCUMULO' si basa solo sul volume: confermalo con score alto e trend positivo.
+    Limiti che il sistema applica: grid_dist_sell 0.018-0.05, target_weight_pct 0-40 (somma <= 100), buy_conviction 0-2.
     {json.dumps(radar_mercato, indent=2)}
 
     🧠 VALUTAZIONE MEMORIA DECISIONALE (COSA HA FUNZIONATO E COSA NO):
@@ -334,11 +452,11 @@ def esegui_audit():
     Se Cassa EUR è al {pct_cassa_eur:.1f}% (> 50%), TI È SEVERAMENTE VIETATO impostare 'buy_conviction': 0.0 su tutti gli asset!
     - Devi obbligatoriamente allocare liquidità e impostare 'buy_conviction': 1.0 (o 1.2) su almeno 1 o 2 asset:
       * Preferisci asset del Radar in 'ACCUMULO' (VAI >= 1.8x) o large-cap con RSI scarico (RSI < 45).
-    - Imposta 'grid_dist_buy' più larga (es. 0.025 - 0.035) per catturare storni senza subire drawdown.
-    - Se ci sono asset zombie con ordini bloccati senza volumi (come DOGE), metti 'exit_strategy': 'soft_exit' e ruota il capitale verso le opportunità scoperte dal radar.
+    - 'grid_dist_buy' deve restare tra 0.005 e 0.02: il bot limita comunque a 0.02 (2%) e valori fuori range vengono riportati nel range. Per catturare storni usa piuttosto buy_conviction e pesi.
+    - Se ci sono asset zombie con ordini bloccati senza volumi (come DOGE), metti 'exit_strategy': 'soft_exit' e ruota il capitale verso gli asset GIÀ presenti in config.json con score radar più alto. Asset nuovi proposti dal radar vengono ignorati dal sistema: non proporli.
 
     🚨 PROTOCOLLO LIQUIDITY CRUNCH & NO-LOSS RULE:
-    - Se Cassa EUR < 15%: NON VENDERE MAI IN PERDITA RISPETTO AL CARICO MEDIO! Se in profitto, 'sell_action': 'scale_out' (50%).
+    - Se Cassa EUR < 15%: evita di vendere in perdita. Il prezzo medio di carico NON è tracciato dal bot e non ti viene fornito: stimalo dal diario di bordo qui sotto e, se non sei sicuro, non vendere. Se in profitto, 'sell_action': 'scale_out' (50%).
 
     CONFIGURAZIONE ATTUALE (config.json):
     {json.dumps(config_attuale, indent=2) if config_attuale else "Nessun config.json trovato."}
@@ -433,11 +551,17 @@ def esegui_audit():
 
     intestazione = "🧠 *[AI AUDITOR - SETTIMANALE STRATEGICO]*\n\n" if is_domenica else "⚡ *[AI AUDITOR - BENCHMARK, RADAR & HARVESTING]*\n\n"
     if modificato:
-        report_telegram += "\n\n🚀 *[PARAMETRI AGGIORNATI & RESET GRIGLIE ATTIVATO SU GITHUB]*"
+        report_telegram += "\n\n🚀 *[PARAMETRI AGGIORNATI SU GITHUB: il bot riposiziona le griglie solo se serve]*"
+
+    if len(RADAR_ERRORI) >= 3:
+        report_telegram += "\n\n⚠️ *[RADAR]* Coppie non lette: " + ", ".join(f"{p} ({m})" for p, m in RADAR_ERRORI)
+    if not modificato:
+        commit_radar_csv()
 
     invia_telegram(intestazione + report_telegram)
     print("✅ Audit completato con successo!", flush=True)
 
 if __name__ == "__main__":
     esegui_audit()
+
 
