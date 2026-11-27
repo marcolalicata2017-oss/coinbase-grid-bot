@@ -3,7 +3,7 @@
     "allow_auto_rebalance": true,
     "model": "flexible_bands"
   },
-  "force_grid_realign": true,
+  "force_grid_realign": false,
   "assets": {
     "BTC-EUR": {
       "target_weight_pct": 30.0,
