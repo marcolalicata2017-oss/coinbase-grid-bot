@@ -1805,3 +1805,6 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-27 14:40:56,LINK-EUR,8.52,8.46,372.02,0.10000,True,49.7,1.55,8.47,8.67,0.50,1.80,"Riallineamento BUY Obsoleto 💧[Anti-Cash Tranche]"
 2026-11-27 14:40:57,SOL-EUR,65.65,65.22,372.02,0.00000,True,57.9,1.51,65.32,66.83,0.50,1.80,"Riallineamento BUY Obsoleto 💧[Anti-Cash Tranche]"
 2026-11-27 14:40:58,ADA-EUR,0.14,0.14,372.02,0.00000,True,50.4,0.59,0.14,0.14,0.50,1.80,"Riallineamento BUY Obsoleto 💧[Anti-Cash Tranche]"
+2026-11-27 14:50:55,LINK-EUR,8.39,8.46,346.12,1.68000,True,42.4,2.40,8.22,8.54,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-27 14:50:56,SOL-EUR,64.65,65.18,346.12,0.11400,True,47.3,2.25,63.36,65.81,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
+2026-11-27 14:50:58,ADA-EUR,0.13,0.14,346.12,36.83000,True,42.8,0.95,0.13,0.14,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
