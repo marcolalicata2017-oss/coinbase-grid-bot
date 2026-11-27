@@ -8,7 +8,8 @@ import subprocess
 import math
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
+import csv
 from coinbase.rest import RESTClient
 
 # ==========================================
@@ -55,6 +56,131 @@ def ottieni_decimali_asset(pair):
     fallback_map = {"BTC-EUR": 8, "ETH-EUR": 4, "SOL-EUR": 2, "LINK-EUR": 2, "DOGE-EUR": 1}
     return fallback_map.get(pair, 2)
     
+
+# ==========================================
+# FEE-AWARE, GUARDRAILS E PRECISIONE PREZZI
+# ==========================================
+FEE_MAKER_DEFAULT = 0.0025   # usate solo se Coinbase non risponde
+FEE_TAKER_DEFAULT = 0.0050
+FEE_MULT_SELL = 3.0          # sell minimo = round-trip fee * 3
+MAX_BUY_DIST = 0.02          # tetto distanza buy (anche in downtrend / alta vol)
+MAX_SELL_DIST = 0.05
+STALE_BUY_ORE = 36           # ordine BUY "vecchio": si riallinea
+STALE_DRIFT = 0.04           # prezzo piu' di 4% sopra il BUY (cioe' +2% dal piazzamento): si riallinea
+MAX_OVERWEIGHT = 1.25        # niente nuovi BUY se l'asset vale gia' >= 125% del suo peso target
+CASH_ALTO_SOGLIA = 0.70      # cash > 70% del portafoglio
+CASH_ALTO_GIORNI = 3         # per almeno 3 giorni consecutivi
+TRANCHE_PCT_CASH = 0.10      # tranche = 10% del cash libero per asset
+
+_FEE_CACHE = None
+_PREC_CACHE = {}
+
+def ottieni_fee_coinbase():
+    """Legge maker/taker dal tier reale dell'account (una volta per run)."""
+    global _FEE_CACHE
+    if _FEE_CACHE is not None:
+        return _FEE_CACHE
+    maker, taker = FEE_MAKER_DEFAULT, FEE_TAKER_DEFAULT
+    try:
+        res = client.get_transaction_summary()
+        ft = res.get('fee_tier', {}) if isinstance(res, dict) else getattr(res, 'fee_tier', {})
+        def _g(o, k):
+            return o.get(k) if isinstance(o, dict) else getattr(o, k, None)
+        m, t = _g(ft, 'maker_fee_rate'), _g(ft, 'taker_fee_rate')
+        if m is not None and t is not None:
+            maker, taker = float(m), float(t)
+            if maker >= 0.05 or taker >= 0.05:   # ricevute in % invece che in frazione
+                maker, taker = maker / 100.0, taker / 100.0
+    except Exception as e:
+        print(f"⚠️ Fee Coinbase non lette, uso default {maker*100:.2f}%/{taker*100:.2f}%: {e}", flush=True)
+    _FEE_CACHE = (maker, taker)
+    print(f"💸 [FEE] maker={maker*100:.3f}% taker={taker*100:.3f}%", flush=True)
+    return _FEE_CACHE
+
+def limiti_distanze():
+    """Restituisce (min_buy, max_buy, min_sell, max_sell) in frazione, calibrati sulle fee."""
+    maker, taker = ottieni_fee_coinbase()
+    round_trip = 2.0 * maker              # BUY limit + SELL limit
+    min_sell = max(round_trip * FEE_MULT_SELL, 0.018 if maker >= 0.0025 else 0.0)
+    min_buy = round_trip                  # buy mai piu' vicino del costo di andata e ritorno
+    max_buy = max(MAX_BUY_DIST, min_buy)
+    max_sell = max(MAX_SELL_DIST, min_sell)
+    return min_buy, max_buy, min_sell, max_sell
+
+def ottieni_decimali_prezzo(pair):
+    """Decimali del prezzo da quote_increment (es. 0.0001 per ADA-EUR)."""
+    if pair in _PREC_CACHE:
+        return _PREC_CACHE[pair]
+    dec = 2
+    try:
+        resp = requests.get(f"https://api.exchange.coinbase.com/products/{pair}", headers={"User-Agent": "Python-Bot"}, timeout=5)
+        if resp.status_code == 200:
+            qi = resp.json().get("quote_increment", "0.01")
+            dec = len(qi.split(".")[1].rstrip("0")) if "." in qi else 0
+    except Exception as e:
+        print(f"⚠️ Errore quote_increment {pair}: {e}", flush=True)
+    _PREC_CACHE[pair] = dec
+    return dec
+
+def formatta_prezzo(pair, prezzo):
+    return f"{prezzo:.{ottieni_decimali_prezzo(pair)}f}"
+
+def cash_alto_da_giorni(giorni=CASH_ALTO_GIORNI, soglia=CASH_ALTO_SOGLIA):
+    try:
+        with open(FILE_PORTAFOGLIO_GIORNALIERO, "r", encoding="utf-8") as f:
+            righe = list(csv.DictReader(f))[-giorni:]
+        if len(righe) < giorni:
+            return False
+        for r in righe:
+            tot = float(r["Valore_Totale_EUR"])
+            if tot <= 0 or float(r["Saldo_EUR"]) / tot <= soglia:
+                return False
+        return True
+    except Exception as e:
+        print(f"⚠️ Controllo cash alto fallito: {e}", flush=True)
+        return False
+
+def dettagli_buy_aperto(product_id):
+    """(prezzo_limite, eta_ore) del BUY aperto, oppure (None, None)."""
+    try:
+        res = client.list_orders(product_id=product_id, order_status=["OPEN"])
+        ordini = res.get('orders', []) if isinstance(res, dict) else getattr(res, 'orders', [])
+        for o in ordini or []:
+            g = (lambda k: o.get(k)) if isinstance(o, dict) else (lambda k: getattr(o, k, None))
+            if g('side') != "BUY":
+                continue
+            conf = g('order_configuration') or {}
+            lim = conf.get('limit_limit_gtc') if isinstance(conf, dict) else getattr(conf, 'limit_limit_gtc', None)
+            px = lim.get('limit_price') if isinstance(lim, dict) else getattr(lim, 'limit_price', None)
+            created = g('created_time')
+            eta = None
+            if created:
+                dt = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+                eta = (datetime.now(timezone.utc) - dt).total_seconds() / 3600.0
+            return (float(px) if px else None), eta
+    except Exception as e:
+        print(f"⚠️ Errore dettagli BUY ({product_id}): {e}", flush=True)
+        return "ERR", None
+    return None, None
+
+def ordine_buy_obsoleto(pair, prezzo_attuale, richiedi_esistente=False):
+    """True se il BUY aperto e' vecchio o il prezzo e' scappato. Se non c'e' nessun BUY
+    ritorna True solo con richiedi_esistente=False. In caso di errore API non fa nulla."""
+    px, eta = dettagli_buy_aperto(pair)
+    if px == "ERR":
+        return False
+    if px is None:
+        return not richiedi_esistente
+    if eta is not None and eta >= STALE_BUY_ORE:
+        return True
+    if prezzo_attuale > 0 and (prezzo_attuale - px) / prezzo_attuale > STALE_DRIFT:
+        return True
+    return False
+
+def e_sovrappesato(valore_asset, valore_totale, target_pct):
+    budget_asset = valore_totale * target_pct / 100.0
+    return target_pct > 0 and budget_asset > 0 and valore_asset >= budget_asset * MAX_OVERWEIGHT
+
 def carica_e_sincronizza_config():
     global CONFIG_ASSETS, FORCE_GRID_REALIGN
     if os.path.exists(FILE_CONFIG):
@@ -488,6 +614,12 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
         label_profit = ""
 
     motivo_reset += label_profit
+
+    # 3. Distanze calibrate sulle fee reali + tetti (override di widening ATR/ML)
+    min_buy, max_buy, min_sell, max_sell = limiti_distanze()
+    grid_dist_buy = min(max(grid_dist_buy, min_buy), max_buy)
+    grid_dist_sell = min(max(grid_dist_sell, min_sell), max_sell)
+
     cancella_ordini_pair(pair)
 
     saldo_eur_totale, saldo_eur_disp, dict_cripto_totale, dict_cripto_disp = controlla_saldi_globali()
@@ -495,6 +627,15 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
 
     if (crypto_posseduta_disp * prezzo_rif) < 0.50:
         crypto_posseduta_disp = 0.0
+
+    # 4. Anti-cash: cash alto da giorni (storico) E adesso (saldi live), non in downtrend
+    tranche_anti_cash = False
+    cash_live_pct = (saldo_eur_totale / valore_totale_portafoglio) if valore_totale_portafoglio > 0 else 1.0
+    if (autorizza_buy and buy_conviction > 0 and target_weight_pct > 0 and cash_live_pct > CASH_ALTO_SOGLIA
+            and ema50 > 0 and prezzo_rif >= ema50 * 0.995 and cash_alto_da_giorni()):
+        grid_dist_buy = max(min_buy, 0.005)
+        tranche_anti_cash = True
+        motivo_reset += " 💧[Anti-Cash Tranche]"
 
     # Sizing Dinamico a Bande Flessibili
     budget_totale_asset = (valore_totale_portafoglio * target_weight_pct) / 100.0 if valore_totale_portafoglio > 0 else saldo_eur_totale
@@ -504,10 +645,18 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
     if saldo_eur_disp > 0 and budget_buy_protetto > 0:
         budget_buy_protetto = min(budget_buy_protetto, max(min_order_eur, saldo_eur_disp * 0.25))
 
+    budget_riferimento_sell = budget_buy_protetto   # i SELL restano a tranche normale anche se il BUY e' ridotto/bloccato
+    if e_sovrappesato(dict_cripto_totale.get(symbol_crypto, 0.0) * prezzo_rif, valore_totale_portafoglio, target_weight_pct):
+        budget_buy_protetto = 0.0
+        motivo_reset += " ⚖️[Asset sovrappesato: no nuovi BUY]"
+    if tranche_anti_cash and budget_buy_protetto > 0:
+        budget_buy_protetto = max(min_order_eur, min(budget_buy_protetto, saldo_eur_disp * TRANCHE_PCT_CASH))
+
     prezzo_buy_grid = prezzo_rif * (1.0 - grid_dist_buy)
     prezzo_sell = prezzo_rif * (1.0 + grid_dist_sell)
 
-    quantita_token_tranche = (budget_buy_protetto / prezzo_buy_grid) if budget_buy_protetto > 0 else 0.0
+    quantita_buy = (budget_buy_protetto / prezzo_buy_grid) if budget_buy_protetto > 0 else 0.0
+    quantita_token_tranche = (budget_riferimento_sell / prezzo_buy_grid) if budget_riferimento_sell > 0 else 0.0
 
     buy_eseguito_ok = False
     sell_eseguito_ok = False
@@ -518,7 +667,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
             id_buy = f"lbuy_{uuid.uuid4().hex[:8]}"
             client.create_order(
                 client_order_id=id_buy, product_id=pair, side="BUY",
-                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_token_tranche:.{dec}f}", "limit_price": f"{prezzo_buy_grid:.2f}", "post_only": False}}
+                order_configuration={"limit_limit_gtc": {"base_size": f"{quantita_buy:.{dec}f}", "limit_price": formatta_prezzo(pair, prezzo_buy_grid), "post_only": False}}
             )
             buy_eseguito_ok = True
         except Exception as e:
@@ -548,7 +697,7 @@ def piazza_nuova_griglia(pair, prezzo_rif, autorizza_buy=True, motivo_reset="Res
                 id_sell = f"lsell_{uuid.uuid4().hex[:8]}"
                 client.create_order(
                     client_order_id=id_sell, product_id=pair, side="SELL",
-                    order_configuration={"limit_limit_gtc": {"base_size": quantita_sell_str, "limit_price": f"{prezzo_sell:.2f}", "post_only": False}}
+                    order_configuration={"limit_limit_gtc": {"base_size": quantita_sell_str, "limit_price": formatta_prezzo(pair, prezzo_sell), "post_only": False}}
                 )
                 sell_eseguito_ok = True
                 
@@ -657,11 +806,15 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio, forza_realign=False):
     
     id_buy, id_sell = recupera_ordini_pair(pair)
     ha_crypto_per_sell = (crypto_posseduta_disp * prezzo_attuale) >= min_order_eur
+    sovrappesato = e_sovrappesato(dict_cripto_totale.get(symbol_crypto, 0.0) * prezzo_attuale, valore_totale_portafoglio, cfg.get("target_weight_pct", 25.0))
 
     print(f"-> [DEBUG {pair}] Prezzo: {prezzo_attuale:.2f} | EMA50: {ema50:.2f} | ATR: {atr:.2f} | Floor ATR: {soglia_protezione_atr:.2f} | TrendOK: {trend_ok}", flush=True)
 
     # 4. RESET FORZATO POST-AUDIT: Spazza e ripiazza sempre se richiesto
-    if forza_realign:
+    realign_necessario = forza_realign and (ordine_buy_obsoleto(pair, prezzo_attuale) or (id_sell is None and ha_crypto_per_sell))
+    if forza_realign and not realign_necessario:
+        print(f"⏭️ [REALIGN SKIP {pair}] Ordine BUY ancora valido (recente e vicino a spot): non azzero il pivot.", flush=True)
+    if realign_necessario:
         print(f"🔄 [FORCE REALIGN {pair}] Richiesto riallineamento totale ordini dall'Audit...", flush=True)
         piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, 
                              motivo_reset="Riallineamento Totale Post-Audit", 
@@ -706,9 +859,17 @@ def esegui_gestione_asset(pair, valore_totale_portafoglio, forza_realign=False):
                              valore_totale_portafoglio=valore_totale_portafoglio)
         return prezzo_attuale, True
 
-    # 10. Manca BUY (Riallineamento)
+    # 9b. BUY esistente ma vecchio (>=36h) o prezzo scappato: si riallinea anche senza flag AI
+    if id_buy is not None and trend_ok and not sovrappesato and buy_conviction > 0 and ordine_buy_obsoleto(pair, prezzo_attuale, richiedi_esistente=True):
+        print(f"♻️ [STALE BUY {pair}] BUY vecchio o lontano dal prezzo: riallineo.", flush=True)
+        piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Riallineamento BUY Obsoleto",
+                             ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
+                             valore_totale_portafoglio=valore_totale_portafoglio)
+        return prezzo_attuale, not trend_ok
+
+    # 10. Manca BUY (Riallineamento). Solo se il buy e' consentito: evita di rimettere il SELL a ogni run durante il circuit breaker
     if id_buy is None and id_sell is not None:
-        if saldo_eur_disp >= min_order_eur and buy_conviction > 0:
+        if saldo_eur_disp >= min_order_eur and buy_conviction > 0 and trend_ok and not sovrappesato:
             print(f"⚠️ [DEBUG {pair}] Manca BUY. Riallineamento griglia...", flush=True)
             piazza_nuova_griglia(pair=pair, prezzo_rif=prezzo_attuale, autorizza_buy=trend_ok, motivo_reset="Ripristino Ordine BUY", 
                                  ema50=ema50, atr=atr, returns_24h=returns_24h, vol_24h=vol_24h, rsi=rsi, volume_ratio=volume_ratio,
@@ -769,3 +930,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
