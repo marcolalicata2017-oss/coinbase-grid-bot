@@ -155,6 +155,63 @@ def salva_memoria_storica(memoria):
     except Exception as e:
         print(f"⚠️ Errore salvataggio memoria storica: {e}", flush=True)
 
+# ==========================================
+# VALIDAZIONE RIGIDA DEL CONFIG PROPOSTO DALL'AI
+# ==========================================
+LIM_BUY_DIST = (0.005, 0.02)
+LIM_SELL_DIST = (0.018, 0.05)
+LIM_WEIGHT = (0.0, 40.0)
+LIM_CONVICTION = (0.0, 2.0)
+SELL_ACTION_OK = {"tranche", "scale_out", "liquidate_all"}   # l'auditor resta autonomo
+EXIT_OK = {"none", "soft_exit", "market_sell"}   # l'auditor resta autonomo
+
+def _clamp(v, lo, hi):
+    return max(lo, min(hi, float(v)))
+
+def valida_config(nuovo, attuale):
+    """Restituisce (config_sicuro, note). Valori fuori range vengono riportati nel range;
+    valori sconosciuti e asset nuovi non passano."""
+    note = []
+    if not isinstance(nuovo, dict) or not isinstance(nuovo.get("assets"), dict):
+        return None, ["config senza 'assets' valido: scartato"]
+    att_assets = (attuale or {}).get("assets", {})
+    out = {k: v for k, v in nuovo.items() if k != "assets"}
+    out["assets"] = {}
+    for pair, d in nuovo["assets"].items():
+        if pair not in att_assets:
+            note.append(f"{pair}: nuovo asset proposto dall'AI, ignorato")
+            continue
+        base = dict(att_assets[pair])
+        d = dict(d) if isinstance(d, dict) else {}
+        try:
+            for k, (lo, hi) in (("grid_dist_buy", LIM_BUY_DIST), ("grid_dist_sell", LIM_SELL_DIST),
+                                ("target_weight_pct", LIM_WEIGHT), ("buy_conviction", LIM_CONVICTION)):
+                if k in d:
+                    v = _clamp(d[k], lo, hi)
+                    if abs(v - float(d[k])) > 1e-12:
+                        note.append(f"{pair}.{k}: {d[k]} riportato a {v}")
+                    base[k] = v
+            if "is_active" in d:
+                base["is_active"] = bool(d["is_active"])
+            if d.get("sell_action", base.get("sell_action", "tranche")) not in SELL_ACTION_OK:
+                note.append(f"{pair}.sell_action '{d.get('sell_action')}' non valido, mantenuto il precedente")
+            elif "sell_action" in d:
+                base["sell_action"] = d["sell_action"]
+            if d.get("exit_strategy", base.get("exit_strategy", "none")) not in EXIT_OK:
+                note.append(f"{pair}.exit_strategy '{d.get('exit_strategy')}' non valido, mantenuto il precedente")
+            elif "exit_strategy" in d:
+                base["exit_strategy"] = d["exit_strategy"]
+        except (TypeError, ValueError) as e:
+            note.append(f"{pair}: valori non numerici ({e}), mantenuto il precedente")
+        out["assets"][pair] = base
+    for pair in att_assets:
+        out["assets"].setdefault(pair, att_assets[pair])
+    totale = sum(float(v.get("target_weight_pct", 0)) for v in out["assets"].values())
+    if totale > 100.0:
+        note.append(f"somma pesi {totale:.1f}% > 100%: config scartato")
+        return None, note
+    return out, note
+
 def applica_commit_github(nuovo_config, nuova_scheda_memoria=None):
     try:
         # Inietta sempre il flag per forzare il riallineamento immediato nel bot esecutore
@@ -358,6 +415,11 @@ def esegui_audit():
             if json_config_str.startswith("```"):
                 json_config_str = json_config_str.split("\n", 1)[1].rsplit("```", 1)[0].strip()
             nuovo_config = json.loads(json_config_str)
+            nuovo_config, note_validazione = valida_config(nuovo_config, config_attuale)
+            if note_validazione:
+                report_telegram += "\n\n🛡️ *[GUARDRAIL]*\n" + "\n".join(f"- {n}" for n in note_validazione)
+            if nuovo_config is None:
+                raise ValueError("config AI non valido, nessun push")
             
             nuova_scheda = None
             if json_memoria_str != "NO_CHANGE":
@@ -378,3 +440,4 @@ def esegui_audit():
 
 if __name__ == "__main__":
     esegui_audit()
+
