@@ -1802,3 +1802,6 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-26 19:40:59,SOL-EUR,65.05,64.18,372.02,0.00000,True,58.6,0.63,62.97,66.22,3.20,1.80,"Riallineamento Totale Post-Audit"
 2026-11-26 19:41:00,AVAX-EUR,6.08,6.03,372.02,0.00000,True,50.8,0.11,5.89,6.19,3.20,1.80,"Riallineamento Totale Post-Audit"
 2026-11-26 19:41:02,ADA-EUR,0.14,0.13,372.02,0.00000,True,61.1,0.92,0.13,0.14,3.50,1.80,"Riallineamento Totale Post-Audit"
+2026-11-27 14:40:56,LINK-EUR,8.52,8.46,372.02,0.10000,True,49.7,1.55,8.47,8.67,0.50,1.80,"Riallineamento BUY Obsoleto 💧[Anti-Cash Tranche]"
+2026-11-27 14:40:57,SOL-EUR,65.65,65.22,372.02,0.00000,True,57.9,1.51,65.32,66.83,0.50,1.80,"Riallineamento BUY Obsoleto 💧[Anti-Cash Tranche]"
+2026-11-27 14:40:58,ADA-EUR,0.14,0.14,372.02,0.00000,True,50.4,0.59,0.14,0.14,0.50,1.80,"Riallineamento BUY Obsoleto 💧[Anti-Cash Tranche]"
