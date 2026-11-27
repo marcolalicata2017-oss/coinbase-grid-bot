@@ -346,5 +346,16 @@ class TestValidator(unittest.TestCase):
         n = {"assets": {"BTC-EUR": self.ATT["assets"]["BTC-EUR"]}}
         out, _ = aud.valida_config(n, self.ATT); self.assertIn("ADA-EUR", out["assets"])
 
+class TestNotificheTelegram(unittest.TestCase):
+    def setUp(self): reset()
+    def test_ordine_limite_piazzato_non_notifica_ma_ordina_e_logga(self):
+        msgs, diario = [], []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.registra_su_diario_di_bordo = lambda *a, **k: diario.append(1)
+        balances(); grid(price=1.0, ema50=1.0)
+        self.assertEqual(len(sides("BUY")), 1)      # l'ordine viene piazzato come prima
+        self.assertEqual(msgs, [])                  # nessun Telegram per ordini non eseguiti
+        self.assertEqual(len(diario), 1)            # il diario resta aggiornato
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
