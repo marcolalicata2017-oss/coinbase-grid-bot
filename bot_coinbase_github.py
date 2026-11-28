@@ -327,6 +327,10 @@ SOGLIA_ALLARME_CASSA = 0.80      # quota cassa oltre la quale scatta l'allarme
 GIORNI_ALLARME_CASSA = 3         # giorni consecutivi richiesti
 FILE_FLAG_ALERT_CASSA = "alert_cassa_inviato.txt"
 
+# Avviso vendite sotto costo (fase "solo avviso" voluta da Marco per un mese, poi si valuta il blocco)
+AVVISO_SOTTO_COSTO_ATTIVO_FINO_AL = "2026-12-28"
+FILE_FLAG_AVVISO_SC = "avviso_sotto_costo_inviato.txt"
+
 def _normalizza_fill(f):
     g = (lambda k: f.get(k)) if isinstance(f, dict) else (lambda k: getattr(f, k, None))
     try:
@@ -369,15 +373,20 @@ def recupera_fills(data_inizio):
     return fills
 
 def calcola_kpi_fills(fills, giorni=7):
-    """KPI dagli eseguiti: conteggi, fee, quota taker e P/L realizzato FIFO (fee incluse).
+    """KPI dagli eseguiti: conteggi, fee, quota taker, P/L realizzato FIFO (fee incluse),
+    carico medio dei lotti aperti e vendite sotto costo (solo avviso, nessun blocco).
     Il P/L realizzato di ogni vendita è attribuito alla data della vendita."""
     kpi = {"n_fill": 0, "n_buy": 0, "n_sell": 0, "fee": 0.0, "taker_pct": 0.0,
-           "pnl_7d": 0.0, "pnl_tot": 0.0, "fee_tot": 0.0}
+           "pnl_7d": 0.0, "pnl_tot": 0.0, "fee_tot": 0.0,
+           "vendite_sotto_costo_7d": 0, "perdita_sotto_costo_7d": 0.0,
+           "vendite_sotto_costo_recenti": [], "carico": {}}
     if not fills:
         return kpi
     try:
         fills = sorted(fills, key=lambda f: f["time"])
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=giorni)).isoformat()
+        adesso = datetime.now(timezone.utc)
+        cutoff = (adesso - timedelta(days=giorni)).isoformat()
+        cutoff_recenti = (adesso - timedelta(hours=48)).isoformat()
         lotti = {}
         pnl_7d = 0.0
         vol_taker = 0.0
@@ -400,10 +409,14 @@ def calcola_kpi_fills(fills, giorni=7):
             elif f["side"] == "SELL":
                 rem = f["size"]
                 pnl_vendita = 0.0
+                costo_consumato = 0.0
+                qta_consumata = 0.0
                 while rem > 1e-12 and lotti.get(a):
                     lot = lotti[a][0]
                     take = min(rem, lot[0])
                     pnl_vendita += take * (f["price"] - lot[1])
+                    costo_consumato += take * lot[1]
+                    qta_consumata += take
                     lot[0] -= take
                     rem -= take
                     if lot[0] <= 1e-12:
@@ -412,8 +425,22 @@ def calcola_kpi_fills(fills, giorni=7):
                 kpi["pnl_tot"] += pnl_vendita
                 if f["time"] >= cutoff:
                     pnl_7d += pnl_vendita
+                # vendita sotto costo: pnl negativo con lotti noti (se non ci sono lotti il costo è ignoto: niente avviso)
+                if qta_consumata > 0 and pnl_vendita < -1e-9:
+                    if f["time"] >= cutoff:
+                        kpi["vendite_sotto_costo_7d"] += 1
+                        kpi["perdita_sotto_costo_7d"] += pnl_vendita
+                    if f["time"] >= cutoff_recenti:
+                        kpi["vendite_sotto_costo_recenti"].append({
+                            "time": f["time"], "product": a, "size": f["size"],
+                            "price": f["price"], "costo_medio": costo_consumato / qta_consumata,
+                            "pnl": pnl_vendita})
         kpi["pnl_7d"] = pnl_7d
         kpi["taker_pct"] = (vol_taker / vol_tot * 100.0) if vol_tot > 0 else 0.0
+        for a, ls in lotti.items():
+            qta = sum(l[0] for l in ls)
+            if qta > 1e-12:
+                kpi["carico"][a] = [qta, sum(l[0] * l[1] for l in ls) / qta]
     except Exception as e:
         print(f"⚠️ Calcolo KPI fill fallito: {e}", flush=True)
     return kpi
@@ -488,6 +515,46 @@ def controlla_allarme_cassa():
     except Exception as e:
         print(f"⚠️ Allarme cassa fallito: {e}", flush=True)
         return False
+
+
+def controlla_avviso_sotto_costo():
+    """Avvisa su Telegram quando una vendita chiude SOTTO il costo medio (fee incluse) dei lotti
+    che sta smobilizzando. Fase "solo avviso" voluta da Marco: NON blocca nessuna vendita,
+    il trading non cambia. Attivo fino ad AVVISO_SOTTO_COSTO_ATTIVO_FINO_AL, poi si valuta
+    con Marco la fase successiva. Ogni eseguito sotto costo e notificato una sola volta
+    (timestamp salvato nel file flag)."""
+    try:
+        if datetime.now(timezone.utc).date().isoformat() > AVVISO_SOTTO_COSTO_ATTIVO_FINO_AL:
+            return
+        gia_notificati = set()
+        if os.path.exists(FILE_FLAG_AVVISO_SC):
+            try:
+                with open(FILE_FLAG_AVVISO_SC, "r", encoding="utf-8") as f:
+                    gia_notificati = set(f.read().split())
+            except Exception:
+                gia_notificati = set()
+        fills = recupera_fills(prima_data_storico())
+        kpi = calcola_kpi_fills(fills, giorni=7)
+        nuove = [v for v in kpi["vendite_sotto_costo_recenti"] if v["time"] not in gia_notificati]
+        if not nuove:
+            return
+        nuove.sort(key=lambda v: v["time"])
+        linee = []
+        for v in nuove:
+            data_v = v["time"][:16].replace("T", " ")
+            linee.append(f"• {data_v} UTC - {v['product']}: venduto {v['size']:g} a {v['price']:.4f}€ "
+                         f"(costo medio {v['costo_medio']:.4f}€, fee incl.) → {v['pnl']:+.2f} EUR")
+        msg = "⚠️ *AVVISO: vendita sotto costo (fee incluse)*\n" + "\n".join(linee) + \
+              "\n\nℹ️ Solo segnalazione: il bot NON blocca vendite. Il controllo resta in osservazione fino al " \
+              + AVVISO_SOTTO_COSTO_ATTIVO_FINO_AL + "."
+        invia_telegram(msg)
+        gia_notificati.update(v["time"] for v in nuove)
+        with open(FILE_FLAG_AVVISO_SC, "w", encoding="utf-8") as f:
+            f.write("\n".join(sorted(gia_notificati)))
+        print(f"⚠️ Avviso sotto costo inviato ({len(nuove)} vendite)", flush=True)
+    except Exception as e:
+        print(f"⚠️ Errore controlla_avviso_sotto_costo: {e}", flush=True)
+
 
 def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb):
     ora_dt = datetime.now()
@@ -591,7 +658,17 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
                           f"• Fill: {kpi['n_fill']} (buy {kpi['n_buy']} / sell {kpi['n_sell']})\n" \
                           f"• Fee pagate: {kpi['fee']:.2f} EUR (taker {kpi['taker_pct']:.0f}% dei volumi)\n" \
                           f"• P/L realizzato: *{segno_7d}{kpi['pnl_7d']:.2f} EUR* (totale {segno_tot}{kpi['pnl_tot']:.2f} EUR, fee totali {kpi['fee_tot']:.2f} EUR)\n" \
-                          f"• Cassa media: {cassa['media_pct']:.0f}% (giorni ≥80%: {cassa['giorni_sopra_soglia']})\n"
+                          f"• Cassa media: {cassa['media_pct']:.0f}% (giorni ≥80%: {cassa['giorni_sopra_soglia']})\n" \
+                          f"• Vendite sotto costo: {kpi['vendite_sotto_costo_7d']} ({kpi['perdita_sotto_costo_7d']:+.2f} EUR)\n"
+            carichi = []
+            for pair, (qta_c, costo_c) in kpi["carico"].items():
+                sym = pair.split("-")[0]
+                prezzo_now = prezzi_attuali.get(pair)
+                if prezzo_now and qta_c * prezzo_now >= 1.0:
+                    diff_pct = (prezzo_now - costo_c) / costo_c * 100.0 if costo_c > 0 else 0.0
+                    carichi.append(f"{sym} {costo_c:.2f}€ ({diff_pct:+.1f}%)")
+            if carichi:
+                msg_report += f"• Carico medio posizioni: {', '.join(carichi)}\n"
         except Exception as e:
             print(f"⚠️ Sezione KPI del report fallita: {e}", flush=True)
 
@@ -603,6 +680,8 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
 
     # Allarme anti-cassa (solo notifica, max 1 al giorno)
     controlla_allarme_cassa()
+    # Avviso vendite sotto costo medio + fee (solo notifica, nessun blocco)
+    controlla_avviso_sotto_costo()
 
 # ==========================================
 # API COINBASE & MERCATO (CON CALCOLO ATR)
