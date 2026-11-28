@@ -1823,3 +1823,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-28 05:40:53,LINK-EUR,8.38,8.48,310.92,4.20000,False,36.5,0.18,8.21,8.53,2.00,1.80,"Attivazione Circuit Breaker (Rottura ATR Floor) 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
 2026-11-28 05:50:54,BTC-EUR,54596.31,55083.72,303.42,0.00000,True,37.6,0.14,53504.38,55579.04,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
 2026-11-28 05:50:56,SOL-EUR,65.10,65.37,303.42,0.22800,True,30.8,0.15,64.77,66.27,0.50,1.80,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%] 💧[Anti-Cash Tranche]"
+2026-11-28 06:31:10,BTC-EUR,54720.72,55070.08,303.42,0.00000,True,48.4,0.11,53626.31,55705.69,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
