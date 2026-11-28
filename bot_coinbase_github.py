@@ -379,7 +379,9 @@ def calcola_kpi_fills(fills, giorni=7):
     kpi = {"n_fill": 0, "n_buy": 0, "n_sell": 0, "fee": 0.0, "taker_pct": 0.0,
            "pnl_7d": 0.0, "pnl_tot": 0.0, "fee_tot": 0.0,
            "vendite_sotto_costo_7d": 0, "perdita_sotto_costo_7d": 0.0,
-           "vendite_sotto_costo_recenti": [], "carico": {}}
+           "vendite_sotto_costo_recenti": [], "carico": {},
+           "vendite_senza_costo_7d": 0, "valore_senza_costo_7d": 0.0,
+           "vendite_parziali_7d": 0}
     if not fills:
         return kpi
     try:
@@ -408,24 +410,36 @@ def calcola_kpi_fills(fills, giorni=7):
                     lotti.setdefault(a, []).append([f["size"], (q + f["commission"]) / f["size"]])
             elif f["side"] == "SELL":
                 rem = f["size"]
-                pnl_vendita = 0.0
+                pnl_lordo = 0.0
                 costo_consumato = 0.0
                 qta_consumata = 0.0
                 while rem > 1e-12 and lotti.get(a):
                     lot = lotti[a][0]
                     take = min(rem, lot[0])
-                    pnl_vendita += take * (f["price"] - lot[1])
+                    pnl_lordo += take * (f["price"] - lot[1])
                     costo_consumato += take * lot[1]
                     qta_consumata += take
                     lot[0] -= take
                     rem -= take
                     if lot[0] <= 1e-12:
                         lotti[a].pop(0)
-                pnl_vendita -= f["commission"]
-                kpi["pnl_tot"] += pnl_vendita
-                if f["time"] >= cutoff:
-                    pnl_7d += pnl_vendita
-                # vendita sotto costo: pnl negativo con lotti noti (se non ci sono lotti il costo è ignoto: niente avviso)
+                # P/L confermato SOLO sulla quantità abbinata a lotti noti, con la sua quota di fee
+                # (pro-rata sulla quantità). La quantità senza lotto noto ha costo SCONOSCIUTO:
+                # non è una perdita, non entra nel P/L realizzato e non deve mai essere usata
+                # per avvisi o futuri blocchi.
+                quota_abbinata = (qta_consumata / f["size"]) if f["size"] > 0 else 0.0
+                pnl_vendita = pnl_lordo - f["commission"] * quota_abbinata
+                if qta_consumata > 0:
+                    kpi["pnl_tot"] += pnl_vendita
+                    if f["time"] >= cutoff:
+                        pnl_7d += pnl_vendita
+                        if rem > 1e-9:
+                            kpi["vendite_parziali_7d"] += 1
+                elif f["time"] >= cutoff:
+                    kpi["vendite_senza_costo_7d"] += 1
+                    kpi["valore_senza_costo_7d"] += f["size"] * f["price"]
+                # vendita sotto costo: pnl negativo sulla parte abbinata (se non ci sono lotti noti
+                # il costo è ignoto: niente avviso, niente perdita confermata)
                 if qta_consumata > 0 and pnl_vendita < -1e-9:
                     if f["time"] >= cutoff:
                         kpi["vendite_sotto_costo_7d"] += 1
@@ -433,6 +447,7 @@ def calcola_kpi_fills(fills, giorni=7):
                     if f["time"] >= cutoff_recenti:
                         kpi["vendite_sotto_costo_recenti"].append({
                             "time": f["time"], "product": a, "size": f["size"],
+                            "qta_abbinata": qta_consumata,
                             "price": f["price"], "costo_medio": costo_consumato / qta_consumata,
                             "pnl": pnl_vendita})
         kpi["pnl_7d"] = pnl_7d
@@ -542,8 +557,10 @@ def controlla_avviso_sotto_costo():
         linee = []
         for v in nuove:
             data_v = v["time"][:16].replace("T", " ")
+            nota_parz = "" if abs(v["qta_abbinata"] - v["size"]) <= 1e-9 else \
+                        f" (P/L solo su {v['qta_abbinata']:g} di {v['size']:g}, il resto senza costo noto)"
             linee.append(f"• {data_v} UTC - {v['product']}: venduto {v['size']:g} a {v['price']:.4f}€ "
-                         f"(costo medio {v['costo_medio']:.4f}€, fee incl.) → {v['pnl']:+.2f} EUR")
+                         f"(costo medio {v['costo_medio']:.4f}€, fee incl.) → {v['pnl']:+.2f} EUR{nota_parz}")
         msg = "⚠️ *AVVISO: vendita sotto costo (fee incluse)*\n" + "\n".join(linee) + \
               "\n\nℹ️ Solo segnalazione: il bot NON blocca vendite. Il controllo resta in osservazione fino al " \
               + AVVISO_SOTTO_COSTO_ATTIVO_FINO_AL + "."
@@ -660,6 +677,9 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
                           f"• P/L realizzato: *{segno_7d}{kpi['pnl_7d']:.2f} EUR* (totale {segno_tot}{kpi['pnl_tot']:.2f} EUR, fee totali {kpi['fee_tot']:.2f} EUR)\n" \
                           f"• Cassa media: {cassa['media_pct']:.0f}% (giorni ≥80%: {cassa['giorni_sopra_soglia']})\n" \
                           f"• Vendite sotto costo: {kpi['vendite_sotto_costo_7d']} ({kpi['perdita_sotto_costo_7d']:+.2f} EUR)\n"
+            if kpi["vendite_senza_costo_7d"] > 0 or kpi["vendite_parziali_7d"] > 0:
+                msg_report += f"• Vendite senza costo noto: {kpi['vendite_senza_costo_7d']} " \
+                              f"(+{kpi['vendite_parziali_7d']} parziali): escluse dal P/L, mai contate come perdita\n"
             carichi = []
             for pair, (qta_c, costo_c) in kpi["carico"].items():
                 sym = pair.split("-")[0]
