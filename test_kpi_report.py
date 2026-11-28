@@ -48,7 +48,7 @@ def scrivi_storico(righe):
 def reset():
     bot.client = FakeClient()
     bot.invia_telegram = lambda *a, **k: None
-    for p in (bot.FILE_PORTAFOGLIO_GIORNALIERO, bot.FILE_FLAG_ALERT_CASSA, "report_domenica_inviato.txt"):
+    for p in (bot.FILE_PORTAFOGLIO_GIORNALIERO, bot.FILE_FLAG_ALERT_CASSA, bot.FILE_FLAG_AVVISO_SC, "report_domenica_inviato.txt"):
         if os.path.exists(p):
             os.remove(p)
 
@@ -273,6 +273,123 @@ class TestReportDomenicaleKpi(unittest.TestCase):
         self.assertEqual(len(msgs), 1)
         self.assertIn("REPORT SETTIMANALE", msgs[0])
         self.assertIn("Fill: 0", msgs[0])             # KPI a zero ma report inviato
+
+
+class TestVenditeSottoCosto(unittest.TestCase):
+    def setUp(self): reset()
+
+    def test_vendita_sotto_costo_rilevata(self):
+        fills = [
+            fill(iso(1), side="BUY", size=10.0, price=1.00, fee=0.03),  # costo 1.003/u
+            fill(iso(0), side="SELL", size=10.0, price=0.90, fee=0.03), # sotto costo
+        ]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertEqual(k["vendite_sotto_costo_7d"], 1)
+        # pnl = 10*(0.90-1.003) - 0.03 = -1.06
+        self.assertAlmostEqual(k["perdita_sotto_costo_7d"], -1.06, places=6)
+        self.assertEqual(len(k["vendite_sotto_costo_recenti"]), 1)
+        v = k["vendite_sotto_costo_recenti"][0]
+        self.assertEqual(v["product"], "ADA-EUR")
+        self.assertAlmostEqual(v["costo_medio"], 1.003, places=6)
+        self.assertAlmostEqual(v["pnl"], -1.06, places=6)
+
+    def test_vendita_sopra_costo_non_segnalata(self):
+        fills = [
+            fill(iso(1), side="BUY", size=10.0, price=1.00, fee=0.0),
+            fill(iso(0), side="SELL", size=10.0, price=1.10, fee=0.0),
+        ]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertEqual(k["vendite_sotto_costo_7d"], 0)
+        self.assertEqual(k["vendite_sotto_costo_recenti"], [])
+
+    def test_vendita_senza_lotti_noti_non_segnalata(self):
+        fills = [fill(iso(0), side="SELL", size=5.0, price=0.5, fee=0.01)]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertEqual(k["vendite_sotto_costo_7d"], 0)   # costo ignoto: niente avviso
+        self.assertEqual(k["vendite_sotto_costo_recenti"], [])
+
+    def test_finestra_48h_esclude_vecchie(self):
+        fills = [
+            fill(iso(4), side="BUY", size=10.0, price=1.00, fee=0.0),
+            fill(iso(3), side="SELL", size=10.0, price=0.90, fee=0.0),  # 72h fa: nel 7d ma non nei "recenti"
+        ]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertEqual(k["vendite_sotto_costo_7d"], 1)
+        self.assertEqual(k["vendite_sotto_costo_recenti"], [])
+
+    def test_carico_medio_lotti_aperti(self):
+        fills = [
+            fill(iso(3), side="BUY", size=10.0, price=1.00, fee=0.0),
+            fill(iso(2), side="BUY", size=10.0, price=1.20, fee=0.0),
+            fill(iso(1), side="SELL", size=10.0, price=1.50, fee=0.0),  # chiude il lotto a 1.00
+        ]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertIn("ADA-EUR", k["carico"])
+        qta, costo = k["carico"]["ADA-EUR"]
+        self.assertAlmostEqual(qta, 10.0, places=6)
+        self.assertAlmostEqual(costo, 1.20, places=6)
+
+
+class TestAvvisoSottoCosto(unittest.TestCase):
+    def setUp(self): reset()
+
+    def _fills_sotto_costo(self):
+        return {"fills": [
+            {"trade_time": iso(1), "product_id": "ADA-EUR", "side": "BUY", "size": 10,
+             "price": 1.0, "commission": 0.0, "liquidity_indicator": "MAKER"},
+            {"trade_time": iso(0), "product_id": "ADA-EUR", "side": "SELL", "size": 10,
+             "price": 0.9, "commission": 0.0, "liquidity_indicator": "MAKER"},
+        ], "cursor": None}
+
+    def test_invia_avviso_e_scrive_flag(self):
+        msgs = []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.client.fills_response = self._fills_sotto_costo()
+        bot.controlla_avviso_sotto_costo()
+        self.assertEqual(len(msgs), 1)
+        self.assertIn("sotto costo", msgs[0])
+        self.assertIn("NON blocca", msgs[0])
+        self.assertTrue(os.path.exists(bot.FILE_FLAG_AVVISO_SC))
+
+    def test_non_ripete_la_stessa_vendita(self):
+        msgs = []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.client.fills_response = self._fills_sotto_costo()
+        bot.controlla_avviso_sotto_costo()
+        bot.controlla_avviso_sotto_costo()
+        self.assertEqual(len(msgs), 1)
+
+    def test_nessun_avviso_se_sopra_costo(self):
+        msgs = []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.client.fills_response = {"fills": [
+            {"trade_time": iso(1), "product_id": "ADA-EUR", "side": "BUY", "size": 10,
+             "price": 1.0, "commission": 0.0, "liquidity_indicator": "MAKER"},
+            {"trade_time": iso(0), "product_id": "ADA-EUR", "side": "SELL", "size": 10,
+             "price": 1.2, "commission": 0.0, "liquidity_indicator": "MAKER"},
+        ], "cursor": None}
+        bot.controlla_avviso_sotto_costo()
+        self.assertEqual(msgs, [])
+
+    def test_scaduto_dopo_data_fine(self):
+        from unittest import mock
+        msgs = []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.client.fills_response = self._fills_sotto_costo()
+        class FakeDt(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 12, 29, 10, 0)   # oltre la fine della fase di osservazione
+        with mock.patch.object(bot, "datetime", FakeDt):
+            bot.controlla_avviso_sotto_costo()
+        self.assertEqual(msgs, [])
+
+    def test_api_giu_non_esplode(self):
+        msgs = []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.client.fills_response = RuntimeError("api giu")
+        bot.controlla_avviso_sotto_costo()   # non deve sollevare
+        self.assertEqual(msgs, [])
 
 
 if __name__ == "__main__":
