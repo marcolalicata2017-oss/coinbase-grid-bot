@@ -8,7 +8,7 @@ import subprocess
 import math
 import numpy as np
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import csv
 from coinbase.rest import RESTClient
 
@@ -320,6 +320,175 @@ def genera_barra_progresso(percentuale, lung=10):
     vuoti = lung - pieni
     return "█" * pieni + "░" * vuoti
 
+# ==========================================
+# KPI ESECUZIONE & ALLARME ANTI-CASSA (SOLO REPORT, NESSUN IMPATTO SUL TRADING)
+# ==========================================
+SOGLIA_ALLARME_CASSA = 0.80      # quota cassa oltre la quale scatta l'allarme
+GIORNI_ALLARME_CASSA = 3         # giorni consecutivi richiesti
+FILE_FLAG_ALERT_CASSA = "alert_cassa_inviato.txt"
+
+def _normalizza_fill(f):
+    g = (lambda k: f.get(k)) if isinstance(f, dict) else (lambda k: getattr(f, k, None))
+    try:
+        return {
+            "time": str(g("trade_time") or ""),
+            "product": str(g("product_id") or ""),
+            "side": str(g("side") or "").upper(),
+            "size": float(g("size") or 0.0),
+            "price": float(g("price") or 0.0),
+            "commission": float(g("commission") or 0.0),
+            "liquidity": str(g("liquidity_indicator") or "").upper(),
+        }
+    except (TypeError, ValueError):
+        return None
+
+def recupera_fills(data_inizio):
+    """Legge gli eseguiti da Coinbase (sola lettura) da data_inizio (YYYY-MM-DD) a ora.
+    Ritorna lista normalizzata (vuota in caso di errore: il report si invia comunque)."""
+    fills = []
+    try:
+        inizio = datetime.strptime(data_inizio, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        fine = datetime.now(timezone.utc)
+        cursor = None
+        for _ in range(10):  # al massimo 10 pagine da 1000 fill
+            kwargs = dict(start_sequence_timestamp=inizio.isoformat(),
+                          end_sequence_timestamp=fine.isoformat(), limit=1000)
+            if cursor:
+                kwargs["cursor"] = cursor
+            res = client.get_fills(**kwargs)
+            grezzo = res.get("fills", []) if isinstance(res, dict) else getattr(res, "fills", [])
+            for f in grezzo:
+                nf = _normalizza_fill(f)
+                if nf:
+                    fills.append(nf)
+            cursor = res.get("cursor") if isinstance(res, dict) else getattr(res, "cursor", None)
+            if not cursor or not grezzo:
+                break
+    except Exception as e:
+        print(f"⚠️ Lettura fill Coinbase per KPI fallita: {e}", flush=True)
+    return fills
+
+def calcola_kpi_fills(fills, giorni=7):
+    """KPI dagli eseguiti: conteggi, fee, quota taker e P/L realizzato FIFO (fee incluse).
+    Il P/L realizzato di ogni vendita è attribuito alla data della vendita."""
+    kpi = {"n_fill": 0, "n_buy": 0, "n_sell": 0, "fee": 0.0, "taker_pct": 0.0,
+           "pnl_7d": 0.0, "pnl_tot": 0.0, "fee_tot": 0.0}
+    if not fills:
+        return kpi
+    try:
+        fills = sorted(fills, key=lambda f: f["time"])
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=giorni)).isoformat()
+        lotti = {}
+        pnl_7d = 0.0
+        vol_taker = 0.0
+        vol_tot = 0.0
+        for f in fills:
+            q = f["size"] * f["price"]
+            vol_tot += q
+            if f["liquidity"] == "TAKER":
+                vol_taker += q
+            kpi["fee_tot"] += f["commission"]
+            if f["time"] >= cutoff:
+                kpi["n_fill"] += 1
+                kpi["fee"] += f["commission"]
+                if f["side"] == "BUY": kpi["n_buy"] += 1
+                if f["side"] == "SELL": kpi["n_sell"] += 1
+            a = f["product"]
+            if f["side"] == "BUY":
+                if f["size"] > 0:
+                    lotti.setdefault(a, []).append([f["size"], (q + f["commission"]) / f["size"]])
+            elif f["side"] == "SELL":
+                rem = f["size"]
+                pnl_vendita = 0.0
+                while rem > 1e-12 and lotti.get(a):
+                    lot = lotti[a][0]
+                    take = min(rem, lot[0])
+                    pnl_vendita += take * (f["price"] - lot[1])
+                    lot[0] -= take
+                    rem -= take
+                    if lot[0] <= 1e-12:
+                        lotti[a].pop(0)
+                pnl_vendita -= f["commission"]
+                kpi["pnl_tot"] += pnl_vendita
+                if f["time"] >= cutoff:
+                    pnl_7d += pnl_vendita
+        kpi["pnl_7d"] = pnl_7d
+        kpi["taker_pct"] = (vol_taker / vol_tot * 100.0) if vol_tot > 0 else 0.0
+    except Exception as e:
+        print(f"⚠️ Calcolo KPI fill fallito: {e}", flush=True)
+    return kpi
+
+def statistiche_cassa(giorni=7, soglia=SOGLIA_ALLARME_CASSA):
+    """Legge lo storico giornaliero: quota cassa media negli ultimi `giorni`, giorni sopra soglia
+    e giorni consecutivi (dalla fine) con cassa >= soglia."""
+    stat = {"media_pct": 0.0, "giorni_sopra_soglia": 0, "consecutivi_sopra_soglia": 0, "n_giorni": 0}
+    try:
+        if not os.path.exists(FILE_PORTAFOGLIO_GIORNALIERO):
+            return stat
+        quote = []
+        with open(FILE_PORTAFOGLIO_GIORNALIERO, "r", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                try:
+                    tot = float(r["Valore_Totale_EUR"])
+                    cash = float(r["Saldo_EUR"])
+                    if tot > 0:
+                        quote.append(cash / tot)
+                except (KeyError, TypeError, ValueError):
+                    continue
+        recenti = quote[-giorni:]
+        stat["n_giorni"] = len(recenti)
+        if recenti:
+            stat["media_pct"] = sum(recenti) / len(recenti) * 100.0
+            stat["giorni_sopra_soglia"] = sum(1 for q in recenti if q >= soglia)
+        cons = 0
+        for q in reversed(quote):
+            if q >= soglia:
+                cons += 1
+            else:
+                break
+        stat["consecutivi_sopra_soglia"] = cons
+    except Exception as e:
+        print(f"⚠️ Statistiche cassa fallite: {e}", flush=True)
+    return stat
+
+def prima_data_storico():
+    """Prima data presente nello storico giornaliero (fallback: 30 giorni fa)."""
+    try:
+        if os.path.exists(FILE_PORTAFOGLIO_GIORNALIERO):
+            with open(FILE_PORTAFOGLIO_GIORNALIERO, "r", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    if r.get("Data"):
+                        return r["Data"]
+    except Exception:
+        pass
+    return (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+
+def controlla_allarme_cassa():
+    """Invia un alert Telegram (max 1 al giorno) se la cassa resta >= soglia per N giorni consecutivi.
+    Solo notifica: nessuna azione di trading."""
+    try:
+        stat = statistiche_cassa(giorni=GIORNI_ALLARME_CASSA)
+        if stat["consecutivi_sopra_soglia"] < GIORNI_ALLARME_CASSA:
+            return False
+        oggi = datetime.now().strftime("%Y-%m-%d")
+        if os.path.exists(FILE_FLAG_ALERT_CASSA):
+            try:
+                with open(FILE_FLAG_ALERT_CASSA, "r", encoding="utf-8") as f:
+                    if f.read().strip() == oggi:
+                        return False
+            except Exception:
+                pass
+        invia_telegram(f"⚠️ *ALLARME CASSA ALTA*\n"
+                       f"La cassa è da *{stat['consecutivi_sopra_soglia']} giorni consecutivi* oltre il "
+                       f"{SOGLIA_ALLARME_CASSA*100:.0f}% del portafoglio (media ultimi giorni: {stat['media_pct']:.0f}%).\n"
+                       f"Il bot non sta investendo: conviene controllare griglie e auditor.")
+        with open(FILE_FLAG_ALERT_CASSA, "w", encoding="utf-8") as f:
+            f.write(oggi)
+        return True
+    except Exception as e:
+        print(f"⚠️ Allarme cassa fallito: {e}", flush=True)
+        return False
+
 def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cripto_totale, stati_cb):
     ora_dt = datetime.now()
     oggi = ora_dt.strftime("%Y-%m-%d")
@@ -411,11 +580,29 @@ def traccia_portafoglio_giornaliero(prezzi_attuali, saldo_eur_totale, dict_cript
             barra_asset = genera_barra_progresso(pct_asset)
             msg_report += f"`[{barra_asset}]` {pct_asset*100:.0f}% {cfg['emoji']} {sym} ({val:.2f} EUR | {qta:.{cfg['decimals']}f} {sym})\n"
 
+        # KPI di esecuzione dagli eseguiti reali Coinbase (sola lettura; il report si invia anche se fallisce)
+        try:
+            fills = recupera_fills(prima_data_storico())
+            kpi = calcola_kpi_fills(fills, giorni=7)
+            cassa = statistiche_cassa(giorni=7)
+            segno_7d = "+" if kpi["pnl_7d"] >= 0 else ""
+            segno_tot = "+" if kpi["pnl_tot"] >= 0 else ""
+            msg_report += f"\n📉 *KPI settimana (eseguiti reali Coinbase):*\n" \
+                          f"• Fill: {kpi['n_fill']} (buy {kpi['n_buy']} / sell {kpi['n_sell']})\n" \
+                          f"• Fee pagate: {kpi['fee']:.2f} EUR (taker {kpi['taker_pct']:.0f}% dei volumi)\n" \
+                          f"• P/L realizzato: *{segno_7d}{kpi['pnl_7d']:.2f} EUR* (totale {segno_tot}{kpi['pnl_tot']:.2f} EUR, fee totali {kpi['fee_tot']:.2f} EUR)\n" \
+                          f"• Cassa media: {cassa['media_pct']:.0f}% (giorni ≥80%: {cassa['giorni_sopra_soglia']})\n"
+        except Exception as e:
+            print(f"⚠️ Sezione KPI del report fallita: {e}", flush=True)
+
         invia_telegram(msg_report)
         try:
             with open(file_flag_domenica, "w", encoding="utf-8") as f:
                 f.write(oggi)
         except: pass
+
+    # Allarme anti-cassa (solo notifica, max 1 al giorno)
+    controlla_allarme_cassa()
 
 # ==========================================
 # API COINBASE & MERCATO (CON CALCOLO ATR)
