@@ -1832,3 +1832,4 @@ Data_Ora,Pair,Prezzo_Pivot,EMA50,Saldo_EUR_Pool,Crypto_Posseduta,Trend_OK,RSI,Vo
 2026-11-28 07:40:52,BTC-EUR,54601.25,55048.06,288.49,0.00000,True,43.3,1.08,53509.22,55584.07,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder]"
 2026-11-28 07:50:53,LINK-EUR,8.39,8.47,288.49,4.19000,True,28.7,0.97,8.22,8.54,2.00,1.80,"Ripristino Ordine BUY 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
 2026-11-28 07:50:54,AVAX-EUR,5.98,6.06,288.49,0.00000,True,31.4,0.37,5.86,6.09,2.00,1.80,"Inizializzazione Griglia 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
+2026-11-28 08:20:53,LINK-EUR,8.37,8.47,288.49,4.19000,False,19.9,0.08,8.21,8.52,2.00,1.80,"Attivazione Circuit Breaker (Rottura ATR Floor) 🌊[Downtrend Buy Ladder] 🎯[Fast Harvesting: +1.8%]"
