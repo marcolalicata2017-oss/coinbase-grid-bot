@@ -126,7 +126,24 @@ class TestKpiFills(unittest.TestCase):
     def test_vendita_senza_lotto_non_esplode(self):
         fills = [fill(iso(1), side="SELL", size=5.0, price=1.0, fee=0.01)]
         k = bot.calcola_kpi_fills(fills, giorni=7)
-        self.assertAlmostEqual(k["pnl_tot"], -0.01, places=6)   # solo la fee
+        # costo sconosciuto: niente P/L, nemmeno la fee come perdita
+        self.assertAlmostEqual(k["pnl_tot"], 0.0, places=6)
+        self.assertEqual(k["vendite_senza_costo_7d"], 1)
+        self.assertAlmostEqual(k["valore_senza_costo_7d"], 5.0, places=6)
+
+    def test_vendita_parzialmente_abbinata(self):
+        # esempio di Marco: vendita 2 unità a 10€, un solo lotto noto a 9€, fee totale 1,50€
+        # -> P/L confermato solo sull'unità nota: 1*(10-9) - 0,75 (quota fee) = +0,25; l'altra unità sconosciuta
+        fills = [
+            fill(iso(2), side="BUY", size=1.0, price=9.0, fee=0.0),
+            fill(iso(1), side="SELL", size=2.0, price=10.0, fee=1.50),
+        ]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertAlmostEqual(k["pnl_tot"], 0.25, places=6)
+        self.assertAlmostEqual(k["pnl_7d"], 0.25, places=6)
+        self.assertEqual(k["vendite_parziali_7d"], 1)
+        self.assertEqual(k["vendite_senza_costo_7d"], 0)   # parziale non è "senza costo"
+        self.assertEqual(k["vendite_sotto_costo_7d"], 0)   # +0,25 non è una perdita
 
     def test_input_ordinato_da_solo(self):
         fills = [
@@ -274,6 +291,24 @@ class TestReportDomenicaleKpi(unittest.TestCase):
         self.assertIn("REPORT SETTIMANALE", msgs[0])
         self.assertIn("Fill: 0", msgs[0])             # KPI a zero ma report inviato
 
+    def test_report_dichiara_vendite_senza_costo(self):
+        from unittest import mock
+        msgs = []
+        self._setup_report(msgs)
+        # aggiungo una vendita senza lotto noto (es. crypto gia presente prima dello storico fill)
+        bot.client.fills_response["fills"].append(
+            {"trade_time": iso(0), "product_id": "SOL-EUR", "side": "SELL", "size": 0.5,
+             "price": 60.0, "commission": 0.10, "liquidity_indicator": "MAKER"})
+        class FakeDt(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 11, 22, 21, 0)
+        with mock.patch.object(bot, "datetime", FakeDt):
+            bot.traccia_portafoglio_giornaliero({"ADA-EUR": 1.0}, 700.0, {"ADA": 0.0}, {})
+        self.assertEqual(len(msgs), 1)
+        self.assertIn("Vendite senza costo noto: 1", msgs[0])
+        self.assertIn("+0.14 EUR", msgs[0])           # P/L invariato: la vendita ignota non lo tocca
+
 
 class TestVenditeSottoCosto(unittest.TestCase):
     def setUp(self): reset()
@@ -317,6 +352,29 @@ class TestVenditeSottoCosto(unittest.TestCase):
         self.assertEqual(k["vendite_sotto_costo_7d"], 1)
         self.assertEqual(k["vendite_sotto_costo_recenti"], [])
 
+    def test_vendita_senza_lotti_conta_sconosciuta(self):
+        fills = [fill(iso(0), side="SELL", size=5.0, price=0.5, fee=0.01)]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertEqual(k["vendite_senza_costo_7d"], 1)
+        self.assertAlmostEqual(k["valore_senza_costo_7d"], 2.5, places=6)
+        self.assertAlmostEqual(k["pnl_tot"], 0.0, places=6)   # fee non contata come perdita
+
+    def test_parziale_in_perdita_segnalata_solo_sulla_parte_nota(self):
+        # vendita 2 a 10€, lotto noto 1 a 11€, fee 1,50€ -> P/L confermato: -1 - 0,75 = -1,75
+        fills = [
+            fill(iso(2), side="BUY", size=1.0, price=11.0, fee=0.0),
+            fill(iso(1), side="SELL", size=2.0, price=10.0, fee=1.50),
+        ]
+        k = bot.calcola_kpi_fills(fills, giorni=7)
+        self.assertEqual(k["vendite_sotto_costo_7d"], 1)
+        self.assertAlmostEqual(k["perdita_sotto_costo_7d"], -1.75, places=6)
+        self.assertEqual(k["vendite_parziali_7d"], 1)
+        self.assertEqual(len(k["vendite_sotto_costo_recenti"]), 1)
+        v = k["vendite_sotto_costo_recenti"][0]
+        self.assertAlmostEqual(v["qta_abbinata"], 1.0, places=6)
+        self.assertAlmostEqual(v["size"], 2.0, places=6)
+        self.assertAlmostEqual(v["pnl"], -1.75, places=6)
+
     def test_carico_medio_lotti_aperti(self):
         fills = [
             fill(iso(3), side="BUY", size=10.0, price=1.00, fee=0.0),
@@ -350,6 +408,20 @@ class TestAvvisoSottoCosto(unittest.TestCase):
         self.assertIn("sotto costo", msgs[0])
         self.assertIn("NON blocca", msgs[0])
         self.assertTrue(os.path.exists(bot.FILE_FLAG_AVVISO_SC))
+
+    def test_avviso_parziale_lo_dichiara(self):
+        msgs = []
+        bot.invia_telegram = lambda m, *a, **k: msgs.append(m)
+        bot.client.fills_response = {"fills": [
+            {"trade_time": iso(1), "product_id": "ADA-EUR", "side": "BUY", "size": 1,
+             "price": 11.0, "commission": 0.0, "liquidity_indicator": "MAKER"},
+            {"trade_time": iso(0), "product_id": "ADA-EUR", "side": "SELL", "size": 2,
+             "price": 10.0, "commission": 1.5, "liquidity_indicator": "MAKER"},
+        ], "cursor": None}
+        bot.controlla_avviso_sotto_costo()
+        self.assertEqual(len(msgs), 1)
+        self.assertIn("-1.75 EUR", msgs[0])            # P/L solo sulla parte abbinata
+        self.assertIn("senza costo noto", msgs[0])     # parte non abbinata dichiarata
 
     def test_non_ripete_la_stessa_vendita(self):
         msgs = []
